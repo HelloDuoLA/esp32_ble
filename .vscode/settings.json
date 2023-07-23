@@ -1,0 +1,38 @@
+{
+    "MicroPython.executeButton": [
+        {
+            "text": "▶",
+            "tooltip": "运行",
+            "alignment": "left",
+            "command": "extension.executeFile",
+            "priority": 3.5
+        }
+    ],
+    "MicroPython.syncButton": [
+        {
+            "text": "$(sync)",
+            "tooltip": "同步",
+            "alignment": "left",
+            "command": "extension.execute",
+            "priority": 4
+        }
+    ],
+    "idf.portWin": "COM10",
+    "idf.adapterTargetName": "esp32s3",
+    "idf.openOcdConfigs": [
+        "interface/ftdi/esp32_devkitj_v1.cfg",
+        "target/esp32s3.cfg"
+    ],
+    "idf.flashType": "UART",
+    "files.associations": {
+        "sdmmc_cmd.h": "c",
+        "task.h": "c",
+        "socket.h": "c",
+        "freertos.h": "c",
+        "esp_system.h": "c",
+        "time.h": "c",
+        "stdio.h": "c",
+        "pika_config_valid.h": "c",
+        "ble_svc_gap.h": "c"
+    }
+}
