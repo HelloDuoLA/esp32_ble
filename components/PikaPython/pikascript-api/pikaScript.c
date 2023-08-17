@@ -35,12 +35,12 @@ PikaObj *pikaScriptInit(void){
             "import mytest\n"
             "print('hello PikaPython')\n"
             "a = bluetooth.BLE()\n"
-            "a.active()\n"
-            "mem = PikaStdLib.MemChecker()\n"
-            "print('mem used max:')\n"
-            "mem.max()\n"
-            "print('mem used now:')\n"
-            "mem.now()\n"
+            "# a.active()\n"
+            "# mem = PikaStdLib.MemChecker()\n"
+            "# print('mem used max:')\n"
+            "# mem.max()\n"
+            "# print('mem used now:')\n"
+            "# mem.now()\n"
             "\n");
 #else 
     obj_runModule((PikaObj*)pikaMain, "main");

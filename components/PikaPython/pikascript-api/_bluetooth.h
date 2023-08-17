@@ -9,14 +9,14 @@
  * https://pikadoc.readthedocs.io/zh/latest/PikaScript%20%E6%A8%A1%E5%9D%97%E6%A6%82%E8%BF%B0.html
  */
 
-#ifndef __bluetooth__H
-#define __bluetooth__H
+#ifndef ___bluetooth__H
+#define ___bluetooth__H
 #include <stdio.h>
 #include <stdlib.h>
 #include "PikaObj.h"
 
-PikaObj *New_bluetooth(Args *args);
+PikaObj *New__bluetooth(Args *args);
 
-Arg* bluetooth_BLE(PikaObj *self);
+Arg* _bluetooth_BLE(PikaObj *self);
 
 #endif

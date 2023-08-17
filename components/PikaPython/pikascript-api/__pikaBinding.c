@@ -22,8 +22,8 @@
 #include "PikaStdLib_SysObj.h"
 #include "PikaStdDevice.h"
 #include "PikaStdLib.h"
+#include "_bluetooth.h"
 #include "_time.h"
-#include "bluetooth.h"
 #include "mytest.h"
 #include "PikaStdData.h"
 #include "TinyObj.h"
@@ -80,11 +80,11 @@
 #include "PikaStdTask_Task.h"
 #include "PikaStdLib_SysObj.h"
 #include "PikaStdData_List.h"
+#include "_bluetooth.h"
+#include "TinyObj.h"
+#include "_bluetooth_BLE.h"
+#include "TinyObj.h"
 #include "_time.h"
-#include "TinyObj.h"
-#include "bluetooth.h"
-#include "TinyObj.h"
-#include "bluetooth_BLE.h"
 #include "TinyObj.h"
 #include "mytest.h"
 #include "TinyObj.h"
@@ -174,8 +174,8 @@ PikaObj *New_PikaMain(Args *args){
     PikaObj *self = New_PikaStdLib_SysObj(args);
     obj_newObj(self, "PikaStdDevice", "PikaStdDevice", New_PikaStdDevice);
     obj_newObj(self, "PikaStdLib", "PikaStdLib", New_PikaStdLib);
+    obj_newObj(self, "_bluetooth", "_bluetooth", New__bluetooth);
     obj_newObj(self, "_time", "_time", New__time);
-    obj_newObj(self, "bluetooth", "bluetooth", New_bluetooth);
     obj_newObj(self, "mytest", "mytest", New_mytest);
     obj_setClass(self, PikaMain);
     return self;
@@ -3595,6 +3595,184 @@ Arg *PikaStdTask_Task(PikaObj *self){
 }
 #endif
 
+#ifndef PIKA_MODULE__BLUETOOTH_DISABLE
+void _bluetooth_BLEMethod(PikaObj *self, Args *args){
+    Arg* res = _bluetooth_BLE(self);
+    method_returnArg(args, res);
+}
+method_typedef(
+    _bluetooth_BLE,
+    "BLE", ""
+);
+
+class_def(_bluetooth){
+    __BEFORE_MOETHOD_DEF
+    constructor_def(_bluetooth_BLE, 193451448),
+};
+class_inhert(_bluetooth, TinyObj);
+
+PikaObj *New__bluetooth(Args *args){
+    PikaObj *self = New_TinyObj(args);
+    obj_setClass(self, _bluetooth);
+    return self;
+}
+#endif
+
+#ifndef PIKA_MODULE__BLUETOOTH_DISABLE
+void _bluetooth_BLE___init__Method(PikaObj *self, Args *args){
+    PikaObj* res = _bluetooth_BLE___init__(self);
+    method_returnObj(args, res);
+}
+method_typedef(
+    _bluetooth_BLE___init__,
+    "__init__", ""
+);
+
+void _bluetooth_BLE_activeMethod(PikaObj *self, Args *args){
+    _bluetooth_BLE_active(self);
+}
+method_typedef(
+    _bluetooth_BLE_active,
+    "active", ""
+);
+
+void _bluetooth_BLE_gap_advertiseMethod(PikaObj *self, Args *args){
+    _bluetooth_BLE_gap_advertise(self);
+}
+method_typedef(
+    _bluetooth_BLE_gap_advertise,
+    "gap_advertise", ""
+);
+
+void _bluetooth_BLE_gap_connectMethod(PikaObj *self, Args *args){
+    int addr_type = args_getInt(args, "addr_type");
+    char* addr = args_getStr(args, "addr");
+    int64_t scan_duration_ms = args_getInt(args, "scan_duration_ms");
+    int res = _bluetooth_BLE_gap_connect(self, addr_type, addr, scan_duration_ms);
+    method_returnInt(args, res);
+}
+method_typedef(
+    _bluetooth_BLE_gap_connect,
+    "gap_connect", "addr_type,addr,scan_duration_ms"
+);
+
+void _bluetooth_BLE_gap_disconnectMethod(PikaObj *self, Args *args){
+    int res = _bluetooth_BLE_gap_disconnect(self);
+    method_returnInt(args, res);
+}
+method_typedef(
+    _bluetooth_BLE_gap_disconnect,
+    "gap_disconnect", ""
+);
+
+void _bluetooth_BLE_gap_scanMethod(PikaObj *self, Args *args){
+    int duration_ms = args_getInt(args, "duration_ms");
+    int interval_us = args_getInt(args, "interval_us");
+    int window_us = args_getInt(args, "window_us");
+    PIKA_BOOL active = args_getBool(args, "active");
+    int res = _bluetooth_BLE_gap_scan(self, duration_ms, interval_us, window_us, active);
+    method_returnInt(args, res);
+}
+method_typedef(
+    _bluetooth_BLE_gap_scan,
+    "gap_scan", "duration_ms,interval_us,window_us,active"
+);
+
+void _bluetooth_BLE_gap_stop_scanMethod(PikaObj *self, Args *args){
+    int res = _bluetooth_BLE_gap_stop_scan(self);
+    method_returnInt(args, res);
+}
+method_typedef(
+    _bluetooth_BLE_gap_stop_scan,
+    "gap_stop_scan", ""
+);
+
+void _bluetooth_BLE_initMethod(PikaObj *self, Args *args){
+    _bluetooth_BLE_init(self);
+}
+method_typedef(
+    _bluetooth_BLE_init,
+    "init", ""
+);
+
+void _bluetooth_BLE_register_a_serviceMethod(PikaObj *self, Args *args){
+    PikaObj* service_info = args_getPtr(args, "service_info");
+    int res = _bluetooth_BLE_register_a_service(self, service_info);
+    method_returnInt(args, res);
+}
+method_typedef(
+    _bluetooth_BLE_register_a_service,
+    "register_a_service", "service_info"
+);
+
+void _bluetooth_BLE_set_adv_dataMethod(PikaObj *self, Args *args){
+    char* data = args_getStr(args, "data");
+    int data_len = args_getInt(args, "data_len");
+    int res = _bluetooth_BLE_set_adv_data(self, data, data_len);
+    method_returnInt(args, res);
+}
+method_typedef(
+    _bluetooth_BLE_set_adv_data,
+    "set_adv_data", "data,data_len"
+);
+
+void _bluetooth_BLE_set_rsp_dataMethod(PikaObj *self, Args *args){
+    char* data = args_getStr(args, "data");
+    int data_len = args_getInt(args, "data_len");
+    int res = _bluetooth_BLE_set_rsp_data(self, data, data_len);
+    method_returnInt(args, res);
+}
+method_typedef(
+    _bluetooth_BLE_set_rsp_data,
+    "set_rsp_data", "data,data_len"
+);
+
+void _bluetooth_BLE_stop_advertiseMethod(PikaObj *self, Args *args){
+    int res = _bluetooth_BLE_stop_advertise(self);
+    method_returnInt(args, res);
+}
+method_typedef(
+    _bluetooth_BLE_stop_advertise,
+    "stop_advertise", ""
+);
+
+void _bluetooth_BLE_testMethod(PikaObj *self, Args *args){
+    _bluetooth_BLE_test(self);
+}
+method_typedef(
+    _bluetooth_BLE_test,
+    "test", ""
+);
+
+class_def(_bluetooth_BLE){
+    __BEFORE_MOETHOD_DEF
+    method_def(_bluetooth_BLE_gap_connect, 239981286),
+    method_def(_bluetooth_BLE_gap_stop_scan, 257876614),
+    method_def(_bluetooth_BLE_stop_advertise, 259007825),
+    method_def(_bluetooth_BLE_gap_advertise, 487130755),
+    method_def(_bluetooth_BLE_gap_disconnect, 714357958),
+    method_def(_bluetooth_BLE_set_adv_data, 862102692),
+    method_def(_bluetooth_BLE___init__, 904762485),
+    method_def(_bluetooth_BLE_gap_scan, 1094358433),
+    method_def(_bluetooth_BLE_register_a_service, 1446124378),
+    method_def(_bluetooth_BLE_set_rsp_data, 1483498270),
+    method_def(_bluetooth_BLE_active, 1902398945),
+    method_def(_bluetooth_BLE_init, 2090370361),
+    method_def(_bluetooth_BLE_test, 2090756197),
+};
+class_inhert(_bluetooth_BLE, TinyObj);
+
+PikaObj *New__bluetooth_BLE(Args *args){
+    PikaObj *self = New_TinyObj(args);
+    obj_setClass(self, _bluetooth_BLE);
+    return self;
+}
+
+Arg *_bluetooth_BLE(PikaObj *self){
+    return obj_newObjInPackage(New__bluetooth_BLE);
+}
+#endif
+
 #ifndef PIKA_MODULE__TIME_DISABLE
 void _time___init__Method(PikaObj *self, Args *args){
     _time___init__(self);
@@ -3728,82 +3906,6 @@ PikaObj *New__time(Args *args){
     PikaObj *self = New_TinyObj(args);
     obj_setClass(self, _time);
     return self;
-}
-#endif
-
-#ifndef PIKA_MODULE_BLUETOOTH_DISABLE
-void bluetooth_BLEMethod(PikaObj *self, Args *args){
-    Arg* res = bluetooth_BLE(self);
-    method_returnArg(args, res);
-}
-method_typedef(
-    bluetooth_BLE,
-    "BLE", ""
-);
-
-class_def(bluetooth){
-    __BEFORE_MOETHOD_DEF
-    constructor_def(bluetooth_BLE, 193451448),
-};
-class_inhert(bluetooth, TinyObj);
-
-PikaObj *New_bluetooth(Args *args){
-    PikaObj *self = New_TinyObj(args);
-    obj_setClass(self, bluetooth);
-    return self;
-}
-#endif
-
-#ifndef PIKA_MODULE_BLUETOOTH_DISABLE
-void bluetooth_BLE_activeMethod(PikaObj *self, Args *args){
-    bluetooth_BLE_active(self);
-}
-method_typedef(
-    bluetooth_BLE_active,
-    "active", ""
-);
-
-void bluetooth_BLE_gap_advertiseMethod(PikaObj *self, Args *args){
-    bluetooth_BLE_gap_advertise(self);
-}
-method_typedef(
-    bluetooth_BLE_gap_advertise,
-    "gap_advertise", ""
-);
-
-void bluetooth_BLE_initMethod(PikaObj *self, Args *args){
-    bluetooth_BLE_init(self);
-}
-method_typedef(
-    bluetooth_BLE_init,
-    "init", ""
-);
-
-void bluetooth_BLE_testMethod(PikaObj *self, Args *args){
-    bluetooth_BLE_test(self);
-}
-method_typedef(
-    bluetooth_BLE_test,
-    "test", ""
-);
-
-class_def(bluetooth_BLE){
-    __BEFORE_MOETHOD_DEF
-    method_def(bluetooth_BLE_gap_advertise, 487130755),
-    method_def(bluetooth_BLE_active, 1902398945),
-    method_def(bluetooth_BLE_init, 2090370361),
-    method_def(bluetooth_BLE_test, 2090756197),
-};
-class_inhert(bluetooth_BLE, TinyObj);
-
-PikaObj *New_bluetooth_BLE(Args *args){
-    PikaObj *self = New_TinyObj(args);
-    obj_setClass(self, bluetooth_BLE);
-    return self;
-}
-
-Arg *bluetooth_BLE(PikaObj *self){
-    return obj_newObjInPackage(New_bluetooth_BLE);
 }
 #endif
 

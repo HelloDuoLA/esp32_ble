@@ -17,7 +17,7 @@
             "priority": 4
         }
     ],
-    "idf.portWin": "COM10",
+    "idf.portWin": "COM31",
     "idf.adapterTargetName": "esp32s3",
     "idf.openOcdConfigs": [
         "interface/ftdi/esp32_devkitj_v1.cfg",
@@ -25,6 +25,9 @@
     ],
     "idf.flashType": "UART",
     "files.associations": {
+        "*.cjson": "jsonc",
+        "*.wxss": "css",
+        "*.wxs": "javascript",
         "sdmmc_cmd.h": "c",
         "task.h": "c",
         "socket.h": "c",
@@ -33,6 +36,13 @@
         "time.h": "c",
         "stdio.h": "c",
         "pika_config_valid.h": "c",
-        "ble_svc_gap.h": "c"
+        "ble_svc_gap.h": "c",
+        "pikascript.h": "c",
+        "pika_hal.h": "c",
+        "deque": "c",
+        "list": "c",
+        "queue": "c",
+        "vector": "c",
+        "xstring": "c"
     }
 }

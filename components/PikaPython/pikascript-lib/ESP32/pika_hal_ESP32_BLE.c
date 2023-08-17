@@ -9,10 +9,14 @@
 
 #define printf __platform_printf
 
-void bluetooth_BLE_active(PikaObj *self)
+void _bluetooth_BLE___init__(PikaObj *self)
 {
-    printf("active BLE\r\n");
+    printf("Init BLE");
+}
 
+void _bluetooth_BLE_active(PikaObj *self)
+{
+    printf("Active BLE\r\n");
     /* Initialize NVS — it is used to store PHY calibration data */
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -30,17 +34,73 @@ void bluetooth_BLE_active(PikaObj *self)
     // ble_hs_cfg.reset_cb = blehr_on_reset;// host 致命错误 reset 时回调
 }
 
-void bluetooth_BLE_init(PikaObj *self)
+void _bluetooth_BLE_init(PikaObj *self)
 {
     printf("init pikapython BLE");
 }
 
-void bluetooth_BLE_test(PikaObj *self)
+void _bluetooth_BLE_test(PikaObj *self)
 {
     printf("test");
 }
 
-void bluetooth_BLE_gap_advertise(PikaObj *self)
+void _bluetooth_BLE_gap_advertise(PikaObj *self)
 {
     printf("gap_advertise");
+}
+
+int _bluetooth_BLE_gap_connect(PikaObj *self, int addr_type, char* addr, int64_t scan_duration_ms)
+{
+    printf("_bluetooth_BLE_gap_connect\r\n");
+    return ble_gap_connect((uint8_t)addr_type,(ble_addr_t *)addr,scan_duration_ms,NULL,NULL,NULL);
+}
+
+int _bluetooth_BLE_gap_disconnect(PikaObj *self)
+{
+    printf("_bluetooth_BLE_gap_disconnect\r\n");
+    return ble_gap_conn_cancel();
+}
+
+int _bluetooth_BLE_gap_scan(PikaObj *self, int duration_ms, int interval_us, int window_us, PIKA_BOOL active)
+{
+    printf("_bluetooth_BLE_gap_scan\r\n");
+    struct ble_gap_disc_params *disc_params;
+    disc_params = (struct ble_gap_disc_params*)malloc(sizeof(struct ble_gap_disc_params));
+    disc_params->itvl = duration_ms / 0.625;
+    disc_params->window = interval_us / 625;
+    disc_params->filter_policy = BLE_HCI_SCAN_FILT_NO_WL;
+    disc_params->passive = ~active;
+    return ble_gap_disc(BLE_ADDR_PUBLIC, duration_ms, disc_params, NULL, NULL);
+    // TODO:BLE_ADDR_TYPE_PUBLIC 与 BLE_ADDR_PUBLIC有无区别
+}
+
+int _bluetooth_BLE_gap_stop_scan(PikaObj *self)
+{
+    printf("_bluetooth_BLE_gap_stop_scan\r\n");
+    return ble_gap_disc_cancel();
+}
+
+int _bluetooth_BLE_stop_advertise(PikaObj *self)
+{
+    printf("stop_advertise");
+    return ble_gap_adv_stop();
+}
+
+// TODO:服务的内容该如何传递
+int _bluetooth_BLE_register_a_service(PikaObj *self, PikaObj* service_info)
+{
+    printf("_bluetooth_BLE_register_a_service");
+    return 0;
+}
+
+int _bluetooth_BLE_set_adv_data(PikaObj *self, char* data, int data_len)
+{
+    printf("_bluetooth_BLE_set_adv_data\r\n");
+    return ble_gap_adv_set_data((uint8_t*)data,data_len);
+}
+
+int _bluetooth_BLE_set_rsp_data(PikaObj *self, char* data, int data_len)
+{
+    printf("_bluetooth_BLE_set_rsp_data\r\n");
+    return ble_gap_adv_rsp_set_data((uint8_t*)data,data_len);
 }
