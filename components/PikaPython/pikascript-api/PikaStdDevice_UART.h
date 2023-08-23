@@ -4,9 +4,9 @@
  * The source code is *.pyi file.
  * More details: 
  * English Doc:
- * https://pikadoc.readthedocs.io/en/latest/PikaScript%20%E6%A8%A1%E5%9D%97%E6%A6%82%E8%BF%B0.html
+ * https://pikadoc-en.readthedocs.io/en/latest/PikaScript%20%E6%A8%A1%E5%9D%97%E6%A6%82%E8%BF%B0.html
  * Chinese Doc:
- * https://pikadoc.readthedocs.io/zh/latest/PikaScript%20%E6%A8%A1%E5%9D%97%E6%A6%82%E8%BF%B0.html
+ * http://pikapython.com/doc/PikaScript%20%E6%A8%A1%E5%9D%97%E6%A6%82%E8%BF%B0.html
  */
 
 #ifndef __PikaStdDevice_UART__H
@@ -31,6 +31,7 @@ char* PikaStdDevice_UART_read(PikaObj *self, int length);
 Arg* PikaStdDevice_UART_readBytes(PikaObj *self, int length);
 void PikaStdDevice_UART_setBaudRate(PikaObj *self, int baudRate);
 void PikaStdDevice_UART_setCallBack(PikaObj *self, Arg* eventCallBack, int filter);
+void PikaStdDevice_UART_setCallback(PikaObj *self, Arg* eventCallBack, int filter);
 void PikaStdDevice_UART_setDataBits(PikaObj *self, int dataBits);
 void PikaStdDevice_UART_setFlowControl(PikaObj *self, int flowControl);
 void PikaStdDevice_UART_setId(PikaObj *self, int id);

@@ -4,26 +4,29 @@
  *
  * MIT License
  *
- * Copyright (c) 2021 lyon 李昂 liang6516@outlook.com
+ * Copyright (c) 2021 lyon liang6516@outlook.com
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  */
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef __PIKA_VM__H
 #define __PIKA_VM__H
@@ -81,10 +84,11 @@ struct VMState {
     uint8_t line_error_code;
     uint8_t try_error_code;
     uint32_t ins_cnt;
-    PIKA_BOOL in_super;
+    pika_bool in_super;
     uint8_t super_invoke_deepth;
     RunState* run_state;
-    PIKA_BOOL ireg[PIKA_REGIST_SIZE];
+    pika_bool ireg[PIKA_REGIST_SIZE];
+    PikaObj* oreg[16];
 };
 
 typedef struct {
@@ -94,9 +98,9 @@ typedef struct {
     int8_t n_arg;
     int8_t i_arg;
     int8_t n_input;
-    PIKA_BOOL is_vars;
-    PIKA_BOOL is_keys;
-    PIKA_BOOL is_default;
+    pika_bool is_vars;
+    pika_bool is_keys;
+    pika_bool is_default;
     ArgType method_type;
     PikaTuple* tuple;
     PikaDict* kw;
@@ -118,7 +122,7 @@ struct OperatorInfo {
     int64_t i1;
     int64_t i2;
     Arg* res;
-    int num;
+    uint32_t num;
     VMState* vm;
 };
 
@@ -130,7 +134,7 @@ typedef enum VM_SIGNAL_CTRL {
 typedef struct EventCQ {
     uint32_t id[PIKA_EVENT_LIST_SIZE];
     Arg* data[PIKA_EVENT_LIST_SIZE];
-    PikaEventListener* lisener[PIKA_EVENT_LIST_SIZE];
+    PikaEventListener* listener[PIKA_EVENT_LIST_SIZE];
     Arg* res[PIKA_EVENT_LIST_SIZE];
     int head;
     int tail;
@@ -151,7 +155,9 @@ struct VMSignal {
 #if PIKA_EVENT_ENABLE
     EventCQ cq;
     int event_pickup_cnt;
-    int event_thread_inited;
+    pika_platform_thread_t* event_thread;
+    pika_bool event_thread_exit;
+    pika_bool event_thread_exit_done;
 #endif
 };
 
@@ -259,7 +265,19 @@ void constPool_print(ConstPool* self);
 void byteCodeFrame_init(ByteCodeFrame* bf);
 void byteCodeFrame_deinit(ByteCodeFrame* bf);
 size_t byteCodeFrame_getSize(ByteCodeFrame* bf);
-
+InstructUnit* byteCodeFrame_findInstructUnit(ByteCodeFrame* bcframe,
+                                             int32_t iPcStart,
+                                             enum InstructIndex index,
+                                             int32_t* iOffset_p,
+                                             pika_bool bIsForward);
+InstructUnit* byteCodeFrame_findInsUnitBackward(ByteCodeFrame* bcframe,
+                                                int32_t pc_start,
+                                                enum InstructIndex index,
+                                                int32_t* p_offset);
+InstructUnit* byteCodeFrame_findInsForward(ByteCodeFrame* bcframe,
+                                           int32_t pc_start,
+                                           enum InstructIndex index,
+                                           int32_t* p_offset);
 void instructArray_init(InstructArray* ins_array);
 void instructArray_deinit(InstructArray* ins_array);
 void instructArray_append(InstructArray* ins_array, InstructUnit* ins_unit);
@@ -311,7 +329,7 @@ void instructArray_printAsArray(InstructArray* self);
 void byteCodeFrame_loadByteCode(ByteCodeFrame* self, uint8_t* bytes);
 void byteCodeFrame_printAsArray(ByteCodeFrame* self);
 void byteCodeFrame_init(ByteCodeFrame* self);
-PIKA_BOOL pikaVM_registerInstructionSet(VMInstructionSet* ins_set);
+pika_bool pikaVM_registerInstructionSet(VMInstructionSet* ins_set);
 VMParameters* pikaVM_runByteCode(PikaObj* self, const uint8_t* bytecode);
 VMParameters* pikaVM_runByteCodeInconstant(PikaObj* self, uint8_t* bytecode);
 Arg* pikaVM_runByteCodeReturn(PikaObj* self,
@@ -322,7 +340,7 @@ Arg* _do_pikaVM_runByteCodeReturn(PikaObj* self,
                                   VMParameters* globals,
                                   uint8_t* bytecode,
                                   RunState* run_state,
-                                  PIKA_BOOL is_const_bytecode,
+                                  pika_bool is_const_bytecode,
                                   char* return_name);
 InstructUnit* instructArray_getNow(InstructArray* self);
 InstructUnit* instructArray_getNext(InstructArray* self);
@@ -341,18 +359,14 @@ VMParameters* _do_pikaVM_runByteCode(PikaObj* self,
                                      VMParameters* globals,
                                      uint8_t* bytecode,
                                      RunState* run_state,
-                                     PIKA_BOOL is_const_bytecode);
+                                     pika_bool is_const_bytecode);
 void _do_byteCodeFrame_loadByteCode(ByteCodeFrame* self,
                                     uint8_t* bytes,
-                                    PIKA_BOOL is_const);
+                                    pika_bool is_const);
 Arg* _vm_get(VMState* vm, PikaObj* self, Arg* key, Arg* obj);
-void __vm_List_append(PikaObj* self, Arg* arg);
-void __vm_List___init__(PikaObj* self);
-void __vm_Dict_set(PikaObj* self, Arg* arg, char* key);
-void __vm_Dict___init__(PikaObj* self);
 VM_SIGNAL_CTRL VMSignal_getCtrl(void);
-void pks_vm_exit(void);
-void pks_vmSignal_setCtrlElear(void);
+void pika_vm_exit(void);
+void pika_vmSignal_setCtrlClear(void);
 PIKA_RES __eventListener_popEvent(PikaEventListener** lisener_p,
                                   uint32_t* id,
                                   Arg** signal,
@@ -361,13 +375,19 @@ PIKA_RES __eventListener_pushEvent(PikaEventListener* lisener,
                                    uint32_t eventId,
                                    Arg* eventData);
 int _VMEvent_getVMCnt(void);
-void _VMEvent_pickupEvent(void);
+void __VMEvent_pickupEvent(char* info);
 void _pikaVM_yield(void);
 int _VM_lock_init(void);
 int _VM_is_first_lock(void);
+
+#define _VMEvent_pickupEvent() __VMEvent_pickupEvent(__FILE__)
 
 typedef struct {
     PikaObj* lreg[PIKA_REGIST_SIZE];
 } VMLocals;
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif

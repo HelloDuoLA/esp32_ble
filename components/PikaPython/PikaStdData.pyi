@@ -1,4 +1,5 @@
 from PikaObj import *
+import builtins
 
 
 class Tuple:
@@ -39,7 +40,7 @@ class List(Tuple):
     def reverse(self):
         """reverse the list"""
 
-    def pop(self) -> any:
+    def pop(self, *index) -> any:
         """pop the last element"""
 
     def remove(self, val: any):
@@ -130,29 +131,16 @@ class String:
     def isalnum(self) -> int: ...
     def isalpha(self) -> int: ...
     def isspace(self) -> int: ...
-    def split(self, s: str) -> List: ...
+    def split(self, *s) -> List: ...
     def replace(self, old: str, new: str) -> str: ...
     def strip(self, *chrs) -> str: ...
     def format(self, *vars) -> str: ...
     def join(self, val: any) -> str: ...
+    def find(self, sub: str) -> int: ...
 
 
-class ByteArray:
-    def __init__(self, bytes: any):
-        """ convert a bytes to ByteArray """
-
-    def __iter__(self) -> any:
-        """ support for loop """
-
-    def __next__(self) -> any:
-        """ support for loop """
-
-    def __getitem__(self, __key: int) -> int:
-        """ support [] index """
-
-    def __setitem__(self, __key: int, __val: int): ...
-    def __str__(self) -> str: ...
-    def decode(self) -> str: ...
+class ByteArray(builtins.bytearray):
+    pass
 
 
 class FILEIO:

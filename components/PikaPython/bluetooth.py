@@ -6,23 +6,41 @@ class BLE(_bluetooth.BLE):
     last_resp_data = ""  #回应扫描内容
     addr_mode = ""       #地址类型
     def __init__(self) -> None:
-        super().__init__()
+        # super().__init__()
+        pass
 
     def test():
         pass
     
-    def init():
-        pass
     
     def active(self):
         super.active()
     
     def config(self,param_name, /):
-        pass
+        if(param_name=="mac"):
+            pass
+        elif(param_name=="addr_mode"):
+            pass
+        elif(param_name=="gap_name"):
+            pass
+        elif(param_name=="rxbuf"):
+            pass
+        elif(param_name=="mtu"):
+            pass
+        elif(param_name=="bond"):
+            pass
+        elif(param_name=="mitm"):
+            pass
+        elif(param_name=="io"):
+            pass
+        elif(param_name=="le_secire"):
+            pass
+        else:
+            print("there is not params")
 
     def config(self,*, mac,addr_mode,gap_name,rxbuf,mtu,bond,mitm,io,le_secire=False):
-
-        pass
+        if gap_name != None:
+            super.config_name_update(gap_name)
     
     # TODO:如何进行事件处理函数
     def irq():

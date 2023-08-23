@@ -6,9 +6,6 @@ class BLE:
     def test(self):
         pass
     
-    def init():
-        pass
-    
     def active(self):
         pass
     
@@ -43,6 +40,9 @@ class BLE:
         pass
 
     def gap_scan(self, duration_ms:int, interval_us:int, window_us:int, active:bool) -> int:
+        pass
+
+    def config_name_update(gap_name:str) -> int:
         pass
 
 

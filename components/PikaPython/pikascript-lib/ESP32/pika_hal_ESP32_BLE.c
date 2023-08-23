@@ -1,6 +1,7 @@
 #include "pikaScript.h"
 #include "nimble/nimble_port.h"
 #include "nimble/nimble_port_freertos.h"
+// #include "nimble/host/include/host/ble_gap.h"
 #include "host/ble_hs.h"
 #include "host/util/util.h"
 #include "services/gap/ble_svc_gap.h"
@@ -32,11 +33,6 @@ void _bluetooth_BLE_active(PikaObj *self)
     }
     // ble_hs_cfg.sync_cb = blehr_on_sync;//在启动和重置后 host and controller 同步时 回调
     // ble_hs_cfg.reset_cb = blehr_on_reset;// host 致命错误 reset 时回调
-}
-
-void _bluetooth_BLE_init(PikaObj *self)
-{
-    printf("init pikapython BLE");
 }
 
 void _bluetooth_BLE_test(PikaObj *self)
@@ -103,4 +99,13 @@ int _bluetooth_BLE_set_rsp_data(PikaObj *self, char* data, int data_len)
 {
     printf("_bluetooth_BLE_set_rsp_data\r\n");
     return ble_gap_adv_rsp_set_data((uint8_t*)data,data_len);
+}
+
+int _bluetooth_BLE_config_name_update(PikaObj *self, char* gap_name)
+{
+    struct ble_hs_adv_fields *adv_fields;
+    adv_fields = (struct ble_hs_adv_fields*)malloc(sizeof(struct ble_hs_adv_fields));
+    adv_fields->name = (unsigned char *)gap_name;
+    // adv_fields->name_is_complete
+    return ble_gap_adv_set_fields(adv_fields);
 }

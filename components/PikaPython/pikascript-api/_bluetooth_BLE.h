@@ -4,9 +4,9 @@
  * The source code is *.pyi file.
  * More details: 
  * English Doc:
- * https://pikadoc.readthedocs.io/en/latest/PikaScript%20%E6%A8%A1%E5%9D%97%E6%A6%82%E8%BF%B0.html
+ * https://pikadoc-en.readthedocs.io/en/latest/PikaScript%20%E6%A8%A1%E5%9D%97%E6%A6%82%E8%BF%B0.html
  * Chinese Doc:
- * https://pikadoc.readthedocs.io/zh/latest/PikaScript%20%E6%A8%A1%E5%9D%97%E6%A6%82%E8%BF%B0.html
+ * http://pikapython.com/doc/PikaScript%20%E6%A8%A1%E5%9D%97%E6%A6%82%E8%BF%B0.html
  */
 
 #ifndef ___bluetooth_BLE__H
@@ -19,12 +19,12 @@ PikaObj *New__bluetooth_BLE(Args *args);
 
 PikaObj* _bluetooth_BLE___init__(PikaObj *self);
 void _bluetooth_BLE_active(PikaObj *self);
+int _bluetooth_BLE_config_name_update(PikaObj *self, char* gap_name);
 void _bluetooth_BLE_gap_advertise(PikaObj *self);
 int _bluetooth_BLE_gap_connect(PikaObj *self, int addr_type, char* addr, int64_t scan_duration_ms);
 int _bluetooth_BLE_gap_disconnect(PikaObj *self);
-int _bluetooth_BLE_gap_scan(PikaObj *self, int duration_ms, int interval_us, int window_us, PIKA_BOOL active);
+int _bluetooth_BLE_gap_scan(PikaObj *self, int duration_ms, int interval_us, int window_us, pika_bool active);
 int _bluetooth_BLE_gap_stop_scan(PikaObj *self);
-void _bluetooth_BLE_init(PikaObj *self);
 int _bluetooth_BLE_register_a_service(PikaObj *self, PikaObj* service_info);
 int _bluetooth_BLE_set_adv_data(PikaObj *self, char* data, int data_len);
 int _bluetooth_BLE_set_rsp_data(PikaObj *self, char* data, int data_len);

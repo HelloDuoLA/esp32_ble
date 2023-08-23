@@ -5,7 +5,7 @@ PikaStdDevice is a standard and abstract device module for PikaScript.
 
 PikaStdDevice supplies the standard device API for users.
 
-Document: https://pikadoc.readthedocs.io/en/latest/PikaStdDevice%20%E6%A0%87%E5%87%86%E8%AE%BE%E5%A4%87.html
+Document: https://pikadoc-en.readthedocs.io/en/latest/PikaStdDevice%20%E6%A0%87%E5%87%86%E8%AE%BE%E5%A4%87.html
 
 """
 from PikaObj import *
@@ -74,7 +74,7 @@ class GPIO(BaseDev):
     SIGNAL_FALLING: int
     SIGNAL_ANY: int
 
-    def setCallBack(self, eventCallBack: any, filter: int):
+    def setCallback(self, eventCallBack: any, filter: int):
         """
         Add a callback function to the pin.
         Example: 
@@ -85,6 +85,11 @@ class GPIO(BaseDev):
         ```
         The `signal` parameter is the signal type.
         The callback function will be called when the signal is triggered.
+        """
+
+    def setCallBack(self, eventCallBack: any, filter: int):
+        """
+        deprecated, you can use `setCallback` instead.
         """
 
     def close(self): ...
@@ -234,7 +239,7 @@ class UART:
     SIGNAL_RX: int
     SIGNAL_TX: int
 
-    def setCallBack(self, eventCallBack: any, filter: int):
+    def setCallback(self, eventCallBack: any, filter: int):
         """
         Add a callback function to the pin.
         Example: 
@@ -243,6 +248,11 @@ class UART:
             print(uart.read(-1))
         io.setCallBack(cb1, uart.SIGNAL_RX)
         ```
+        """
+
+    def setCallBack(self, eventCallBack: any, filter: int):
+        """
+        deprecated, you can use `setCallback` instead.
         """
 
     @abstractmethod
@@ -502,8 +512,11 @@ class CAN(BaseDev):
 
 class BaseDev:
     @PIKA_C_MACRO_IF("PIKA_EVENT_ENABLE")
-    def addEventCallBack(self, eventCallback: any):
+    def addEventCallback(self, eventCallback: any):
         """ Add an event callback. """
+
+    def addEventCallBack(self, eventCallback: any):
+        """ deprecated, use addEventCallback instead. """
 
     @abstractmethod
     @PIKA_C_MACRO_IF("PIKA_EVENT_ENABLE")

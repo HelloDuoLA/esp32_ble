@@ -4,9 +4,9 @@
  * The source code is *.pyi file.
  * More details: 
  * English Doc:
- * https://pikadoc.readthedocs.io/en/latest/PikaScript%20%E6%A8%A1%E5%9D%97%E6%A6%82%E8%BF%B0.html
+ * https://pikadoc-en.readthedocs.io/en/latest/PikaScript%20%E6%A8%A1%E5%9D%97%E6%A6%82%E8%BF%B0.html
  * Chinese Doc:
- * https://pikadoc.readthedocs.io/zh/latest/PikaScript%20%E6%A8%A1%E5%9D%97%E6%A6%82%E8%BF%B0.html
+ * http://pikapython.com/doc/PikaScript%20%E6%A8%A1%E5%9D%97%E6%A6%82%E8%BF%B0.html
  */
 
 #include "PikaMain.h"
@@ -14,15 +14,16 @@
 #include <stdlib.h>
 
 volatile PikaObj *__pikaMain;
-PikaObj *pikaScriptInit(void){
-    __platform_printf("======[pikascript packages installed]======\r\n");
-    pks_printVersion();
-    __platform_printf("ESP32==v0.4.0\r\n");
-    __platform_printf("PikaStdDevice==v2.3.7\r\n");
-    __platform_printf("PikaStdLib==v1.12.1\r\n");
-    __platform_printf("pika_libc==v1.0.2\r\n");
-    __platform_printf("time==v0.1.4\r\n");
-    __platform_printf("===========================================\r\n");
+PikaObj *pikaPythonInit(void){
+    pika_platform_printf("======[pikapython packages installed]======\r\n");
+    pika_printVersion();
+    pika_platform_printf("ESP32==v0.4.2\r\n");
+    pika_platform_printf("PikaStdDevice==v2.4.0\r\n");
+    pika_platform_printf("PikaStdLib==v1.12.5\r\n");
+    pika_platform_printf("network==v0.1.3\r\n");
+    pika_platform_printf("pika_libc==v1.0.2\r\n");
+    pika_platform_printf("time==v0.1.9\r\n");
+    pika_platform_printf("===========================================\r\n");
     PikaObj* pikaMain = newRootObj("pikaMain", New_PikaMain);
     __pikaMain = pikaMain;
     extern unsigned char pikaModules_py_a[];
@@ -35,7 +36,7 @@ PikaObj *pikaScriptInit(void){
             "import mytest\n"
             "print('hello PikaPython')\n"
             "a = bluetooth.BLE()\n"
-            "# a.active()\n"
+            "a.active()\n"
             "# mem = PikaStdLib.MemChecker()\n"
             "# print('mem used max:')\n"
             "# mem.max()\n"

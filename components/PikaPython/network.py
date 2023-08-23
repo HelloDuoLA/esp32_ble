@@ -13,7 +13,7 @@ STAT_GOT_IP = _network.STAT_GOT_IP
 _instence:"WLAN" = None
 class WLAN(_network.WLAN):
     def __init__(self, interface_id: int):
-        global _instence 
+        global _instence
         super().__init__(interface_id)
         if _instence is None:
             _instence = self

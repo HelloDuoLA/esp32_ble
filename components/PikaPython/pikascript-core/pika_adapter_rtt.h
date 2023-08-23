@@ -1,3 +1,7 @@
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef __PIKA_ADAPTER_RTT_H__
 #include <stdint.h>
 #include "PikaPlatform.h"
@@ -16,7 +20,7 @@
 #define rt_memcpy pika_platform_memcpy
 #define rt_memcmp pika_platform_memcmp
 #define rt_kprintf pika_platform_printf
-#define rt_snprintf pika_platform_snprintf
+#define rt_snprintf pika_snprintf
 #define rt_vsnprintf pika_platform_vsnprintf
 #define rt_strdup pika_platform_strdup
 #define rt_tick_from_millisecond pika_platform_tick_from_millisecond
@@ -46,9 +50,13 @@
 #define RT_EINVAL 10  /**< Invalid argument */
 
 #define LOG_E(fmt, ...) pika_platform_printf(fmt "\r\n", ##__VA_ARGS__)
-#define LOG_W(...) 
+#define LOG_W(...)
 #define LOG_D(...)
 
 #define RT_ASSERT(...) pika_assert(__VA_ARGS__)
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif

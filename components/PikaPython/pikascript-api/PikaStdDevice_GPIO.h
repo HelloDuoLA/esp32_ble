@@ -4,9 +4,9 @@
  * The source code is *.pyi file.
  * More details: 
  * English Doc:
- * https://pikadoc.readthedocs.io/en/latest/PikaScript%20%E6%A8%A1%E5%9D%97%E6%A6%82%E8%BF%B0.html
+ * https://pikadoc-en.readthedocs.io/en/latest/PikaScript%20%E6%A8%A1%E5%9D%97%E6%A6%82%E8%BF%B0.html
  * Chinese Doc:
- * https://pikadoc.readthedocs.io/zh/latest/PikaScript%20%E6%A8%A1%E5%9D%97%E6%A6%82%E8%BF%B0.html
+ * http://pikapython.com/doc/PikaScript%20%E6%A8%A1%E5%9D%97%E6%A6%82%E8%BF%B0.html
  */
 
 #ifndef __PikaStdDevice_GPIO__H
@@ -34,6 +34,7 @@ void PikaStdDevice_GPIO_platformRead(PikaObj *self);
 void PikaStdDevice_GPIO_platformSetMode(PikaObj *self);
 int PikaStdDevice_GPIO_read(PikaObj *self);
 void PikaStdDevice_GPIO_setCallBack(PikaObj *self, Arg* eventCallBack, int filter);
+void PikaStdDevice_GPIO_setCallback(PikaObj *self, Arg* eventCallBack, int filter);
 void PikaStdDevice_GPIO_setId(PikaObj *self, int id);
 void PikaStdDevice_GPIO_setMode(PikaObj *self, char* mode);
 void PikaStdDevice_GPIO_setPin(PikaObj *self, char* pinName);

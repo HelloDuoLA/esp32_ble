@@ -43,6 +43,11 @@
         "list": "c",
         "queue": "c",
         "vector": "c",
-        "xstring": "c"
+        "xstring": "c",
+        "_network_wlan.h": "c",
+        "_network.h": "c",
+        "nvs_flash.h": "c",
+        "ble_gap.h": "c",
+        "nimble_port_freertos.h": "c"
     }
 }
