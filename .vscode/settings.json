@@ -17,7 +17,7 @@
             "priority": 4
         }
     ],
-    "idf.portWin": "COM31",
+    "idf.portWin": "COM10",
     "idf.adapterTargetName": "esp32s3",
     "idf.openOcdConfigs": [
         "interface/ftdi/esp32_devkitj_v1.cfg",
@@ -48,6 +48,11 @@
         "_network.h": "c",
         "nvs_flash.h": "c",
         "ble_gap.h": "c",
-        "nimble_port_freertos.h": "c"
+        "nimble_port_freertos.h": "c",
+        "nimble_port.h": "c",
+        "ble.h": "c",
+        "random": "c",
+        "esp_log.h": "c",
+        "ble_uuid.h": "c"
     }
 }

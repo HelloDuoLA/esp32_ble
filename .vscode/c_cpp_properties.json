@@ -10,6 +10,7 @@
                 "${config:idf.espAdfPathWin}/components/**",
                 "${workspaceFolder}/**",
                 // "E:/esp/esp-idf/components/bt/host/nimble/nimble/**"
+                // "E:/LibSourceCode/ESP/esp-idf/components/bt/host/nimble/nimble/nimble/host/include/host/**",
             ],
             "browse": {
                 "path": [

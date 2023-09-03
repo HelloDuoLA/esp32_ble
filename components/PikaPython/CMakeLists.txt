@@ -11,6 +11,7 @@ idf_component_register(
                 "pikascript-lib/ESP32"
                 "pikascript-lib/pika_libc"
                 "pikascript-lib/test"
+                "pikascript-lib/BLE"
                 "../../main"
                 WHOLE_ARCHIVE
                 REQUIRES

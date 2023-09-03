@@ -17,6 +17,5 @@
 
 PikaObj *New_mytest(Args *args);
 
-Arg* mytest_MYTEST(PikaObj *self);
 
 #endif

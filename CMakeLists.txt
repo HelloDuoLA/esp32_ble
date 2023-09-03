@@ -6,6 +6,7 @@ cmake_minimum_required(VERSION 3.16)
 
 # This example uses an extra component for common functions such as Wi-Fi and Ethernet connection.
 set(EXTRA_COMPONENT_DIRS $ENV{IDF_PATH}/examples/common_components/protocol_examples_common components)
+set(EXTRA_COMPONENT_DIRS $ENV{IDF_PATH}/examples/bluetooth/nimble/common/nimble_peripheral_utils)
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(main)
