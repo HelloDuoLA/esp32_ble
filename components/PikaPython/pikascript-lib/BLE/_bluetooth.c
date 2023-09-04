@@ -10,82 +10,19 @@
 #include "nvs_flash.h"
 #include "esp_log.h"
 // #include "ble_uuid.h"
+#include "cb_event_id.h"
+
 #define printf __platform_printf
 
 #define GATT_SVR_SVC_ALERT_UUID               0x1811
 
 static const char *tag = "NimBLE_BLE";
+bool BLE_ONLY = false;  //只使用BLE,默认否
+bool BLE_FIRST_INIT = true;  //是否第一次初始化,默认是
 // uint8_t own_addr_type;
 
-
-static uint8_t own_addr_type;
-int test_advertise()
-{
-    printf("test_advertise\r\n");
-    ble_svc_gap_device_name_set("nimble");
-
-    //  声明并初始化广播结构体
-    struct ble_hs_adv_fields fields;
-    memset(&fields, 0, sizeof fields);
-    fields.flags = BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP;
-    
-    fields.tx_pwr_lvl_is_present = 1;
-    fields.tx_pwr_lvl = BLE_HS_ADV_TX_PWR_LVL_AUTO;
-
-    char* name = ble_svc_gap_device_name();
-    fields.name = (uint8_t *)name;
-    fields.name_len = strlen(name);
-    fields.name_is_complete = 1;
-    // TODO：UUID修改成可变的
-    fields.uuids16 = (ble_uuid16_t[]) {
-        BLE_UUID16_INIT(GATT_SVR_SVC_ALERT_UUID)
-    };
-    fields.num_uuids16 = 1;
-    fields.uuids16_is_complete = 1;
-
-    int rc = ble_gap_adv_set_fields(&fields);
-    if (rc != 0) {
-        MODLOG_DFLT(ERROR, "error setting advertisement data; rc=%d\n", rc);
-        return -1 ;
-    }
-
-    // 声明并初始化广播结构体
-    struct ble_gap_adv_params adv_params;
-    memset(&adv_params, 0, sizeof(adv_params));
-    adv_params.conn_mode = BLE_GAP_CONN_MODE_UND;
-    adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN;
-  
-
-    // TODO: callback 函数待补充ble_gap_event_fn *cb, void *cb_arg
-    return ble_gap_adv_start(own_addr_type, NULL, BLE_HS_FOREVER, &adv_params, NULL, NULL);
-}
-
-static void bleprph_on_sync(void)
-{
-    int rc;
-
-    /* Make sure we have proper identity address set (public preferred) */
-    rc = ble_hs_util_ensure_addr(0);
-    assert(rc == 0);
-
-    /* Figure out address to use while advertising (no privacy for now) */
-    rc = ble_hs_id_infer_auto(0, &own_addr_type);
-    if (rc != 0) {
-        MODLOG_DFLT(ERROR, "error determining address type; rc=%d\n", rc);
-        return;
-    }
-
-    /* Printing ADDR */
-    uint8_t addr_val[6] = {0};
-    rc = ble_hs_id_copy_addr(own_addr_type, addr_val, NULL);
-
-    MODLOG_DFLT(INFO, "Device Address: ");
-    // print_addr(addr_val);
-    MODLOG_DFLT(INFO, "\n");
-    /* Begin advertising. */
-    // test_advertise();
-
-}
+// 事件监听器
+PikaEventListener *g_pika_ble_listener = NULL;
 
 // 蓝牙任务
 void ble_host_task(void *param)
@@ -117,16 +54,25 @@ uint8_t get_addr_type(int addr_mode)
     return own_addr_type;
 }
 
-int _bluetooth_BLE___init__(PikaObj *self)
+int _bluetooth_BLE_init(PikaObj *self)
 {
     printf("_bluetooth_BLE___init__\r\n");
     //TODO: flash init 应该放到哪里？
-    esp_err_t ret = nvs_flash_init();
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        ret = nvs_flash_init();
+    if (BLE_FIRST_INIT)
+    {
+        esp_err_t ret = nvs_flash_init();
+        if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+            ESP_ERROR_CHECK(nvs_flash_erase());
+            ret = nvs_flash_init();
+        }
+        ESP_ERROR_CHECK(ret);
+        ret = nimble_port_init();
+        if (ret != ESP_OK) {
+            printf("Failed to init nimble %d \n", ret);
+            return false;
+        }
+        BLE_FIRST_INIT = false;
     }
-    ESP_ERROR_CHECK(ret);
     return 1;
 }
 
@@ -136,22 +82,18 @@ pika_bool _bluetooth_BLE_pyi_active(PikaObj *self, pika_bool active)
     // nimble_port_init()  应该放在哪里？
     if(active == true)
     {
-        esp_err_t ret = nimble_port_init();
-        if (ret != ESP_OK) {
-            printf("Failed to init nimble %d \n", ret);
-            return false;
-        }
+        //开始任务
         nimble_port_freertos_init(ble_host_task);
         return true;
     }
     else //if (active == false)
     {
         nimble_port_stop();
-        esp_err_t ret = nimble_port_deinit();
-        if (ret != ESP_OK) {
-            printf("Failed to deinit nimble %d \n", ret);
-            return false;
-        }
+        // esp_err_t ret = nimble_port_deinit();
+        // if (ret != ESP_OK) {
+        //     printf("Failed to deinit nimble %d \n", ret);
+        //     return false;
+        // }
         return true;
     }
 }
@@ -174,14 +116,22 @@ int _bluetooth_BLE_pyi_test(PikaObj *self)
     return 1;
 }
 
-int print_addr(uint8_t val[6]) {
-    for (int i = 0; i < 6; i++) {
-        printf("%02X", val[i]); // 输出每个元素的十六进制表示
-        if (i < 5) {
-            printf(":"); // 在除了最后一个元素之外的元素后面添加冒号
-        }
+void addr_inver(const void *addr,char *addr_inver)
+{
+    const uint8_t *u8p;
+    u8p = addr;
+    for ( int i = 0; i < 6; i++)
+    {
+        addr_inver[i] =  u8p[5-i];
     }
-    return 0;
+}
+
+void print_addr(const void *addr)
+{
+    const uint8_t *u8p;
+    u8p = addr;
+    MODLOG_DFLT(INFO, "%02x:%02x:%02x:%02x:%02x:%02x",
+                u8p[5], u8p[4], u8p[3], u8p[2], u8p[1], u8p[0]);
 }
 
 /**
@@ -210,11 +160,16 @@ static void print_conn_desc(struct ble_gap_conn_desc *desc)
                 desc->sec_state.bonded);
 }
 
+typedef struct {
+    uint8_t type;
+    uint8_t val[6];
+} ble_addr_t2;
+
 static int ble_nimble_gap_event(struct ble_gap_event *event, void *arg)
 {
     struct ble_gap_conn_desc desc;
     int rc;
-
+    
     switch (event->type) {
     case BLE_GAP_EVENT_CONNECT: //连接
         /* A new connection was established or a connection attempt failed. */
@@ -225,6 +180,17 @@ static int ble_nimble_gap_event(struct ble_gap_event *event, void *arg)
             rc = ble_gap_conn_find(event->connect.conn_handle, &desc);
             assert(rc == 0);
             print_conn_desc(&desc);
+
+            uint8_t * addr[6];
+            addr_inver(desc.peer_ota_addr.val,&addr);
+            pika_eventListener_send(g_pika_ble_listener,_IRQ_CENTRAL_CONNECT,
+                        arg_newObj(New_pikaTupleFrom(
+                                arg_newInt(_IRQ_CENTRAL_CONNECT),
+                                arg_newInt(event->connect.conn_handle),
+                                arg_newInt(desc.peer_id_addr.type),
+                                // arg_newStr(addr_str) //TODO:修改为arg_newBytes(desc.peer_ota_addr.val,6)
+                                arg_newBytes(addr,6)
+                                )));
         }
         MODLOG_DFLT(INFO, "\n");
 
@@ -361,64 +327,59 @@ static int ble_nimble_gap_event(struct ble_gap_event *event, void *arg)
 
 int _bluetooth_BLE_advertise(PikaObj *self, int addr_mode, int interval_us, pika_bool connectable)
 {
-    // printf("_bluetooth_BLE_gap_advertise\r\n");
+    printf("_bluetooth_BLE_gap_advertise\r\n");
     // ble_svc_gap_device_name_set("nimble-bleprph");
+    //  声明并初始化广播结构体
+    struct ble_hs_adv_fields fields;
+    memset(&fields, 0, sizeof fields);
 
-    // //  声明并初始化广播结构体
-    // struct ble_hs_adv_fields fields;
-    // memset(&fields, 0, sizeof fields);
-    // fields.flags = BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP;
-    
-    // fields.tx_pwr_lvl_is_present = 1;
-    // fields.tx_pwr_lvl = BLE_HS_ADV_TX_PWR_LVL_AUTO;
-
-    // char* name = ble_svc_gap_device_name();
-    // fields.name = (uint8_t *)name;
-    // fields.name_len = strlen(name);
-    // fields.name_is_complete = 1;
-    // // TODO：UUID修改成可变的
-    // fields.uuids16 = (ble_uuid16_t[]) {
-    //     BLE_UUID16_INIT(GATT_SVR_SVC_ALERT_UUID)
-    // };
-    // fields.num_uuids16 = 1;
-    // fields.uuids16_is_complete = 1;
-
-    // int rc = ble_gap_adv_set_fields(&fields);
-    // if (rc != 0) {
-    //     MODLOG_DFLT(ERROR, "error setting advertisement data; rc=%d\n", rc);
-    //     return -1 ;
-    // }
-
-
-    // // 声明并初始化广播结构体
-    // struct ble_gap_adv_params adv_params;
-    // memset(&adv_params, 0, sizeof(adv_params));
-
-    // // 获取地址类型
-    // uint8_t own_addr_type =  get_addr_type(addr_mode);
-    
-    // // 连接模式
-    // uint8_t connet_mode;
-    // if(connectable == true){
-    //     connet_mode = BLE_GAP_CONN_MODE_UND;
-    // }else {
-    //     connet_mode = BLE_GAP_CONN_MODE_NON;
-    // }
-
-
-    // adv_params.conn_mode = connet_mode;
-    // adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN;
-  
-  
-    // // TODO: callback 函数待补充ble_gap_event_fn *cb, void *cb_arg
-    // return ble_gap_adv_start(own_addr_type, NULL, BLE_HS_FOREVER, &adv_params, ble_nimble_gap_event, NULL);
-    while (ble_hs_synced() == 0)
-    {
-        printf("nimble not ready\r\n");
+    //TODO:貌似不起作用
+    if(BLE_ONLY  == true){
+        fields.flags |= BLE_HS_ADV_F_BREDR_UNSUP;
     }
-    printf("nimble ready\r\n");
-    test_advertise();
-    return 0;
+    
+    fields.tx_pwr_lvl_is_present = 1;
+    fields.tx_pwr_lvl = BLE_HS_ADV_TX_PWR_LVL_AUTO;
+
+    char* name = ble_svc_gap_device_name();
+    fields.name = (uint8_t *)name;
+    fields.name_len = strlen(name);
+    fields.name_is_complete = 1;
+    // TODO：UUID修改成可变的
+    fields.uuids16 = (ble_uuid16_t[]) {
+        BLE_UUID16_INIT(GATT_SVR_SVC_ALERT_UUID)
+    };
+    fields.num_uuids16 = 1;
+    fields.uuids16_is_complete = 1;
+
+    int rc = ble_gap_adv_set_fields(&fields);
+    if (rc != 0) {
+        MODLOG_DFLT(ERROR, "error setting advertisement data; rc=%d\n", rc);
+        return -1 ;
+    }
+
+
+    // 声明并初始化广播结构体
+    struct ble_gap_adv_params adv_params;
+    memset(&adv_params, 0, sizeof(adv_params));
+
+    // 获取地址类型
+    uint8_t own_addr_type =  get_addr_type(addr_mode);
+    
+    // 连接模式
+    uint8_t connet_mode;
+    if(connectable == true){
+        connet_mode = BLE_GAP_CONN_MODE_UND;
+    }else {
+        connet_mode = BLE_GAP_CONN_MODE_NON;
+    }
+
+
+    adv_params.conn_mode = connet_mode;
+    adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN;
+  
+    // TODO: callback 函数待补充ble_gap_event_fn *cb, void *cb_arg
+    return ble_gap_adv_start(own_addr_type, NULL, BLE_HS_FOREVER, &adv_params, ble_nimble_gap_event, NULL);
 }
 
 int _bluetooth_BLE_gap_connect(PikaObj *self, int addr_type, char* addr, int64_t scan_duration_ms)
@@ -485,10 +446,19 @@ int _bluetooth_BLE_set_rsp_data(PikaObj *self, char* data, int data_len)
 }
 
 
-// TODO:回调函数实现
+// 回调函数注册
 void _bluetooth_BLE_setCallback(PikaObj *self, Arg* cb)
 {
     printf("_bluetooth_BLE_setCallback\r\n");
+    if (g_pika_ble_listener == NULL) {
+        pika_eventListener_init(&g_pika_ble_listener);
+        printf("g_pika_ble_listener init\r\n");
+    }
+    uint32_t i = 0;
+    for ( i = 0; i < 31; i++)
+    {
+        pika_eventListener_registEventCallback(g_pika_ble_listener,i,cb);
+    }
 }
 
 int _bluetooth_BLE_config_mac_get(PikaObj *self)
@@ -511,9 +481,12 @@ int _bluetooth_BLE_config_mac_get(PikaObj *self)
 }
 
 char* _bluetooth_BLE_config_gap_name_get(PikaObj *self)
+// int _bluetooth_BLE_config_gap_name_get(PikaObj *self)
 {
     printf("_bluetooth_BLE_config_addr_gap_name_get\r\n");
     char *name = ble_svc_gap_device_name();
+    // printf(name);
+    // return 1;
     return name;
 }
 
@@ -589,10 +562,19 @@ int _bluetooth_BLE_config_io_update(PikaObj *self, int io)
     return 0;
 }
 
-int _bluetooth_BLE_config_le_secire_update(PikaObj *self, pika_bool le_secire)
+int _bluetooth_BLE_config_le_secure_update(PikaObj *self, pika_bool le_secure)
 {
-    printf("_bluetooth_BLE_config_le_secire_update\r\n");
-    return 0;
+    ESP_LOGD(tag, "_bluetooth_BLE_config_le_secure_update\r\n");
+    // TODO:需要进行判断，若BLE处于广播状态则不能修改
+    if(ble_gap_adv_active()){
+        ESP_LOGI(tag, "an advertisement procedure is currently in progress\r\n");
+        return -1;
+    }
+    else{
+        BLE_ONLY = le_secure;
+        ESP_LOGI(tag, "secure update succeed\r\n");
+        return 0;
+    }
 }
 
 int _bluetooth_BLE_config_mac_update(PikaObj *self)
@@ -618,6 +600,7 @@ int _bluetooth_BLE_config_rxbuf_update(PikaObj *self, int rxbuf)
     printf("_bluetooth_BLE_config_rxbuf_update\r\n");
     return 0;
 }
+
 
 
 

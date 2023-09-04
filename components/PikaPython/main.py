@@ -2,6 +2,7 @@ import PikaStdLib
 import machine 
 import bluetooth
 import _bluetooth
+import const
 # import mytest
 mem = PikaStdLib.MemChecker()
 print('mem used max:')
@@ -10,10 +11,31 @@ print('mem used now:')
 mem.now()
 
 print('hello PikaPython')
+
+
 a = bluetooth.BLE()
-# a.pyi_active(1)
 b = a.active(1)
-# a.advertise(1,1,1)
+a.advertise(0,1,1)
+
+def ble_irq(event,data):
+    # event = const._IRQ_CENTRAL_CONNECT
+    if event == const._IRQ_CENTRAL_CONNECT:
+        # A central has connected to this peripheral.
+        print("_IRQ_CENTRAL_CONNECT")
+        print(data)
+    elif event == const._IRQ_GATTC_SERVICE_DONE:
+        print("_IRQ_GATTC_SERVICE_DONE")
+        print(data)
+
+    
+a.irq(ble_irq)
+
+
+# a.test(1)
+# a.pyi_active(1)
+# b = a.active(1)
+# a.advertise(0,1,1)
+# a.gap_advertise(20,"adv_data_test")
 # c = a.run()
 # print(a.gap_name)
 # a.pyi_active(1)
@@ -21,6 +43,8 @@ b = a.active(1)
 # a.active(0)
 # a.__test2()
 # a.pyi_active()
+
+
 
 """
 问题汇总
@@ -32,8 +56,10 @@ b = a.active(1)
 
 
 问题汇总
-1. 在哪里进行初始化比较好
-2. 启动蓝牙线程任务在哪里调用
-3. print_addr函数的实现实在哪里, 需要怎么样引用
+1. nvs_flash_init()这种调用一次的函数应该在哪里调用
+2. 启动蓝牙线程任务在哪里调用(已解决)
+3. print_addr函数的实现在哪里, 需要怎么样引用
 4. 引用头文件失败
+5. py文件 elif没通过
+6. ESP 的日志没打印出来？
 """

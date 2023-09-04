@@ -17,7 +17,6 @@
 
 PikaObj *New__bluetooth_BLE(Args *args);
 
-int _bluetooth_BLE___init__(PikaObj *self);
 int _bluetooth_BLE_advertise(PikaObj *self, int own_addr_type, int interval_us, pika_bool connectable);
 int _bluetooth_BLE_config_addr_mode_get(PikaObj *self);
 int _bluetooth_BLE_config_addr_mode_update(PikaObj *self);
@@ -28,8 +27,8 @@ char* _bluetooth_BLE_config_gap_name_get(PikaObj *self);
 int _bluetooth_BLE_config_gap_name_update(PikaObj *self, char* gap_name);
 int _bluetooth_BLE_config_io_get(PikaObj *self);
 int _bluetooth_BLE_config_io_update(PikaObj *self, int io);
-int _bluetooth_BLE_config_le_secire_update(PikaObj *self, pika_bool le_secire);
 int _bluetooth_BLE_config_le_secure_get(PikaObj *self);
+int _bluetooth_BLE_config_le_secure_update(PikaObj *self, pika_bool le_secure);
 int _bluetooth_BLE_config_mac_get(PikaObj *self);
 int _bluetooth_BLE_config_mac_update(PikaObj *self);
 int _bluetooth_BLE_config_mitm_get(PikaObj *self);
@@ -41,6 +40,7 @@ int _bluetooth_BLE_gap_connect(PikaObj *self, int addr_type, char* addr, int sca
 int _bluetooth_BLE_gap_disconnect(PikaObj *self);
 int _bluetooth_BLE_gap_scan(PikaObj *self, int addr_mode, int duration_ms, int interval_us, int window_us, pika_bool active);
 int _bluetooth_BLE_gap_stop_scan(PikaObj *self);
+int _bluetooth_BLE_init(PikaObj *self);
 pika_bool _bluetooth_BLE_pyi_active(PikaObj *self, pika_bool active);
 pika_bool _bluetooth_BLE_pyi_check_active(PikaObj *self);
 int _bluetooth_BLE_pyi_test(PikaObj *self);

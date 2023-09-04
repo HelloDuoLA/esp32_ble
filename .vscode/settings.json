@@ -53,6 +53,7 @@
         "ble.h": "c",
         "random": "c",
         "esp_log.h": "c",
-        "ble_uuid.h": "c"
+        "ble_uuid.h": "c",
+        "cb_event_id.h": "c"
     }
 }

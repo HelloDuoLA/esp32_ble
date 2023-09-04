@@ -1,18 +1,27 @@
 import _bluetooth
-# 需要额外注意类型转换
+import _uuid
+import builtins
+
+class UUID(_uuid):
+    def __init__(self):
+        print("UUID init")
 
 class BLE(_bluetooth.BLE):
     last_adv_data  = ""  #广播内容
     last_resp_data = ""  #回应扫描内容
     addr_mode      =  0  #地址类型 BLE_OWN_ADDR_PUBLIC,BLE_OWN_ADDR_RANDOM,BLE_OWN_ADDR_RPA_PUBLIC_DEFAULT,BLE_OWN_ADDR_RPA_RANDOM_DEFAULT
     conn_handle    = ""  #连接句柄
-    gap_name     = "nimble"  #蓝牙名称
-    # def __init__(self):
-        # super().__init__()
-        # pass
+    # gap_name       = "nimble"  #蓝牙名称
+
+    callback_func  = None
+
+    def __init__(self):
+        print("BLE init")
+        a = self.init()
+        self.setCallback(self.ble_callback)
     
-    def test(self):
-        super().pyi_test()
+    def test(self, interval_us, adv_data=None, connectable=True,*resp_data):
+        print(interval_us)
     
     def __test2(self):
         print("test2")
@@ -26,35 +35,40 @@ class BLE(_bluetooth.BLE):
         elif (active_flag == 0 or active_flag == False):
             return self.pyi_active(False)
 
-    # 获取参数属性, 暂时先不用管    
-    def config(self,param_name, /):
-        if(param_name=="mac"):
+    def config(self, *param_name, **kv):
+
+    # 获取参数属性   a.config("gap_name")
+        first_param = param_name[0]
+        if first_param == "mac":
             return(super().config_addr_mode_get(),super().config_mac_get())
-        elif(param_name=="addr_mode"):
-            super().config_addr_mode_get()
-        elif(param_name=="gap_name"):
-            super().config_addr_gap_name_get()
-        elif(param_name=="rxbuf"):
+        elif first_param == "addr_mode":
+            return(super().config_addr_mode_get())
+        elif first_param == "gap_name":
+            # return(self.config_gap_name_get()) #TODO: question 直接return 会报错
+            gap_name = self.config_gap_name_get()
+            return gap_name
+        elif first_param == "rxbuf" :
             super().config_addr_rxbuf_get()
-        elif(param_name=="mtu"):
+        elif first_param == "mtu" :
             super().config_mtu_get()
-        elif(param_name=="bond"):
+        elif first_param == "bond" :
             super().config_bond_get()
-        elif(param_name=="mitm"):
+        elif first_param == "mitm" :
             super().config_mitm_get()
-        elif(param_name=="io"):
+        elif first_param == "io":
             super().config_io_get()
-        elif(param_name=="le_secure"):
+        elif first_param == "le_secure":
             super().config_le_secure_get()
         else:
-            print("ValueError: unknown config param")
+            print("ValueError: unknown config param")   
+
 
     # 设定属性
-    def config(self,*, mac,addr_mode,gap_name,rxbuf,mtu,bond,mitm,io,le_secire=False):
-        if mac != None:
-            super().config_mac_update(mac)
-        
-        if addr_mode != None:
+        if ("mac" in kv):
+            super().config_mac_update(kv["mac"])
+
+        if ("addr_mode" in kv):
+            addr_mode = kv["addr_mode"]
             if (addr_mode >= 0 and addr_mode < 5):
                 # super().config_addr_mode_update(addr_mode)
                 self.addr_mode = addr_mode
@@ -62,33 +76,42 @@ class BLE(_bluetooth.BLE):
             else :
                 return False
 
-        if gap_name != None:
-            self.gap_name = gap_name
-            return super().config_gap_name_update(self.gap_name)
+        if ("gap_name" in kv):
+            return super().config_gap_name_update(kv["gap_name"])
 
-        if rxbuf != None:
-            super().config_rxbuf_update(rxbuf)
+        if ("rxbuf" in kv):
+            super().config_rxbuf_update(kv["rxbuf"])
 
-        if mtu != None:
-            super().config_mtu_update(mtu)
-        
-        if bond != None:
-            super().config_bond_update(bond)
+        if ("mtu" in kv):
+            super().config_mtu_update(kv["mtu"])
 
-        if mitm != None:
-            super().config_mitm_update(mitm)
+        if ("bond" in kv):
+            super().config_bond_update(kv["bond"])
 
-        if io != None:
-            if(io >= 0 and io < 5 ):
-                super().config_io_update(io)
+        if ("mitm" in kv):
+            super().config_mitm_update(kv["mitm"])
 
-        if le_secire != None:
-            super().config_le_secire_update(le_secire)
+        if ("bond" in kv):
+            super().config_mac_update(kv["bond"])
 
+        if ("io" in kv):
+            super().config_io_update(kv["io"])
+
+        if ("le_secire" in kv):
+            super().config_le_secire_update(kv["le_secire"])
+    
     
     # 回调事件处理函数
-    def irq(func):
-        super().setCallback(func)
+    def irq(self,func):
+        # self.setCallback(func)
+        self.callback_func = func
+
+    def ble_callback(self,data):
+        # memory_view = memoryview(bytes.fromhex(data[1:]))  # 创建对字节数据的memoryview对象
+        # print(memory_view)
+        # print(list(memory_view))
+        # TODO:memoryview没有实现
+        self.callback_func(data[0],data[1:])
 
     # """
     # interval_us:广告间隔时间, 为none则停止广播
@@ -96,26 +119,29 @@ class BLE(_bluetooth.BLE):
     # resp_data: 被发送以响应主动扫描, 是任何实现缓冲协议的类型(例如bytes, bytearray, str)
 
     # """
-    def gap_advertise(self, interval_us, adv_data=None, *, resp_data=None, connectable=True):
+    def gap_advertise(self, interval_us, adv_data=None, *resp_data, connectable=True):
         # 设置广播载荷
-        if adv_data is None:
+        if adv_data is None: #参数为空，则使用上次数据
             adv_data = self.last_adv_data
         else :
             self.last_adv_data = adv_data
-            super().set_adv_data(adv_data,len(adv_data))
+            self.set_adv_data(adv_data,len(adv_data))
 
         # 设置响应载荷
         if resp_data is None:
             resp_data = self.last_resp_data
         else :
             self.last_resp_data = resp_data
-            super().set_rsp_data(resp_data,len(resp_data))
+            self.set_rsp_data(resp_data,len(resp_data))
 
         # 停止广播
+        interval_us = 2
+        print("interval_us   ",interval_us)
+        print("adv_data     ",adv_data)
         if interval_us is None: 
-            return super().stop_advertise()
+            return self.stop_advertise()
         else :
-            return super().gap_advertise(self.addr_mode,interval_us,connectable)
+            return self.advertise(self.addr_mode,1,connectable)
 
     # #TODO:active的作用是什么意思
     # """

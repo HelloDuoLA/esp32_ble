@@ -24,6 +24,7 @@
 #include "_bluetooth.h"
 #include "_network.h"
 #include "_time.h"
+#include "builtins.h"
 #include "PikaStdData.h"
 #include "PikaStdData_ByteArray.h"
 #include "builtins_bytearray.h"
@@ -50,7 +51,6 @@
 #include "PikaStdTask_Task.h"
 #include "_bluetooth_BLE.h"
 #include "_network_WLAN.h"
-#include "builtins.h"
 #include "builtins_ArithmeticError.h"
 #include "builtins_Exception.h"
 #include "builtins_AssertionError.h"
@@ -193,6 +193,7 @@ PikaObj *New_PikaMain(Args *args){
     obj_newObj(self, "_bluetooth", "_bluetooth", New__bluetooth);
     obj_newObj(self, "_network", "_network", New__network);
     obj_newObj(self, "_time", "_time", New__time);
+    obj_newObj(self, "builtins", "builtins", New_builtins);
     obj_setClass(self, PikaMain);
     return self;
 }
@@ -3159,15 +3160,6 @@ PikaObj *New__bluetooth(Args *args){
 #endif
 
 #ifndef PIKA_MODULE__BLUETOOTH_DISABLE
-void _bluetooth_BLE___init__Method(PikaObj *self, Args *args){
-    int res = _bluetooth_BLE___init__(self);
-    method_returnInt(args, res);
-}
-method_typedef(
-    _bluetooth_BLE___init__,
-    "__init__", ""
-);
-
 void _bluetooth_BLE_advertiseMethod(PikaObj *self, Args *args){
     int own_addr_type = args_getInt(args, "own_addr_type");
     int interval_us = args_getInt(args, "interval_us");
@@ -3264,16 +3256,6 @@ method_typedef(
     "config_io_update", "io"
 );
 
-void _bluetooth_BLE_config_le_secire_updateMethod(PikaObj *self, Args *args){
-    pika_bool le_secire = args_getBool(args, "le_secire");
-    int res = _bluetooth_BLE_config_le_secire_update(self, le_secire);
-    method_returnInt(args, res);
-}
-method_typedef(
-    _bluetooth_BLE_config_le_secire_update,
-    "config_le_secire_update", "le_secire"
-);
-
 void _bluetooth_BLE_config_le_secure_getMethod(PikaObj *self, Args *args){
     int res = _bluetooth_BLE_config_le_secure_get(self);
     method_returnInt(args, res);
@@ -3281,6 +3263,16 @@ void _bluetooth_BLE_config_le_secure_getMethod(PikaObj *self, Args *args){
 method_typedef(
     _bluetooth_BLE_config_le_secure_get,
     "config_le_secure_get", ""
+);
+
+void _bluetooth_BLE_config_le_secure_updateMethod(PikaObj *self, Args *args){
+    pika_bool le_secure = args_getBool(args, "le_secure");
+    int res = _bluetooth_BLE_config_le_secure_update(self, le_secure);
+    method_returnInt(args, res);
+}
+method_typedef(
+    _bluetooth_BLE_config_le_secure_update,
+    "config_le_secure_update", "le_secure"
 );
 
 void _bluetooth_BLE_config_mac_getMethod(PikaObj *self, Args *args){
@@ -3393,6 +3385,15 @@ method_typedef(
     "gap_stop_scan", ""
 );
 
+void _bluetooth_BLE_initMethod(PikaObj *self, Args *args){
+    int res = _bluetooth_BLE_init(self);
+    method_returnInt(args, res);
+}
+method_typedef(
+    _bluetooth_BLE_init,
+    "init", ""
+);
+
 void _bluetooth_BLE_pyi_activeMethod(PikaObj *self, Args *args){
     pika_bool active = args_getBool(args, "active");
     pika_bool res = _bluetooth_BLE_pyi_active(self, active);
@@ -3474,6 +3475,7 @@ method_typedef(
 class_def(_bluetooth_BLE){
     __BEFORE_MOETHOD_DEF
     method_def(_bluetooth_BLE_config_addr_mode_get, 44719256),
+    method_def(_bluetooth_BLE_config_le_secure_update, 107547187),
     method_def(_bluetooth_BLE_gap_connect, 239981286),
     method_def(_bluetooth_BLE_gap_stop_scan, 257876614),
     method_def(_bluetooth_BLE_stop_advertise, 259007825),
@@ -3484,14 +3486,12 @@ class_def(_bluetooth_BLE){
     method_def(_bluetooth_BLE_gap_disconnect, 714357958),
     method_def(_bluetooth_BLE_config_mtu_update, 855813778),
     method_def(_bluetooth_BLE_set_adv_data, 862102692),
-    method_def(_bluetooth_BLE___init__, 904762485),
     method_def(_bluetooth_BLE_pyi_test, 917323382),
     method_def(_bluetooth_BLE_setCallback, 946882526),
     method_def(_bluetooth_BLE_gap_scan, 1094358433),
     method_def(_bluetooth_BLE_config_mitm_update, 1292142323),
     method_def(_bluetooth_BLE_advertise, 1312546732),
     method_def(_bluetooth_BLE_config_addr_mode_update, 1318609371),
-    method_def(_bluetooth_BLE_config_le_secire_update, 1441414311),
     method_def(_bluetooth_BLE_register_a_service, 1446124378),
     method_def(_bluetooth_BLE_set_rsp_data, 1483498270),
     method_def(_bluetooth_BLE_config_mitm_get, 1493883056),
@@ -3504,6 +3504,7 @@ class_def(_bluetooth_BLE){
     method_def(_bluetooth_BLE_config_io_update, 1968397300),
     method_def(_bluetooth_BLE_config_addr_rxbuf_get, 2022506650),
     method_def(_bluetooth_BLE_config_gap_name_get, 2070094225),
+    method_def(_bluetooth_BLE_init, 2090370361),
     method_def(_bluetooth_BLE_pyi_check_active, 2103615151),
 };
 class_inhert(_bluetooth_BLE, TinyObj);
