@@ -24,7 +24,6 @@
 #include "_bluetooth.h"
 #include "_network.h"
 #include "_time.h"
-#include "builtins.h"
 #include "PikaStdData.h"
 #include "PikaStdData_ByteArray.h"
 #include "builtins_bytearray.h"
@@ -51,6 +50,7 @@
 #include "PikaStdTask_Task.h"
 #include "_bluetooth_BLE.h"
 #include "_network_WLAN.h"
+#include "builtins.h"
 #include "builtins_ArithmeticError.h"
 #include "builtins_Exception.h"
 #include "builtins_AssertionError.h"
@@ -193,7 +193,6 @@ PikaObj *New_PikaMain(Args *args){
     obj_newObj(self, "_bluetooth", "_bluetooth", New__bluetooth);
     obj_newObj(self, "_network", "_network", New__network);
     obj_newObj(self, "_time", "_time", New__time);
-    obj_newObj(self, "builtins", "builtins", New_builtins);
     obj_setClass(self, PikaMain);
     return self;
 }

@@ -1,17 +1,23 @@
 import _bluetooth
-import _uuid
-import builtins
 
-class UUID(_uuid):
-    def __init__(self):
-        print("UUID init")
+
+# 标志位
+FLAG_READ     = 0x0002
+FLAG_WRITE    = 0x0008
+FLAG_NOTIFY   = 0x0010
+FLAH_INDICATE = 0x0020
+
+class UUID():
+    value  = ""
+    def __init__(self,value):
+        self.value = value
 
 class BLE(_bluetooth.BLE):
+
     last_adv_data  = ""  #广播内容
     last_resp_data = ""  #回应扫描内容
     addr_mode      =  0  #地址类型 BLE_OWN_ADDR_PUBLIC,BLE_OWN_ADDR_RANDOM,BLE_OWN_ADDR_RPA_PUBLIC_DEFAULT,BLE_OWN_ADDR_RPA_RANDOM_DEFAULT
     conn_handle    = ""  #连接句柄
-    # gap_name       = "nimble"  #蓝牙名称
 
     callback_func  = None
 
@@ -157,7 +163,7 @@ class BLE(_bluetooth.BLE):
             super().gap_scan_forever()
 
     # """
-    # micropython:直接输入时间
+    # micropython:直接输入时间P
 
     # nimble: 按照单位算时间
     # duration:  
@@ -178,10 +184,9 @@ class BLE(_bluetooth.BLE):
         super().gap_disconnect()
         pass
 
-    def gatts_register_services(self, services_definition, /):
-        for service in services_definition:
-            service_uuid, characteristics = service
-    
+    def gatts_register_services(self, services):
+        convert_services = convert_ble_service_info(services)
+        return convert_services
     
     # # 遍历特征
     # for characteristic in characteristics:
@@ -224,3 +229,26 @@ class BLE(_bluetooth.BLE):
     def gattc_exchange_mtu(conn_handle, /):
         pass
 
+    def testtuple(self):
+        girl_tuple = ("a","b","c","d","e")
+        for everyOne in girl_tuple:
+            print(everyOne)
+
+
+def testtuple():
+    girl_tuple = ("a","b","c","d","e")
+    for everyOne in girl_tuple:
+        print(everyOne)
+
+def convert_ble_service_info(data):
+    new_tuple = []
+    for i in data :
+        if isinstance(i,UUID) :
+            new_tuple.append(i.value)
+            # print(i.value)
+        elif isinstance(i, tuple):
+            new_tuple.append(convert_ble_service_info(i))
+        else:
+            new_tuple.append(i)
+            # print(i)
+    return tuple(new_tuple)
