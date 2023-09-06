@@ -27,7 +27,21 @@ bool BLE_FIRST_INIT = true;  //是否第一次初始化,默认是
 // 函数声明
 // gatt 服务回调函数
 static int gatt_svc_access(uint16_t conn_handle, uint16_t attr_handle,struct ble_gatt_access_ctxt *ctxt, void *arg);
+// 客户端写回调函数
+static int ble_cliect_write_cb(uint16_t conn_handle,
+                       const struct ble_gatt_error *error,
+                       struct ble_gatt_attr *attr,
+                       void *arg);
+// 客户端读回调函数
+static int ble_cliect_read_cb(uint16_t conn_handle,
+                       const struct ble_gatt_error *error,
+                       struct ble_gatt_attr *attr,
+                       void *arg);
+// gap回调函数
+static int ble_nimble_gap_event(struct ble_gap_event *event, void *arg);
 
+
+// gatt初始化基本服务
 void gatt_svr_init(void);
 
 
@@ -89,21 +103,12 @@ int _bluetooth_BLE_init(PikaObj *self)
 pika_bool _bluetooth_BLE_pyi_active(PikaObj *self, pika_bool active)
 {
     printf("_bluetooth_BLE_pyi_active\r\n");
-    // nimble_port_init()  应该放在哪里？
-    if(active == true)
-    {
+    if(active == true){
         //开始任务
         nimble_port_freertos_init(ble_host_task);
         return true;
-    }
-    else //if (active == false)
-    {
+    }else {
         nimble_port_stop();
-        // esp_err_t ret = nimble_port_deinit();
-        // if (ret != ESP_OK) {
-        //     printf("Failed to deinit nimble %d \n", ret);
-        //     return false;
-        // }
         return true;
     }
 }
@@ -117,12 +122,6 @@ pika_bool _bluetooth_BLE_pyi_check_active(PikaObj *self)
 int _bluetooth_BLE_pyi_test(PikaObj *self)
 {
     printf("_bluetooth_BLE_test\r\n");
-    // 1. nvs_flash_init()
-    // 2. esp_nimble_hci_and_controller_init() / esp_nimble_hci_init() 
-    // 3. nimble_port_init
-    // 4. Initialize the required NimBLE host configuration parameters and callbacks
-    // 5. Perform application specific tasks/initialization
-    // 6. nimble_port_freertos_init();
     return 1;
 }
 
@@ -162,177 +161,12 @@ static void print_conn_desc(struct ble_gap_conn_desc *desc)
                 desc->peer_id_addr.type);
     print_addr(desc->peer_id_addr.val);
     MODLOG_DFLT(INFO, " conn_itvl=%d conn_latency=%d supervision_timeout=%d "
-                "encrypted=%d authenticated=%d bonded=%d\n",
+                "encrypted=%d authenticated=%d bonded=%d\r\n",
                 desc->conn_itvl, desc->conn_latency,
                 desc->supervision_timeout,
                 desc->sec_state.encrypted,
                 desc->sec_state.authenticated,
                 desc->sec_state.bonded);
-}
-
-typedef struct {
-    uint8_t type;
-    uint8_t val[6];
-} ble_addr_t2;
-
-static int ble_nimble_gap_event(struct ble_gap_event *event, void *arg)
-{
-    struct ble_gap_conn_desc desc;
-    int rc;
-    
-    switch (event->type) {
-    case BLE_GAP_EVENT_CONNECT: //连接
-        /* A new connection was established or a connection attempt failed. */
-        MODLOG_DFLT(INFO, "connection %s; status=%d ",
-                    event->connect.status == 0 ? "established" : "failed",
-                    event->connect.status);
-        if (event->connect.status == 0) {
-            rc = ble_gap_conn_find(event->connect.conn_handle, &desc);
-            assert(rc == 0);
-            print_conn_desc(&desc);
-
-            uint8_t * addr[6];
-            addr_inver(desc.peer_ota_addr.val,&addr);
-            pika_eventListener_send(g_pika_ble_listener,_IRQ_CENTRAL_CONNECT,
-                        arg_newObj(New_pikaTupleFrom(
-                                arg_newInt(_IRQ_CENTRAL_CONNECT),
-                                arg_newInt(event->connect.conn_handle),
-                                arg_newInt(desc.peer_id_addr.type),
-                                // arg_newStr(addr_str) //TODO:修改为arg_newBytes(desc.peer_ota_addr.val,6)
-                                arg_newBytes(addr,6)
-                                )));
-        }
-        MODLOG_DFLT(INFO, "\n");
-
-        if (event->connect.status != 0) {
-            /* Connection failed; resume advertising. */
-            // bleprph_advertise();
-            // TODO: 重新广播
-            printf("Connection failed; resume advertising.");
-        }
-        return 0;
-
-    case BLE_GAP_EVENT_DISCONNECT: //断开连接
-        MODLOG_DFLT(INFO, "disconnect; reason=%d ", event->disconnect.reason);
-        print_conn_desc(&event->disconnect.conn);
-        MODLOG_DFLT(INFO, "\n");
-        return 0;
-
-    case BLE_GAP_EVENT_CONN_UPDATE: //更新数据
-        /* The central has updated the connection parameters. */
-        MODLOG_DFLT(INFO, "connection updated; status=%d ",
-                    event->conn_update.status);
-        rc = ble_gap_conn_find(event->conn_update.conn_handle, &desc);
-        assert(rc == 0);
-        print_conn_desc(&desc);
-        MODLOG_DFLT(INFO, "\n");
-        return 0;
-
-    case BLE_GAP_EVENT_ADV_COMPLETE:
-        MODLOG_DFLT(INFO, "advertise complete; reason=%d",
-                    event->adv_complete.reason);
-        return 0;
-
-    case BLE_GAP_EVENT_ENC_CHANGE:
-        /* Encryption has been enabled or disabled for this connection. */
-        MODLOG_DFLT(INFO, "encryption change event; status=%d ",
-                    event->enc_change.status);
-        rc = ble_gap_conn_find(event->enc_change.conn_handle, &desc);
-        assert(rc == 0);
-        print_conn_desc(&desc);
-        MODLOG_DFLT(INFO, "\n");
-        return 0;
-
-    case BLE_GAP_EVENT_NOTIFY_TX: //通知发送完成
-        MODLOG_DFLT(INFO, "notify_tx event; conn_handle=%d attr_handle=%d "
-                    "status=%d is_indication=%d",
-                    event->notify_tx.conn_handle,
-                    event->notify_tx.attr_handle,
-                    event->notify_tx.status,
-                    event->notify_tx.indication);
-        return 0;
-
-    case BLE_GAP_EVENT_SUBSCRIBE://订阅
-        MODLOG_DFLT(INFO, "subscribe event; conn_handle=%d attr_handle=%d "
-                    "reason=%d prevn=%d curn=%d previ=%d curi=%d\n",
-                    event->subscribe.conn_handle,
-                    event->subscribe.attr_handle,
-                    event->subscribe.reason,
-                    event->subscribe.prev_notify,
-                    event->subscribe.cur_notify,
-                    event->subscribe.prev_indicate,
-                    event->subscribe.cur_indicate);
-        return 0;
-
-    case BLE_GAP_EVENT_MTU:
-        MODLOG_DFLT(INFO, "mtu update event; conn_handle=%d cid=%d mtu=%d\n",
-                    event->mtu.conn_handle,
-                    event->mtu.channel_id,
-                    event->mtu.value);
-        return 0;
-
-    case BLE_GAP_EVENT_REPEAT_PAIRING:
-        /* We already have a bond with the peer, but it is attempting to
-         * establish a new secure link.  This app sacrifices security for
-         * convenience: just throw away the old bond and accept the new link.
-         */
-
-        /* Delete the old bond. */
-        rc = ble_gap_conn_find(event->repeat_pairing.conn_handle, &desc);
-        assert(rc == 0);
-        ble_store_util_delete_peer(&desc.peer_id_addr);
-
-        /* Return BLE_GAP_REPEAT_PAIRING_RETRY to indicate that the host should
-         * continue with the pairing operation.
-         */
-        return BLE_GAP_REPEAT_PAIRING_RETRY;
-
-    case BLE_GAP_EVENT_PASSKEY_ACTION:
-        ESP_LOGI(tag, "PASSKEY_ACTION_EVENT started \n");
-        struct ble_sm_io pkey = {0};
-        int key = 0;
-
-        if (event->passkey.params.action == BLE_SM_IOACT_DISP) {
-            pkey.action = event->passkey.params.action;
-            pkey.passkey = 123456; // This is the passkey to be entered on peer
-            ESP_LOGI(tag, "Enter passkey %" PRIu32 "on the peer side", pkey.passkey);
-            rc = ble_sm_inject_io(event->passkey.conn_handle, &pkey);
-            ESP_LOGI(tag, "ble_sm_inject_io result: %d\n", rc);
-        } else if (event->passkey.params.action == BLE_SM_IOACT_NUMCMP) {
-            ESP_LOGI(tag, "Passkey on device's display: %" PRIu32 , event->passkey.params.numcmp);
-            ESP_LOGI(tag, "Accept or reject the passkey through console in this format -> key Y or key N");
-            pkey.action = event->passkey.params.action;
-            // if (scli_receive_key(&key)) {
-            //     pkey.numcmp_accept = key;
-            // } else {
-            //     pkey.numcmp_accept = 0;
-            //     ESP_LOGE(tag, "Timeout! Rejecting the key");
-            // }
-            rc = ble_sm_inject_io(event->passkey.conn_handle, &pkey);
-            ESP_LOGI(tag, "ble_sm_inject_io result: %d\n", rc);
-        } else if (event->passkey.params.action == BLE_SM_IOACT_OOB) {
-            static uint8_t tem_oob[16] = {0};
-            pkey.action = event->passkey.params.action;
-            for (int i = 0; i < 16; i++) {
-                pkey.oob[i] = tem_oob[i];
-            }
-            rc = ble_sm_inject_io(event->passkey.conn_handle, &pkey);
-            ESP_LOGI(tag, "ble_sm_inject_io result: %d\n", rc);
-        } else if (event->passkey.params.action == BLE_SM_IOACT_INPUT) {
-            ESP_LOGI(tag, "Enter the passkey through console in this format-> key 123456");
-            pkey.action = event->passkey.params.action;
-            // if (scli_receive_key(&key)) {
-            //     pkey.passkey = key;
-            // } else {
-            //     pkey.passkey = 0;
-            //     ESP_LOGE(tag, "Timeout! Passing 0 as the key");
-            // }
-            rc = ble_sm_inject_io(event->passkey.conn_handle, &pkey);
-            ESP_LOGI(tag, "ble_sm_inject_io result: %d\n", rc);
-        }
-        return 0;
-    }
-    return 0;
 }
 
 int _bluetooth_BLE_advertise(PikaObj *self, int addr_mode, int interval_us, pika_bool connectable)
@@ -368,7 +202,6 @@ int _bluetooth_BLE_advertise(PikaObj *self, int addr_mode, int interval_us, pika
         return -1 ;
     }
 
-
     // 声明并初始化广播结构体
     struct ble_gap_adv_params adv_params;
     memset(&adv_params, 0, sizeof(adv_params));
@@ -384,11 +217,9 @@ int _bluetooth_BLE_advertise(PikaObj *self, int addr_mode, int interval_us, pika
         connet_mode = BLE_GAP_CONN_MODE_NON;
     }
 
-
     adv_params.conn_mode = connet_mode;
     adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN;
   
-    // TODO: callback 函数待补充ble_gap_event_fn *cb, void *cb_arg
     return ble_gap_adv_start(own_addr_type, NULL, BLE_HS_FOREVER, &adv_params, ble_nimble_gap_event, NULL);
 }
 
@@ -416,8 +247,7 @@ int _bluetooth_BLE_gap_scan(PikaObj *self, int addr_mode, int duration_ms, int i
         .window = interval_us / 625,
         .passive = ~active,
     };
-    // TODO:回调函数
-    return ble_gap_disc(own_addr_type, duration_ms, &disc_params, NULL, NULL);
+    return ble_gap_disc(own_addr_type, duration_ms, &disc_params, ble_nimble_gap_event, NULL);
 }
 
 // 停止扫描
@@ -441,18 +271,31 @@ int _bluetooth_BLE_gatts_register_svcs(PikaObj *self, PikaObj* services_info)
 {
     PikaObj *a;
     printf("_bluetooth_BLE_gatts_register_svcs\r\n");
-    int c  = pikaTuple_getSize(services_info);
-    printf("services_info size = %d\r\n",c);
-    a = pikaTuple_getArg(services_info,0);
-    ArgType typea = pikaTuple_getType(services_info,0);
-    printf("typea = %d\r\n",typea);
-    // // if(pikaTuple_getType(services_info,0) == ARG_TYPE_TUPLE )
+    uint8_t size_one , size_two, size_three, size_four;
+    uint8_t i,j,k,l;
+    size_one = pikaTuple_getSize(services_info); //服务的个数
+    printf("services_info size_one = %d\r\n",size_one);
+    // for (i = 0;i < size_one;i++)
+    // {
+        
+    //     Arg * service = pikaTuple_get(services_info, i); //读取服务
+    //     size_two = pikaTuple_getSize(service); //
+    //     printf("service %s size = %d\r\n",size_two);
+    //     for (j = 0;j < size_two;j++)
+    //     {
+    //         size_three = pikaTuple_getSize(
+
+    // }
+    // a = pikaTuple_getArg(services_info,0);
+    // ArgType typea = pikaTuple_getType(services_info,0);
+    // printf("typea = %d\r\n",typea);
+    // if(pikaTuple_getType(services_info,0) == ARG_TYPE_TUPLE )
     // {
     //     printf("is a tuple\r\n");
     //     int d = pikaTuple_getSize(a);
     //     printf("service 1 size = %d",d);
     // }
-    // else if (==)
+    // // else if (==)
     // else 
     // {
     //     printf("it is not a tuple\r\n");
@@ -726,4 +569,380 @@ void gatt_svr_init(void)
 
 
 
+// 客户端读服务回调函数
+static int ble_cliect_read_cb(uint16_t conn_handle,
+                       const struct ble_gatt_error *error,
+                       struct ble_gatt_attr *attr,
+                       void *arg)
+{
+    printf("Read complete for the subscribable characteristic; "
+                "status=%d conn_handle=%d", error->status, conn_handle);
 
+
+    //读取成功
+    pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_READ_DONE ,
+        arg_newObj(New_pikaTupleFrom(
+                arg_newInt(_IRQ_GATTC_READ_DONE),
+                arg_newInt(conn_handle),
+                arg_newInt(attr->handle),
+                arg_newInt(error->status) 
+                )));
+
+    if (error->status == 0) {
+        printf(" attr_handle=%d value=", attr->handle);
+        //读到数据
+        pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_READ_RESULT,
+            arg_newObj(New_pikaTupleFrom(
+                    arg_newInt(_IRQ_GATTC_READ_RESULT),
+                    arg_newInt(conn_handle),
+                    arg_newInt(attr->handle),
+                    arg_newStr("test string") //, 
+                    // arg_newBytes(attr->om->om_databuf,attr->om->om_len) //TODO:未验证
+                    )));
+        // print_mbuf(attr->om); //TODO:该函数无引用，但在blecentn能够使用
+    }
+    return 0;
+}
+
+// 客户端写服务回调函数
+static int ble_cliect_write_cb(uint16_t conn_handle,
+                        const struct ble_gatt_error *error,
+                        struct ble_gatt_attr *attr,
+                        void *arg)
+{
+    const struct peer_chr *chr;
+    const struct peer *peer;
+    int rc;
+
+    MODLOG_DFLT(INFO,
+                "Write to the custom subscribable characteristic complete; "
+                "status=%d conn_handle=%d attr_handle=%d\n",
+                error->status, conn_handle, attr->handle);
+        //读到数据
+        pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_READ_RESULT,
+            arg_newObj(New_pikaTupleFrom(
+                    arg_newInt(_IRQ_GATTC_WRITE_DONE ),
+                    arg_newInt(conn_handle),
+                    arg_newInt(attr->handle),
+                    arg_newInt(error->status) 
+                    )));
+    return 0;
+}
+
+
+
+static int ble_nimble_gap_event(struct ble_gap_event *event, void *arg)
+{
+    struct ble_gap_conn_desc desc;
+    int rc;
+    uint8_t * addr[6];
+
+    switch (event->type) {
+    case BLE_GAP_EVENT_CONNECT: //TODO:MicroPyhon 区分 服务端与客户端的连接
+        /* A new connection was established or a connection attempt failed. */
+        MODLOG_DFLT(INFO, "connection %s; status=%d ",
+                    event->connect.status == 0 ? "established" : "failed",
+                    event->connect.status);
+        if (event->connect.status == 0) {
+            rc = ble_gap_conn_find(event->connect.conn_handle, &desc);
+            assert(rc == 0);
+            print_conn_desc(&desc);
+            addr_inver(desc.peer_ota_addr.val,&addr);
+            pika_eventListener_send(g_pika_ble_listener,_IRQ_CENTRAL_CONNECT,
+                        arg_newObj(New_pikaTupleFrom(
+                                arg_newInt(_IRQ_CENTRAL_CONNECT),
+                                arg_newInt(event->connect.conn_handle),
+                                arg_newInt(desc.peer_id_addr.type),
+                                // arg_newStr(addr_str) //TODO:修改为arg_newBytes(desc.peer_ota_addr.val,6)
+                                arg_newBytes(addr,6)
+                                )));
+        }
+        MODLOG_DFLT(INFO, "\n");
+
+        if (event->connect.status != 0) {
+            /* Connection failed; resume advertising. */
+            // bleprph_advertise();
+            // TODO: 重新广播
+            printf("Connection failed; resume advertising.");
+        }
+        return 0;
+
+    case BLE_GAP_EVENT_DISCONNECT: //断开连接
+        printf("disconnect; reason=%d ", event->disconnect.reason);
+        print_conn_desc(&event->disconnect.conn);
+
+        addr_inver(event->disconnect.conn.peer_ota_addr.val,&addr);
+        pika_eventListener_send(g_pika_ble_listener,_IRQ_CENTRAL_DISCONNECT,
+                            arg_newObj(New_pikaTupleFrom(
+                                    arg_newInt(_IRQ_CENTRAL_DISCONNECT),
+                                    arg_newInt(event->disconnect.conn.conn_handle),
+                                    arg_newInt(desc.peer_id_addr.type),
+                                    arg_newBytes(addr,6)
+                                    )));
+        return 0;
+
+    case BLE_GAP_EVENT_CONN_UPDATE: //返回结果
+        /* The central has updated the connection parameters. */
+        printf("connection updated; status=%d ",event->conn_update.status);
+        rc = ble_gap_conn_find(event->conn_update.conn_handle, &desc);
+        assert(rc == 0);
+        print_conn_desc(&desc);
+        return 0;
+
+    case BLE_GAP_EVENT_CONN_UPDATE_REQ :
+        // MicroPython : conn_handle, conn_interval, conn_latency, supervision_timeout, status 
+        pika_eventListener_send(g_pika_ble_listener,_IRQ_CONNECTION_UPDATE,
+                    arg_newObj(New_pikaTupleFrom(
+                            arg_newInt(_IRQ_CONNECTION_UPDATE),
+                            arg_newInt(event->conn_update_req.conn_handle),
+                            arg_newInt(event->conn_update_req.peer_params->itvl_min),
+                            arg_newInt(event->conn_update_req.peer_params->latency),
+                            arg_newInt(event->conn_update_req.peer_params->supervision_timeout)//,
+                            // arg_newInt(event->conn_update.status) TODO:status在上一事件中
+                            )));
+         return 0;
+
+    case BLE_GAP_EVENT_L2CAP_UPDATE_REQ :
+        return 0;
+
+    case BLE_GAP_EVENT_TERM_FAILURE:
+        return 0;
+    
+    case BLE_GAP_EVENT_DISC: //扫描发现
+    // MicroPython addr_type, addr, adv_type, rssi, adv_data
+        struct ble_gap_conn_desc desc;
+        struct ble_hs_adv_fields fields;
+        int rc;
+        rc = ble_hs_adv_parse_fields(&fields, event->disc.data,
+                                     event->disc.length_data);
+        if (rc != 0) {
+            return 0;
+        }
+
+        /* An advertisment report was received during GAP discovery. */
+        // print_adv_fields(&fields);
+
+        /* Try to connect to the advertiser if it looks interesting. */
+        // blecent_connect_if_interesting(&event->disc);
+
+        addr_inver(event->disc.addr.val,&addr);
+        uint8_t len = event->disc.length_data;
+        char *adv_str = (char *)malloc(len + 1);
+        memcpy(adv_str, event->disc.data, len);
+        adv_str[len] = '\0';
+
+        pika_eventListener_send(g_pika_ble_listener,_IRQ_SCAN_RESULT,
+            arg_newObj(New_pikaTupleFrom(
+                    arg_newInt(_IRQ_SCAN_RESULT),
+                    arg_newInt(event->disc.addr.type),
+                    arg_newBytes(addr,6),
+                    arg_newInt(event->disc.event_type),
+                    arg_newInt(event->disc.event_type),
+                    arg_newInt(event->disc.rssi),
+                    arg_newStr(adv_str)
+                    )));
+        free(adv_str);
+        return 0;
+
+    case BLE_GAP_EVENT_DISC_COMPLETE: // 扫描结束
+    // MicroPython None
+        printf("discovery complete; reason=%d\n",event->disc_complete.reason);
+        pika_eventListener_send(g_pika_ble_listener,_IRQ_SCAN_DONE,
+            arg_newObj(New_pikaTupleFrom(
+                    arg_newInt(_IRQ_SCAN_DONE),
+                    arg_newInt(event->disc_complete.reason)
+                    )));
+        return 0;
+
+    case BLE_GAP_EVENT_ADV_COMPLETE: //广播完成
+    // MicroPython 没有这个事件
+        printf("advertise complete; reason=%d",event->adv_complete.reason);
+        return 0;
+
+    case BLE_GAP_EVENT_ENC_CHANGE:
+    // 暂时不理
+        /* Encryption has been enabled or disabled for this connection. */
+        MODLOG_DFLT(INFO, "encryption change event; status=%d ",
+                    event->enc_change.status);
+        rc = ble_gap_conn_find(event->enc_change.conn_handle, &desc);
+        assert(rc == 0);
+        print_conn_desc(&desc);
+        MODLOG_DFLT(INFO, "\n");
+        return 0;
+
+    case BLE_GAP_EVENT_PASSKEY_ACTION :
+    // 暂时不理
+            ESP_LOGI(tag, "PASSKEY_ACTION_EVENT started \n");
+        struct ble_sm_io pkey = {0};
+        int key = 0;
+
+        if (event->passkey.params.action == BLE_SM_IOACT_DISP) {
+            pkey.action = event->passkey.params.action;
+            pkey.passkey = 123456; // This is the passkey to be entered on peer
+            ESP_LOGI(tag, "Enter passkey %" PRIu32 "on the peer side", pkey.passkey);
+            rc = ble_sm_inject_io(event->passkey.conn_handle, &pkey);
+            ESP_LOGI(tag, "ble_sm_inject_io result: %d\n", rc);
+        } else if (event->passkey.params.action == BLE_SM_IOACT_NUMCMP) {
+            ESP_LOGI(tag, "Passkey on device's display: %" PRIu32 , event->passkey.params.numcmp);
+            ESP_LOGI(tag, "Accept or reject the passkey through console in this format -> key Y or key N");
+            pkey.action = event->passkey.params.action;
+            // if (scli_receive_key(&key)) {
+            //     pkey.numcmp_accept = key;
+            // } else {
+            //     pkey.numcmp_accept = 0;
+            //     ESP_LOGE(tag, "Timeout! Rejecting the key");
+            // }
+            rc = ble_sm_inject_io(event->passkey.conn_handle, &pkey);
+            ESP_LOGI(tag, "ble_sm_inject_io result: %d\n", rc);
+        } else if (event->passkey.params.action == BLE_SM_IOACT_OOB) {
+            static uint8_t tem_oob[16] = {0};
+            pkey.action = event->passkey.params.action;
+            for (int i = 0; i < 16; i++) {
+                pkey.oob[i] = tem_oob[i];
+            }
+            rc = ble_sm_inject_io(event->passkey.conn_handle, &pkey);
+            ESP_LOGI(tag, "ble_sm_inject_io result: %d\n", rc);
+        } else if (event->passkey.params.action == BLE_SM_IOACT_INPUT) {
+            ESP_LOGI(tag, "Enter the passkey through console in this format-> key 123456");
+            pkey.action = event->passkey.params.action;
+            // if (scli_receive_key(&key)) {
+            //     pkey.passkey = key;
+            // } else {
+            //     pkey.passkey = 0;
+            //     ESP_LOGE(tag, "Timeout! Passing 0 as the key");
+            // }
+            rc = ble_sm_inject_io(event->passkey.conn_handle, &pkey);
+            ESP_LOGI(tag, "ble_sm_inject_io result: %d\n", rc);
+        }
+        return 0;
+
+    case BLE_GAP_EVENT_NOTIFY_RX: // 客户端
+
+        printf("received %s; conn_handle=%d attr_handle=%d attr_len=%d\r\n",
+                event->notify_rx.indication ? "indication" : "notification",
+                event->notify_rx.conn_handle,
+                event->notify_rx.attr_handle,
+                OS_MBUF_PKTLEN(event->notify_rx.om));
+
+        if(event->notify_rx.indication == 1){ // indication
+            // MicroPython : conn_handle, value_handle, notify_data
+            uint16_t len = event->notify_rx.om->om_len;
+            char *indic_str = (char *)malloc(len + 1);
+            memcpy(indic_str, event->notify_rx.om->om_data, len);
+            indic_str[len] = '\0';
+
+            pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_INDICATE,
+                arg_newObj(New_pikaTupleFrom(
+                        arg_newInt(_IRQ_GATTC_INDICATE),
+                        arg_newInt(event->notify_rx.conn_handle),
+                        arg_newInt(event->notify_rx.attr_handle),
+                        arg_newStr(indic_str)
+                        )));
+            free(indic_str);
+        }
+        else { 
+            uint16_t len = event->notify_rx.om->om_len;
+            char *indic_str = (char *)malloc(len + 1);
+            memcpy(indic_str, event->notify_rx.om->om_data, len);
+            indic_str[len] = '\0';
+
+            pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_NOTIFY,
+                arg_newObj(New_pikaTupleFrom(
+                        arg_newInt(_IRQ_GATTC_NOTIFY),
+                        arg_newInt(event->notify_rx.conn_handle),
+                        arg_newInt(event->notify_rx.attr_handle),
+                        arg_newStr(indic_str)
+                        )));
+            free(indic_str);
+        }
+        
+        return 0;
+
+    case BLE_GAP_EVENT_NOTIFY_TX: //通知发送完成
+        printf("notify_tx event; conn_handle=%d attr_handle=%d status=%d is_indication=%d\r\n",
+                    event->notify_tx.conn_handle,
+                    event->notify_tx.attr_handle,
+                    event->notify_tx.status,
+                    event->notify_tx.indication);
+        if(event->notify_tx.indication == 1){ // indication
+            // MicroPython : conn_handle, value_handle, notify_data
+            pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTS_INDICATE_DONE,
+                arg_newObj(New_pikaTupleFrom(
+                        arg_newInt(_IRQ_GATTS_INDICATE_DONE),
+                        arg_newInt(event->notify_tx.conn_handle),
+                        arg_newInt(event->notify_tx.attr_handle),
+                        arg_newStr(event->notify_tx.status)
+                        )));
+        }        
+        return 0;
+
+    case BLE_GAP_EVENT_SUBSCRIBE://订阅 客户端向服务端订阅
+        MODLOG_DFLT(INFO, "subscribe event; conn_handle=%d attr_handle=%d "
+                    "reason=%d prevn=%d curn=%d previ=%d curi=%d\n",
+                    event->subscribe.conn_handle,
+                    event->subscribe.attr_handle,
+                    event->subscribe.reason,
+                    event->subscribe.prev_notify,
+                    event->subscribe.cur_notify,
+                    event->subscribe.prev_indicate,
+                    event->subscribe.cur_indicate);
+        return 0;
+
+    case BLE_GAP_EVENT_MTU:
+        MODLOG_DFLT(INFO, "mtu update event; conn_handle=%d cid=%d mtu=%d\n",
+                    event->mtu.conn_handle,
+                    event->mtu.channel_id,
+                    event->mtu.value);
+        return 0;
+
+    case BLE_GAP_EVENT_IDENTITY_RESOLVED:
+        return 0;
+
+    case BLE_GAP_EVENT_REPEAT_PAIRING:
+        /* We already have a bond with the peer, but it is attempting to
+         * establish a new secure link.  This app sacrifices security for
+         * convenience: just throw away the old bond and accept the new link.
+         */
+
+        /* Delete the old bond. */
+        rc = ble_gap_conn_find(event->repeat_pairing.conn_handle, &desc);
+        assert(rc == 0);
+        ble_store_util_delete_peer(&desc.peer_id_addr);
+
+        /* Return BLE_GAP_REPEAT_PAIRING_RETRY to indicate that the host should
+         * continue with the pairing operation.
+         */
+        return BLE_GAP_REPEAT_PAIRING_RETRY;
+
+        case BLE_GAP_EVENT_PHY_UPDATE_COMPLETE:
+            return 0;
+
+        case BLE_GAP_EVENT_EXT_DISC:
+            return 0;
+
+        case BLE_GAP_EVENT_PERIODIC_SYNC:
+            return 0;
+
+        case BLE_GAP_EVENT_PERIODIC_REPORT:
+            return 0;
+
+        case BLE_GAP_EVENT_PERIODIC_SYNC_LOST:
+            return 0;
+
+        case BLE_GAP_EVENT_SCAN_REQ_RCVD:
+            return 0;
+
+        case BLE_GAP_EVENT_PERIODIC_TRANSFER:
+            return 0;
+
+        case BLE_GAP_EVENT_PATHLOSS_THRESHOLD:
+            return 0;
+
+        case BLE_GAP_EVENT_TRANSMIT_POWER:
+            return 0;
+
+        case BLE_GAP_EVENT_SUBRATE_CHANGE:// 这个是啥事件？
+            return 0;
+    }
+    return 0;
+}

@@ -1,6 +1,4 @@
 import _bluetooth
-
-
 # 标志位
 FLAG_READ     = 0x0002
 FLAG_WRITE    = 0x0008
@@ -19,7 +17,7 @@ class BLE(_bluetooth.BLE):
     addr_mode      =  0  #地址类型 BLE_OWN_ADDR_PUBLIC,BLE_OWN_ADDR_RANDOM,BLE_OWN_ADDR_RPA_PUBLIC_DEFAULT,BLE_OWN_ADDR_RPA_RANDOM_DEFAULT
     conn_handle    = ""  #连接句柄
 
-    callback_func  = None
+    callback_func  = None  #回调函数
 
     def __init__(self):
         print("BLE init")
@@ -41,72 +39,90 @@ class BLE(_bluetooth.BLE):
         elif (active_flag == 0 or active_flag == False):
             return self.pyi_active(False)
 
-    def config(self, *param_name, **kv):
-
+    def config(self, *param_name, **kv): # a.config(mac="1123",gap_name="test")
+        # print("param_name : ",param_name)
+        # print("kv : ",kv)
+        # print(kv.keys)
     # 获取参数属性   a.config("gap_name")
-        first_param = param_name[0]
-        if first_param == "mac":
-            return(super().config_addr_mode_get(),super().config_mac_get())
-        elif first_param == "addr_mode":
-            return(super().config_addr_mode_get())
-        elif first_param == "gap_name":
-            # return(self.config_gap_name_get()) #TODO: question 直接return 会报错
-            gap_name = self.config_gap_name_get()
-            return gap_name
-        elif first_param == "rxbuf" :
-            super().config_addr_rxbuf_get()
-        elif first_param == "mtu" :
-            super().config_mtu_get()
-        elif first_param == "bond" :
-            super().config_bond_get()
-        elif first_param == "mitm" :
-            super().config_mitm_get()
-        elif first_param == "io":
-            super().config_io_get()
-        elif first_param == "le_secure":
-            super().config_le_secure_get()
-        else:
-            print("ValueError: unknown config param")   
+    #     first_param = param_name[0]
+    #     if first_param == "mac":
+    #         return(super().config_addr_mode_get(),super().config_mac_get())
+    #     elif first_param == "addr_mode":
+    #         return(super().config_addr_mode_get())
+    #     elif first_param == "gap_name":
+    #         # return(self.config_gap_name_get()) #TODO: question 直接return 会报错
+    #         gap_name = self.config_gap_name_get()
+    #         return gap_name
+    #     elif first_param == "rxbuf" :
+    #         super().config_addr_rxbuf_get()
+    #     elif first_param == "mtu" :
+    #         super().config_mtu_get()
+    #     elif first_param == "bond" :
+    #         super().config_bond_get()
+    #     elif first_param == "mitm" :
+    #         super().config_mitm_get()
+    #     elif first_param == "io":
+    #         super().config_io_get()
+    #     elif first_param == "le_secure":
+    #         super().config_le_secure_get()
+    #     else:
+    #         print("ValueError: unknown config param")   
 
+    # # 设定属性
+        # print(kv["mac"])
+        # print(kv["gap_name"])
 
-    # 设定属性
-        if ("mac" in kv):
-            super().config_mac_update(kv["mac"])
+        # if ("mac" in kv.keys()):
+        # if ("193498998" in kv):
+        #     print("set mac : ", kv["mac"])
+            # super().config_mac_update(kv["mac"])
 
-        if ("addr_mode" in kv):
-            addr_mode = kv["addr_mode"]
-            if (addr_mode >= 0 and addr_mode < 5):
-                # super().config_addr_mode_update(addr_mode)
-                self.addr_mode = addr_mode
-                return True
-            else :
-                return False
+    #     if ("addr_mode" in kv):
+    #         addr_mode = kv["addr_mode"]
+    #         if (addr_mode >= 0 and addr_mode < 5):
+    #             # super().config_addr_mode_update(addr_mode)
+    #             self.addr_mode = addr_mode
+    #             return True
+    #         else :
+    #             return False
+        try:
+            mac = kv["mac"]
+            print("set mac : ", kv["mac"])
+        except:
+            pass
 
-        if ("gap_name" in kv):
-            return super().config_gap_name_update(kv["gap_name"])
+        try:
+            mac = kv["gap_name"]
+            print("set gap_name : ", kv["gap_name"])
+        except:
+            pass
+        # if ("gap_name" in kv):
+        # if ("1094176957" in kv):
+            # print("set gap_name")
+            # return super().config_gap_name_update(kv["gap_name"])
 
-        if ("rxbuf" in kv):
-            super().config_rxbuf_update(kv["rxbuf"])
+    #     if ("rxbuf" in kv):
+    #         super().config_rxbuf_update(kv["rxbuf"])
 
-        if ("mtu" in kv):
-            super().config_mtu_update(kv["mtu"])
+    #     if ("mtu" in kv):
+    #         super().config_mtu_update(kv["mtu"])
 
-        if ("bond" in kv):
-            super().config_bond_update(kv["bond"])
+    #     if ("bond" in kv):
+    #         super().config_bond_update(kv["bond"])
 
-        if ("mitm" in kv):
-            super().config_mitm_update(kv["mitm"])
+    #     if ("mitm" in kv):
+    #         super().config_mitm_update(kv["mitm"])
 
-        if ("bond" in kv):
-            super().config_mac_update(kv["bond"])
+    #     if ("bond" in kv):
+    #         super().config_mac_update(kv["bond"])
 
-        if ("io" in kv):
-            super().config_io_update(kv["io"])
+    #     if ("io" in kv):
+    #         super().config_io_update(kv["io"])
 
-        if ("le_secire" in kv):
-            super().config_le_secire_update(kv["le_secire"])
+    #     if ("le_secire" in kv):
+    #         super().config_le_secire_update(kv["le_secire"])
     
-    
+    # a.config("mac"="test","gap_name"="test2")
     # 回调事件处理函数
     def irq(self,func):
         # self.setCallback(func)
