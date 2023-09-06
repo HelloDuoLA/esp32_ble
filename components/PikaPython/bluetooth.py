@@ -29,8 +29,8 @@ class BLE(_bluetooth.BLE):
     def test(self, interval_us, adv_data=None, connectable=True,*resp_data):
         print(interval_us)
     
-    def __test2(self):
-        print("test2")
+    def test2(self):
+        super().test2()
 
     def active(self):
         self.pyi_active()
@@ -186,7 +186,9 @@ class BLE(_bluetooth.BLE):
 
     def gatts_register_services(self, services):
         convert_services = convert_ble_service_info(services)
-        return convert_services
+        print("convert_services  : ",convert_services)
+        self.gatts_register_svcs(convert_services)
+        # return convert_services
     
     # # 遍历特征
     # for characteristic in characteristics:
@@ -252,3 +254,4 @@ def convert_ble_service_info(data):
             new_tuple.append(i)
             # print(i)
     return tuple(new_tuple)
+    # return new_tuple

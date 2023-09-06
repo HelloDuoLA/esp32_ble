@@ -6,6 +6,9 @@
 #include "host/ble_hs.h"
 #include "host/util/util.h"
 #include "services/gap/ble_svc_gap.h"
+#include "services/gatt/ble_svc_gatt.h"
+#include "services/ans/ble_svc_ans.h"
+
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "esp_log.h"
@@ -20,6 +23,13 @@ static const char *tag = "NimBLE_BLE";
 bool BLE_ONLY = false;  //只使用BLE,默认否
 bool BLE_FIRST_INIT = true;  //是否第一次初始化,默认是
 // uint8_t own_addr_type;
+
+// 函数声明
+// gatt 服务回调函数
+static int gatt_svc_access(uint16_t conn_handle, uint16_t attr_handle,struct ble_gatt_access_ctxt *ctxt, void *arg);
+
+void gatt_svr_init(void);
+
 
 // 事件监听器
 PikaEventListener *g_pika_ble_listener = NULL;
@@ -427,9 +437,31 @@ int _bluetooth_BLE_stop_advertise(PikaObj *self)
 }
 
 // TODO:服务的内容该如何传递
-int _bluetooth_BLE_register_a_service(PikaObj *self, PikaObj* service_info)
+int _bluetooth_BLE_gatts_register_svcs(PikaObj *self, PikaObj* services_info)
 {
-    printf("_bluetooth_BLE_register_a_service");
+    PikaObj *a;
+    printf("_bluetooth_BLE_gatts_register_svcs\r\n");
+    int c  = pikaTuple_getSize(services_info);
+    printf("services_info size = %d\r\n",c);
+    a = pikaTuple_getArg(services_info,0);
+    ArgType typea = pikaTuple_getType(services_info,0);
+    printf("typea = %d\r\n",typea);
+    // // if(pikaTuple_getType(services_info,0) == ARG_TYPE_TUPLE )
+    // {
+    //     printf("is a tuple\r\n");
+    //     int d = pikaTuple_getSize(a);
+    //     printf("service 1 size = %d",d);
+    // }
+    // else if (==)
+    // else 
+    // {
+    //     printf("it is not a tuple\r\n");
+    // }
+    // pikaTuple_forEach(services_info)
+
+    // 遍历services_info,遇到嵌套多申请一套
+
+    // gatt_svr_init();
     return 0;
 }
 
@@ -600,6 +632,97 @@ int _bluetooth_BLE_config_rxbuf_update(PikaObj *self, int rxbuf)
     printf("_bluetooth_BLE_config_rxbuf_update\r\n");
     return 0;
 }
+
+int _bluetooth_BLE_test2(PikaObj *self)
+{
+    printf("_bluetooth_BLE_test2\r\n");
+    return 0;
+}
+
+void gatt_svr_init(void)
+{
+    // TODO:另外两个初始化函数怎么是无定义的
+    ble_svc_gap_init();
+    ble_svc_gatt_init();
+    ble_svc_ans_init();
+}
+
+
+// gattd服务回调函数
+// static int gatt_svc_access(uint16_t conn_handle, uint16_t attr_handle,
+//                 struct ble_gatt_access_ctxt *ctxt, void *arg){
+//     const ble_uuid_t *uuid;
+//     int rc;
+//     switch (ctxt->op) {
+//         case BLE_GATT_ACCESS_OP_READ_CHR:
+//             if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
+//                 MODLOG_DFLT(INFO, "Characteristic read; conn_handle=%d attr_handle=%d\n",
+//                             conn_handle, attr_handle);
+//             } else {
+//                 MODLOG_DFLT(INFO, "Characteristic read by NimBLE stack; attr_handle=%d\n",
+//                             attr_handle);
+//             }
+//             uuid = ctxt->chr->uuid;
+//             if (attr_handle == gatt_svr_chr_val_handle) {
+//                 rc = os_mbuf_append(ctxt->om,
+//                                     &gatt_svr_chr_val,
+//                                     sizeof(gatt_svr_chr_val));
+//                 return rc == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
+//             }
+//             goto unknown;
+
+//         case BLE_GATT_ACCESS_OP_WRITE_CHR:
+//             if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
+//                 MODLOG_DFLT(INFO, "Characteristic write; conn_handle=%d attr_handle=%d",
+//                             conn_handle, attr_handle);
+//             } else {
+//                 MODLOG_DFLT(INFO, "Characteristic write by NimBLE stack; attr_handle=%d",
+//                             attr_handle);
+//             }
+//             uuid = ctxt->chr->uuid;
+//             if (attr_handle == gatt_svr_chr_val_handle) {
+//                 rc = gatt_svr_write(ctxt->om,
+//                                     sizeof(gatt_svr_chr_val),
+//                                     sizeof(gatt_svr_chr_val),
+//                                     &gatt_svr_chr_val, NULL);
+//                 ble_gatts_chr_updated(attr_handle);
+//                 MODLOG_DFLT(INFO, "Notification/Indication scheduled for "
+//                             "all subscribed peers.\n");
+//                 return rc;
+//             }
+//             goto unknown;
+
+//         case BLE_GATT_ACCESS_OP_READ_DSC:
+//             if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
+//                 MODLOG_DFLT(INFO, "Descriptor read; conn_handle=%d attr_handle=%d\n",
+//                             conn_handle, attr_handle);
+//             } else {
+//                 MODLOG_DFLT(INFO, "Descriptor read by NimBLE stack; attr_handle=%d\n",
+//                             attr_handle);
+//             }
+//             uuid = ctxt->dsc->uuid;
+//             if (ble_uuid_cmp(uuid, &gatt_svr_dsc_uuid.u) == 0) {
+//                 rc = os_mbuf_append(ctxt->om,
+//                                     &gatt_svr_dsc_val,
+//                                     sizeof(gatt_svr_chr_val));
+//                 return rc == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
+//             }
+//             goto unknown;
+
+//         case BLE_GATT_ACCESS_OP_WRITE_DSC:
+//             goto unknown;
+
+//         default:
+//             goto unknown;
+//     }
+
+// unknown:
+//     /* Unknown characteristic/descriptor;
+//      * The NimBLE host should not have called this function;
+//      */
+//     assert(0);
+//     return BLE_ATT_ERR_UNLIKELY;
+// }
 
 
 

@@ -40,14 +40,15 @@ int _bluetooth_BLE_gap_connect(PikaObj *self, int addr_type, char* addr, int sca
 int _bluetooth_BLE_gap_disconnect(PikaObj *self);
 int _bluetooth_BLE_gap_scan(PikaObj *self, int addr_mode, int duration_ms, int interval_us, int window_us, pika_bool active);
 int _bluetooth_BLE_gap_stop_scan(PikaObj *self);
+int _bluetooth_BLE_gatts_register_svcs(PikaObj *self, PikaObj* services_info);
 int _bluetooth_BLE_init(PikaObj *self);
 pika_bool _bluetooth_BLE_pyi_active(PikaObj *self, pika_bool active);
 pika_bool _bluetooth_BLE_pyi_check_active(PikaObj *self);
 int _bluetooth_BLE_pyi_test(PikaObj *self);
-int _bluetooth_BLE_register_a_service(PikaObj *self, PikaObj* service_info);
 void _bluetooth_BLE_setCallback(PikaObj *self, Arg* cb);
 int _bluetooth_BLE_set_adv_data(PikaObj *self, char* data, int data_len);
 int _bluetooth_BLE_set_rsp_data(PikaObj *self, char* data, int data_len);
 int _bluetooth_BLE_stop_advertise(PikaObj *self);
+int _bluetooth_BLE_test2(PikaObj *self);
 
 #endif

@@ -3384,6 +3384,16 @@ method_typedef(
     "gap_stop_scan", ""
 );
 
+void _bluetooth_BLE_gatts_register_svcsMethod(PikaObj *self, Args *args){
+    PikaObj* services_info = args_getPtr(args, "services_info");
+    int res = _bluetooth_BLE_gatts_register_svcs(self, services_info);
+    method_returnInt(args, res);
+}
+method_typedef(
+    _bluetooth_BLE_gatts_register_svcs,
+    "gatts_register_svcs", "services_info"
+);
+
 void _bluetooth_BLE_initMethod(PikaObj *self, Args *args){
     int res = _bluetooth_BLE_init(self);
     method_returnInt(args, res);
@@ -3419,16 +3429,6 @@ void _bluetooth_BLE_pyi_testMethod(PikaObj *self, Args *args){
 method_typedef(
     _bluetooth_BLE_pyi_test,
     "pyi_test", ""
-);
-
-void _bluetooth_BLE_register_a_serviceMethod(PikaObj *self, Args *args){
-    PikaObj* service_info = args_getPtr(args, "service_info");
-    int res = _bluetooth_BLE_register_a_service(self, service_info);
-    method_returnInt(args, res);
-}
-method_typedef(
-    _bluetooth_BLE_register_a_service,
-    "register_a_service", "service_info"
 );
 
 void _bluetooth_BLE_setCallbackMethod(PikaObj *self, Args *args){
@@ -3471,6 +3471,15 @@ method_typedef(
     "stop_advertise", ""
 );
 
+void _bluetooth_BLE_test2Method(PikaObj *self, Args *args){
+    int res = _bluetooth_BLE_test2(self);
+    method_returnInt(args, res);
+}
+method_typedef(
+    _bluetooth_BLE_test2,
+    "test2", ""
+);
+
 class_def(_bluetooth_BLE){
     __BEFORE_MOETHOD_DEF
     method_def(_bluetooth_BLE_config_addr_mode_get, 44719256),
@@ -3478,6 +3487,7 @@ class_def(_bluetooth_BLE){
     method_def(_bluetooth_BLE_gap_connect, 239981286),
     method_def(_bluetooth_BLE_gap_stop_scan, 257876614),
     method_def(_bluetooth_BLE_stop_advertise, 259007825),
+    method_def(_bluetooth_BLE_test2, 275477815),
     method_def(_bluetooth_BLE_config_gap_name_update, 408105012),
     method_def(_bluetooth_BLE_config_mtu_get, 476449967),
     method_def(_bluetooth_BLE_config_bond_update, 554500607),
@@ -3488,10 +3498,10 @@ class_def(_bluetooth_BLE){
     method_def(_bluetooth_BLE_pyi_test, 917323382),
     method_def(_bluetooth_BLE_setCallback, 946882526),
     method_def(_bluetooth_BLE_gap_scan, 1094358433),
+    method_def(_bluetooth_BLE_gatts_register_svcs, 1155607722),
     method_def(_bluetooth_BLE_config_mitm_update, 1292142323),
     method_def(_bluetooth_BLE_advertise, 1312546732),
     method_def(_bluetooth_BLE_config_addr_mode_update, 1318609371),
-    method_def(_bluetooth_BLE_register_a_service, 1446124378),
     method_def(_bluetooth_BLE_set_rsp_data, 1483498270),
     method_def(_bluetooth_BLE_config_mitm_get, 1493883056),
     method_def(_bluetooth_BLE_pyi_active, 1786833970),
