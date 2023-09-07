@@ -40,6 +40,7 @@ class BLE(_bluetooth.BLE):
             return self.pyi_active(False)
 
     def config(self, *param_name, **kv): # a.config(mac="1123",gap_name="test")
+        pass
         # print("param_name : ",param_name)
         # print("kv : ",kv)
         # print(kv.keys)
@@ -85,17 +86,17 @@ class BLE(_bluetooth.BLE):
     #             return True
     #         else :
     #             return False
-        try:
-            mac = kv["mac"]
-            print("set mac : ", kv["mac"])
-        except:
-            pass
+        # try:
+        #     mac = kv["mac"]
+        #     print("set mac : ", kv["mac"])
+        # except:
+        #     pass
 
-        try:
-            mac = kv["gap_name"]
-            print("set gap_name : ", kv["gap_name"])
-        except:
-            pass
+        # try:
+        #     mac = kv["gap_name"]
+        #     print("set gap_name : ", kv["gap_name"])
+        # except:
+        #     pass
         # if ("gap_name" in kv):
         # if ("1094176957" in kv):
             # print("set gap_name")
@@ -214,49 +215,59 @@ class BLE(_bluetooth.BLE):
     #     super.register_a_service()
 
 
-    def gatts_read(value_handle, /):
+    def gatts_read(self,value_handle):
+        # 暂不清楚对照哪个函数,或者直接调用gattc试一试
         pass
 
-    def gatts_write(value_handle, data, send_update=False, /):
+    def gatts_write(self,value_handle, data, send_update=False):
+        # 暂不清楚对照哪个函数
         pass
 
-    def gatts_notify(conn_handle, value_handle, data=None, /):
+    def gatts_notify(self,conn_handle, value_handle, data=None):
+        if data is None:
+            self.gatts_notify_no_data(conn_handle, value_handle)
+        else :
+            self.gatts_notify_custom(conn_handle, value_handle,data)
+
+
+    def gatts_indicate(self,conn_handle, value_handle,data=None):
+        if data is None:
+            self.gatts_indicate_no_data(conn_handle, value_handle)
+        else :
+            self.gatts_indicate_custom(conn_handle, value_handle,data)
+
+    def gatts_set_buffer(self,value_handle, len, append=False):
+        # 暂不清楚对照哪个函数
         pass
 
-    def gatts_indicate(conn_handle, value_handle, /):
+    def gattc_discover_services(self,conn_handle, uuid:UUID=None, /):
+        if uuid == None:
+            self.gattc_dis_svcs(conn_handle)
+        else :
+            self.gattc_dis_svcs_by_uuid(conn_handle,uuid.value)
+
+    def gattc_discover_characteristics(self,conn_handle, start_handle, end_handle, uuid:UUID=None, /):
+        if uuid == None:
+            self.gattc_dis_chrs(conn_handle,start_handle, end_handle)
+        else :
+            self.gattc_dis_chrs_by_uuid(conn_handle, start_handle, end_handle,uuid.value)
+
+    def gattc_discover_descriptors(self,conn_handle, start_handle, end_handle, /):
+        self.gattc_dis_dscs(conn_handle,start_handle, end_handle)
+
+    def gattc_read(self,conn_handle, value_handle):
+        self.pyi_gattc_read(conn_handle, value_handle)
+
+    def gattc_write(self,conn_handle, value_handle, data, mode=0, /):
+        if mode == 0:
+            self.gattc_write_with_no_rsp(conn_handle, value_handle, data)
+        else if mode == 1:
+            self.gattc_write_with_rsp(conn_handle, value_handle, data)
+
+    def gattc_exchange_mtu(self,conn_handle):
+        self.pyi_gattc_exchange_mtu(conn_handle)
         pass
 
-    def gatts_set_buffer(value_handle, len, append=False, /):
-        pass
-
-    def gattc_discover_services(conn_handle, uuid=None, /):
-        pass
-
-    def gattc_discover_characteristics(conn_handle, start_handle, end_handle, uuid=None, /):
-        pass
-
-    def gattc_discover_descriptors(conn_handle, start_handle, end_handle, /):
-        pass
-
-    def gattc_read(conn_handle, value_handle, /):
-        pass
-
-    def gattc_write(conn_handle, value_handle, data, mode=0, /):
-        pass
-
-    def gattc_exchange_mtu(conn_handle, /):
-        pass
-
-    def testtuple(self):
-        girl_tuple = ("a","b","c","d","e")
-        for everyOne in girl_tuple:
-            print(everyOne)
-
-
-def testtuple():
-    girl_tuple = ("a","b","c","d","e")
-    for everyOne in girl_tuple:
-        print(everyOne)
 
 def convert_ble_service_info(data):
     new_tuple = []

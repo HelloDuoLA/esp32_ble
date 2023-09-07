@@ -3384,6 +3384,133 @@ method_typedef(
     "gap_stop_scan", ""
 );
 
+void _bluetooth_BLE_gattc_dis_chrsMethod(PikaObj *self, Args *args){
+    int conn_handle = args_getInt(args, "conn_handle");
+    int start_handle = args_getInt(args, "start_handle");
+    int end_handle = args_getInt(args, "end_handle");
+    int res = _bluetooth_BLE_gattc_dis_chrs(self, conn_handle, start_handle, end_handle);
+    method_returnInt(args, res);
+}
+method_typedef(
+    _bluetooth_BLE_gattc_dis_chrs,
+    "gattc_dis_chrs", "conn_handle,start_handle,end_handle"
+);
+
+void _bluetooth_BLE_gattc_dis_chrs_by_uuidMethod(PikaObj *self, Args *args){
+    int conn_handle = args_getInt(args, "conn_handle");
+    int start_handle = args_getInt(args, "start_handle");
+    char* uuid = args_getStr(args, "uuid");
+    int res = _bluetooth_BLE_gattc_dis_chrs_by_uuid(self, conn_handle, start_handle, uuid);
+    method_returnInt(args, res);
+}
+method_typedef(
+    _bluetooth_BLE_gattc_dis_chrs_by_uuid,
+    "gattc_dis_chrs_by_uuid", "conn_handle,start_handle,uuid"
+);
+
+void _bluetooth_BLE_gattc_dis_dscsMethod(PikaObj *self, Args *args){
+    int conn_handle = args_getInt(args, "conn_handle");
+    int start_handle = args_getInt(args, "start_handle");
+    int end_handle = args_getInt(args, "end_handle");
+    int res = _bluetooth_BLE_gattc_dis_dscs(self, conn_handle, start_handle, end_handle);
+    method_returnInt(args, res);
+}
+method_typedef(
+    _bluetooth_BLE_gattc_dis_dscs,
+    "gattc_dis_dscs", "conn_handle,start_handle,end_handle"
+);
+
+void _bluetooth_BLE_gattc_dis_svcsMethod(PikaObj *self, Args *args){
+    int conn_handle = args_getInt(args, "conn_handle");
+    int res = _bluetooth_BLE_gattc_dis_svcs(self, conn_handle);
+    method_returnInt(args, res);
+}
+method_typedef(
+    _bluetooth_BLE_gattc_dis_svcs,
+    "gattc_dis_svcs", "conn_handle"
+);
+
+void _bluetooth_BLE_gattc_dis_svcs_by_uuidMethod(PikaObj *self, Args *args){
+    int conn_handle = args_getInt(args, "conn_handle");
+    char* uuid = args_getStr(args, "uuid");
+    int res = _bluetooth_BLE_gattc_dis_svcs_by_uuid(self, conn_handle, uuid);
+    method_returnInt(args, res);
+}
+method_typedef(
+    _bluetooth_BLE_gattc_dis_svcs_by_uuid,
+    "gattc_dis_svcs_by_uuid", "conn_handle,uuid"
+);
+
+void _bluetooth_BLE_gattc_write_with_no_rspMethod(PikaObj *self, Args *args){
+    int conn_handle = args_getInt(args, "conn_handle");
+    int value_handle = args_getInt(args, "value_handle");
+    char* data = args_getStr(args, "data");
+    int res = _bluetooth_BLE_gattc_write_with_no_rsp(self, conn_handle, value_handle, data);
+    method_returnInt(args, res);
+}
+method_typedef(
+    _bluetooth_BLE_gattc_write_with_no_rsp,
+    "gattc_write_with_no_rsp", "conn_handle,value_handle,data"
+);
+
+void _bluetooth_BLE_gattc_write_with_rspMethod(PikaObj *self, Args *args){
+    int conn_handle = args_getInt(args, "conn_handle");
+    int value_handle = args_getInt(args, "value_handle");
+    char* data = args_getStr(args, "data");
+    int res = _bluetooth_BLE_gattc_write_with_rsp(self, conn_handle, value_handle, data);
+    method_returnInt(args, res);
+}
+method_typedef(
+    _bluetooth_BLE_gattc_write_with_rsp,
+    "gattc_write_with_rsp", "conn_handle,value_handle,data"
+);
+
+void _bluetooth_BLE_gatts_indicate_customMethod(PikaObj *self, Args *args){
+    int conn_handle = args_getInt(args, "conn_handle");
+    int value_handle = args_getInt(args, "value_handle");
+    char* data = args_getStr(args, "data");
+    int res = _bluetooth_BLE_gatts_indicate_custom(self, conn_handle, value_handle, data);
+    method_returnInt(args, res);
+}
+method_typedef(
+    _bluetooth_BLE_gatts_indicate_custom,
+    "gatts_indicate_custom", "conn_handle,value_handle,data"
+);
+
+void _bluetooth_BLE_gatts_indicate_no_dataMethod(PikaObj *self, Args *args){
+    int conn_handle = args_getInt(args, "conn_handle");
+    int value_handle = args_getInt(args, "value_handle");
+    int res = _bluetooth_BLE_gatts_indicate_no_data(self, conn_handle, value_handle);
+    method_returnInt(args, res);
+}
+method_typedef(
+    _bluetooth_BLE_gatts_indicate_no_data,
+    "gatts_indicate_no_data", "conn_handle,value_handle"
+);
+
+void _bluetooth_BLE_gatts_notify_customMethod(PikaObj *self, Args *args){
+    int conn_handle = args_getInt(args, "conn_handle");
+    int value_handle = args_getInt(args, "value_handle");
+    char* data = args_getStr(args, "data");
+    int res = _bluetooth_BLE_gatts_notify_custom(self, conn_handle, value_handle, data);
+    method_returnInt(args, res);
+}
+method_typedef(
+    _bluetooth_BLE_gatts_notify_custom,
+    "gatts_notify_custom", "conn_handle,value_handle,data"
+);
+
+void _bluetooth_BLE_gatts_notify_no_dataMethod(PikaObj *self, Args *args){
+    int conn_handle = args_getInt(args, "conn_handle");
+    int value_handle = args_getInt(args, "value_handle");
+    int res = _bluetooth_BLE_gatts_notify_no_data(self, conn_handle, value_handle);
+    method_returnInt(args, res);
+}
+method_typedef(
+    _bluetooth_BLE_gatts_notify_no_data,
+    "gatts_notify_no_data", "conn_handle,value_handle"
+);
+
 void _bluetooth_BLE_gatts_register_svcsMethod(PikaObj *self, Args *args){
     PikaObj* services_info = args_getPtr(args, "services_info");
     int res = _bluetooth_BLE_gatts_register_svcs(self, services_info);
@@ -3420,6 +3547,27 @@ void _bluetooth_BLE_pyi_check_activeMethod(PikaObj *self, Args *args){
 method_typedef(
     _bluetooth_BLE_pyi_check_active,
     "pyi_check_active", ""
+);
+
+void _bluetooth_BLE_pyi_gattc_exchange_mtuMethod(PikaObj *self, Args *args){
+    int conn_handle = args_getInt(args, "conn_handle");
+    int res = _bluetooth_BLE_pyi_gattc_exchange_mtu(self, conn_handle);
+    method_returnInt(args, res);
+}
+method_typedef(
+    _bluetooth_BLE_pyi_gattc_exchange_mtu,
+    "pyi_gattc_exchange_mtu", "conn_handle"
+);
+
+void _bluetooth_BLE_pyi_gattc_readMethod(PikaObj *self, Args *args){
+    int conn_handle = args_getInt(args, "conn_handle");
+    int value_handle = args_getInt(args, "value_handle");
+    int res = _bluetooth_BLE_pyi_gattc_read(self, conn_handle, value_handle);
+    method_returnInt(args, res);
+}
+method_typedef(
+    _bluetooth_BLE_pyi_gattc_read,
+    "pyi_gattc_read", "conn_handle,value_handle"
 );
 
 void _bluetooth_BLE_pyi_testMethod(PikaObj *self, Args *args){
@@ -3482,6 +3630,7 @@ method_typedef(
 
 class_def(_bluetooth_BLE){
     __BEFORE_MOETHOD_DEF
+    method_def(_bluetooth_BLE_gatts_notify_no_data, 40343445),
     method_def(_bluetooth_BLE_config_addr_mode_get, 44719256),
     method_def(_bluetooth_BLE_config_le_secure_update, 107547187),
     method_def(_bluetooth_BLE_gap_connect, 239981286),
@@ -3492,14 +3641,24 @@ class_def(_bluetooth_BLE){
     method_def(_bluetooth_BLE_config_mtu_get, 476449967),
     method_def(_bluetooth_BLE_config_bond_update, 554500607),
     method_def(_bluetooth_BLE_config_io_get, 632087889),
+    method_def(_bluetooth_BLE_gatts_indicate_no_data, 659684477),
     method_def(_bluetooth_BLE_gap_disconnect, 714357958),
+    method_def(_bluetooth_BLE_pyi_gattc_read, 774405380),
+    method_def(_bluetooth_BLE_gattc_write_with_no_rsp, 783500045),
+    method_def(_bluetooth_BLE_gattc_dis_chrs_by_uuid, 796024214),
     method_def(_bluetooth_BLE_config_mtu_update, 855813778),
     method_def(_bluetooth_BLE_set_adv_data, 862102692),
     method_def(_bluetooth_BLE_pyi_test, 917323382),
     method_def(_bluetooth_BLE_setCallback, 946882526),
+    method_def(_bluetooth_BLE_gattc_write_with_rsp, 1004539761),
+    method_def(_bluetooth_BLE_pyi_gattc_exchange_mtu, 1055431712),
     method_def(_bluetooth_BLE_gap_scan, 1094358433),
     method_def(_bluetooth_BLE_gatts_register_svcs, 1155607722),
+    method_def(_bluetooth_BLE_gattc_dis_chrs, 1280754246),
+    method_def(_bluetooth_BLE_gattc_dis_dscs, 1280801667),
+    method_def(_bluetooth_BLE_gattc_dis_svcs, 1281343989),
     method_def(_bluetooth_BLE_config_mitm_update, 1292142323),
+    method_def(_bluetooth_BLE_gattc_dis_svcs_by_uuid, 1293655109),
     method_def(_bluetooth_BLE_advertise, 1312546732),
     method_def(_bluetooth_BLE_config_addr_mode_update, 1318609371),
     method_def(_bluetooth_BLE_set_rsp_data, 1483498270),
@@ -3511,7 +3670,9 @@ class_def(_bluetooth_BLE){
     method_def(_bluetooth_BLE_config_rxbuf_update, 1924795427),
     method_def(_bluetooth_BLE_config_le_secure_get, 1959535600),
     method_def(_bluetooth_BLE_config_io_update, 1968397300),
+    method_def(_bluetooth_BLE_gatts_indicate_custom, 2005137954),
     method_def(_bluetooth_BLE_config_addr_rxbuf_get, 2022506650),
+    method_def(_bluetooth_BLE_gatts_notify_custom, 2051445306),
     method_def(_bluetooth_BLE_config_gap_name_get, 2070094225),
     method_def(_bluetooth_BLE_init, 2090370361),
     method_def(_bluetooth_BLE_pyi_check_active, 2103615151),

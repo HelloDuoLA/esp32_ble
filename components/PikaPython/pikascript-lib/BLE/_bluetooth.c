@@ -482,6 +482,59 @@ int _bluetooth_BLE_test2(PikaObj *self)
     return 0;
 }
 
+int _bluetooth_BLE_gattc_dis_chrs(PikaObj *self, int conn_handle, int start_handle, int end_handle){
+    return 0;
+}
+
+int _bluetooth_BLE_gattc_dis_chrs_by_uuid(PikaObj *self, int conn_handle, int start_handle, char* uuid){
+    return 0;
+}
+
+int _bluetooth_BLE_gattc_dis_dscs(PikaObj *self, int conn_handle, int start_handle, int end_handle){
+    return 0;
+}
+
+int _bluetooth_BLE_gattc_dis_svcs(PikaObj *self, int conn_handle){
+    return 0;
+}
+
+int _bluetooth_BLE_gattc_dis_svcs_by_uuid(PikaObj *self, int conn_handle, char* uuid){
+    return 0;
+}
+
+int _bluetooth_BLE_gattc_write_with_no_rsp(PikaObj *self, int conn_handle, int value_handle, char* data){
+    return 0;
+}
+
+int _bluetooth_BLE_gattc_write_with_rsp(PikaObj *self, int conn_handle, int value_handle, char* data){
+    return 0;
+}
+
+int _bluetooth_BLE_gatts_indicate_custom(PikaObj *self, int conn_handle, int value_handle, char* data){
+    return 0;
+}
+
+int _bluetooth_BLE_gatts_indicate_no_data(PikaObj *self, int conn_handle, int value_handle){
+    return 0;
+}
+
+int _bluetooth_BLE_gatts_notify_custom(PikaObj *self, int conn_handle, int value_handle, char* data){
+    return 0;
+}
+
+int _bluetooth_BLE_gatts_notify_no_data(PikaObj *self, int conn_handle, int value_handle){
+    return 0;
+}
+
+int _bluetooth_BLE_pyi_gattc_exchange_mtu(PikaObj *self, int conn_handle){
+    return 0;
+}
+
+int _bluetooth_BLE_pyi_gattc_read(PikaObj *self, int conn_handle, int value_handle){
+    return 0;
+}
+
+
 void gatt_svr_init(void)
 {
     // TODO:另外两个初始化函数怎么是无定义的
@@ -886,6 +939,7 @@ static int ble_nimble_gap_event(struct ble_gap_event *event, void *arg)
                     event->subscribe.cur_notify,
                     event->subscribe.prev_indicate,
                     event->subscribe.cur_indicate);
+                    // ble_gattc_disc_all_svcs
         return 0;
 
     case BLE_GAP_EVENT_MTU:
