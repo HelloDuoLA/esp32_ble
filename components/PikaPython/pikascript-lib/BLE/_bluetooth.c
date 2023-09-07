@@ -269,41 +269,38 @@ int _bluetooth_BLE_stop_advertise(PikaObj *self)
 // TODO:服务的内容该如何传递
 int _bluetooth_BLE_gatts_register_svcs(PikaObj *self, PikaObj* services_info)
 {
-    PikaObj *a;
     printf("_bluetooth_BLE_gatts_register_svcs\r\n");
-    uint8_t size_one , size_two, size_three, size_four;
-    uint8_t i,j,k,l;
-    size_one = pikaTuple_getSize(services_info); //服务的个数
-    printf("services_info size_one = %d\r\n",size_one);
-    // for (i = 0;i < size_one;i++)
-    // {
-        
-    //     Arg * service = pikaTuple_get(services_info, i); //读取服务
-    //     size_two = pikaTuple_getSize(service); //
-    //     printf("service %s size = %d\r\n",size_two);
-    //     for (j = 0;j < size_two;j++)
-    //     {
-    //         size_three = pikaTuple_getSize(
+    size_t service_count , chr_count, dsc_count;
+    uint8_t i,j,k;
+    service_count = pikaTuple_getSize(services_info);            //服务的个数,是不确定的
+    printf("services_info service_count = %d\r\n",service_count);
+    for (i = 0;i < service_count;i++){                           //对于每个服务
+        PikaObj* service = pikaTuple_getArg(services_info, i);     //读取服务
+        printf("TYPE %d\r\n",pikaTuple_getType(services_info,i));
 
-    // }
-    // a = pikaTuple_getArg(services_info,0);
-    // ArgType typea = pikaTuple_getType(services_info,0);
-    // printf("typea = %d\r\n",typea);
-    // if(pikaTuple_getType(services_info,0) == ARG_TYPE_TUPLE )
-    // {
-    //     printf("is a tuple\r\n");
-    //     int d = pikaTuple_getSize(a);
-    //     printf("service 1 size = %d",d);
-    // }
-    // // else if (==)
-    // else 
-    // {
-    //     printf("it is not a tuple\r\n");
-    // }
-    // pikaTuple_forEach(services_info)
+        service_count = pikaTuple_getSize(service);            //服务的个数,是不确定的
+        printf("services_info service_count = %d\r\n",service_count);
 
-    // 遍历services_info,遇到嵌套多申请一套
-
+        // PikaObj* service_UUID = pikaTuple_getStr(service,0);
+        // printf("TYPE %d",pikaTuple_getType(service_UUID));
+        // Arg  * chrs = pikaTuple_getArg(service, 1);              //读取属性合集
+        // chr_count = pikaTuple_getSize(chrs);                     // 属性的个数,是不确定的
+        // printf("service %d UUID %s chrs size %d \r\n",i,service_UUID,chr_count);
+    //     for (j = 0;j < chr_count;j++){                           // 对于每个属性
+    //         Arg  * chr = pikaTuple_getArg(chrs, j);              //读取属性
+    //         char * chr_UUID = pikaTuple_getStr(chrs,0);          //属性FLAG    
+    //         uint64_t chr_flags = pikaTuple_getInt(chrs,1);
+    //         Arg  * dscs = pikaTuple_getArg(chrs, 2);             // dscs = 描述符合集
+    //         dsc_count = pikaTuple_getSize(dscs);                 //描述符的个数，是不确定的
+    //         printf("chr_UUID : %s chr_flags : %d  dscs size %d \r\n",chr_UUID,chr_flags,dsc_count);
+    //         for(k = 0;k < dsc_count;k++){                        //对于每个描述符
+    //             Arg * dsc = pikaTuple_getArg(dscs, k);
+    //             char * dscs_UUID = pikaTuple_getInt(dsc, 0);
+    //             uint16_t dscs_flags = pikaTuple_getInt(dsc, 1);
+    //             printf("dscs_UUID : %s, dscs_flags : %d",dscs_UUID,dscs_flags);
+    //         }
+    //     }
+    }
     // gatt_svr_init();
     return 0;
 }
@@ -355,9 +352,8 @@ int _bluetooth_BLE_config_mac_get(PikaObj *self)
     return 0;
 }
 
-char* _bluetooth_BLE_config_gap_name_get(PikaObj *self)
+char* _bluetooth_BLE_config_gap_name_get(PikaObj *self){
 // int _bluetooth_BLE_config_gap_name_get(PikaObj *self)
-{
     printf("_bluetooth_BLE_config_addr_gap_name_get\r\n");
     char *name = ble_svc_gap_device_name();
     // printf(name);
@@ -365,26 +361,22 @@ char* _bluetooth_BLE_config_gap_name_get(PikaObj *self)
     return name;
 }
 
-int _bluetooth_BLE_config_addr_mode_get(PikaObj *self)
-{
+int _bluetooth_BLE_config_addr_mode_get(PikaObj *self){
     printf("_bluetooth_BLE_config_addr_mode_get\r\n");
     return 0;
 }
 
-int _bluetooth_BLE_config_mtu_get(PikaObj *self)
-{
+int _bluetooth_BLE_config_mtu_get(PikaObj *self){
     printf("_bluetooth_BLE_config_mtu_get\r\n");
     return 0;
 }
 
-int _bluetooth_BLE_config_addr_rxbuf_get(PikaObj *self)
-{
+int _bluetooth_BLE_config_addr_rxbuf_get(PikaObj *self){
     printf("_bluetooth_BLE_config_addr_rxbuf_get\r\n");
     return 0;
 }
 
-int _bluetooth_BLE_config_bond_get(PikaObj *self)
-{
+int _bluetooth_BLE_config_bond_get(PikaObj *self){
     printf("_bluetooth_BLE_config_bond_get\r\n");
     return 0;
 }
@@ -431,8 +423,7 @@ int _bluetooth_BLE_config_gap_name_update(PikaObj *self, char* gap_name)
     return ble_svc_gap_device_name_set(gap_name);
 }
 
-int _bluetooth_BLE_config_io_update(PikaObj *self, int io)
-{
+int _bluetooth_BLE_config_io_update(PikaObj *self, int io){
     printf("_bluetooth_BLE_config_io_update\r\n");
     return 0;
 }

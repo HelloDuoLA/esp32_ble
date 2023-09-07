@@ -60,6 +60,14 @@
         "string": "c",
         "string_view": "c",
         "bitset": "c",
-        "array": "c"
+        "array": "c",
+        "atomic": "c",
+        "chrono": "c",
+        "fstream": "c",
+        "functional": "c",
+        "istream": "c",
+        "regex": "c",
+        "tuple": "c",
+        "type_traits": "c"
     }
 }

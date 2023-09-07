@@ -42,7 +42,7 @@ typedef enum {
     ARG_TYPE_INT,
     ARG_TYPE_BOOL,
     ARG_TYPE_FLOAT,
-    ARG_TYPE_STRING,
+    ARG_TYPE_STRING,         //5
     ARG_TYPE_BYTES,
     ARG_TYPE_POINTER,
     ARG_TYPE_BIG_ARG_PTR,
