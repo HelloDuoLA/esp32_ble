@@ -680,7 +680,7 @@ void _bluetooth_BLE_setCallback(PikaObj *self, Arg* cb)
         printf("g_pika_ble_listener init\r\n");
     }
     uint32_t i = 0;
-    for ( i = 0; i < 31; i++){
+    for ( i = 0; i < _IRQ_COUNT + 1; i++){
         pika_eventListener_registEventCallback(g_pika_ble_listener,i,cb);
     }
 }
@@ -1102,14 +1102,14 @@ static int ble_gap_event_cb(struct ble_gap_event *event, void *arg)
                         arg_newInt(_IRQ_GATTS_INDICATE_DONE),
                         arg_newInt(event->notify_tx.conn_handle),
                         arg_newInt(event->notify_tx.attr_handle),
-                        arg_newStr(event->notify_tx.status)
+                        arg_newInt(event->notify_tx.status)
                         )));
         }        
         return 0;
 
     case BLE_GAP_EVENT_SUBSCRIBE://订阅 客户端向服务端订阅
-        MODLOG_DFLT(INFO, "subscribe event; conn_handle=%d attr_handle=%d "
-                    "reason=%d prevn=%d curn=%d previ=%d curi=%d\n",
+        printf("subscribe event; conn_handle=%d attr_handle=%d "
+                    "reason=%d prevn=%d curn=%d previ=%d curi=%d\r\n",
                     event->subscribe.conn_handle,
                     event->subscribe.attr_handle,
                     event->subscribe.reason,
@@ -1117,7 +1117,13 @@ static int ble_gap_event_cb(struct ble_gap_event *event, void *arg)
                     event->subscribe.cur_notify,
                     event->subscribe.prev_indicate,
                     event->subscribe.cur_indicate);
-                    // ble_gattc_disc_all_svcs
+        pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_SUBSCRIBE,
+        arg_newObj(New_pikaTupleFrom(
+                arg_newInt(_IRQ_GATTC_SUBSCRIBE),
+                arg_newInt(event->subscribe.conn_handle),
+                arg_newInt(event->subscribe.attr_handle),
+                arg_newarg_newInt(event->subscribe.reason)
+                )));
         return 0;
 
     case BLE_GAP_EVENT_MTU:

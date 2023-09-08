@@ -1,3 +1,5 @@
+#define _IRQ_COUNT                         31
+
 #define _IRQ_CENTRAL_CONNECT               1
 #define _IRQ_CENTRAL_DISCONNECT            2
 #define _IRQ_GATTS_WRITE                   3
@@ -28,3 +30,4 @@
 #define _IRQ_ENCRYPTION_UPDATE             28
 #define _IRQ_GET_SECRET                    29
 #define _IRQ_SET_SECRET                    30
+#define _IRQ_GATTC_SUBSCRIBE               31
