@@ -47,10 +47,19 @@ def ble_irq(event,data):
 
 # a.gatts_register_services(services)
 
-for i in range(65000,70000):
+# for i in range(65000,70000):
     # b = a.test2(str(i) + "t" * (i % 10))
     # b = a.test2(str(i) + str(70000 - i))
-    b = a.test2("ABCDEF")
+    # c = 0xABCD
+    # b = a.test2(str('6E400003-B5A3-F393-E0A9-E50E24DCCA9E'))
+b = a.test2(0x11111111)
+b = a.test2(0xFFFFFFFF)
+b = a.test2(0xeeeeeeee)
+b = a.test2("ABCDEFAB")
+
+# a = 0xABCDEFEF
+# b = hex(a).upper()
+# print(b)
 
 # a.test(1)
 # a.test2()

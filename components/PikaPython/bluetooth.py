@@ -39,7 +39,11 @@ class BLE(_bluetooth.BLE):
         print(interval_us)
     
     def test2(self,num):
-        return self.pyi_test2(num,len(num))
+        # print("num  " ,num)
+        # print("len num ", len(num))
+        num_str = _to_string(num)
+        print("num_str : ", num_str)
+        return self.pyi_test2(num_str,len(num_str))
 
 
     def active(self):
@@ -304,7 +308,7 @@ def _to_string(data):
     elif isinstance(data,str):
         data_str = data
     elif isinstance(data,int):
-        data_str = str(data)
+        data_str = hex(data)[2:]
     
     return data_str
     

@@ -81,6 +81,8 @@ static int ble_gap_event_cb(struct ble_gap_event *event, void *arg);
 // gatt初始化基本服务
 void gatt_svr_init(void);
 
+//
+int read_uuid_from_str(char* buf, int len, ble_uuid_any_t* uuid_struct);
 
 // 蓝牙任务
 void ble_host_task(void *param)
@@ -340,7 +342,7 @@ int _bluetooth_BLE_gatts_register_svcs(PikaObj *self, PikaObj* services_info)
             return -1;
         }    
         chrs_count_per_service[i] = chr_count;
-        // uint16_t test = i * 55;
+        // int uuid_size = read_uuid_from_str(service_UUID,);
         // gatt_svr_svcs[0].uuid = BLE_UUID16_DECLARE(test);
 
         printf("service %d UUID %s chrs size %d \r\n",i,service_UUID,chr_count);
@@ -570,9 +572,16 @@ int _bluetooth_BLE_pyi_test2(PikaObj *self,char *data ,int data_len)
 
     // BLE_UUID16(uuid)->value;
 
-    // unsigned int aa1, aa2, aa3;//注意不能用unsigned char
-    // sscanf( data, "%02x%02x%02x", &aa1, &aa2, &aa3 );
-    // printf( "%02x,%02x,%02x\n", aa1, aa2, aa3 );
+    unsigned int aa1, aa2, aa3,aa4;//注意不能用unsigned char
+    sscanf( data, "%02x%02x%02x%02x", &aa1, &aa2, &aa3 ,&aa4);
+    printf( "%02x,%02x,%02x,%02x\r\n", aa1, aa2, aa3 ,aa4);
+
+    // printf("%s\r\n",data);
+    // unsigned int aa1, aa2, aa3,aa4;
+    // printf("%d\r\n",strlen(data));
+    // sscanf(data,"%02x%02x%02x",&aa1,&aa2,&aa3);
+    // printf("%d,%d,%d,%d\r\n",aa1,aa2,aa3);
+    // printf("data len = %d\r\n",data_len);
     return 0;
 }
 
@@ -692,11 +701,13 @@ int read_uuid_from_str(char* buf, int len, ble_uuid_any_t* uuid_struct)
         sscanf(buf, "%02x%02x", &a[0],&a[1]);
         uuid_struct->u16.u.type = BLE_UUID_TYPE_16;
         uuid_struct->u16.value = (a[0] << 8) | a[1];
+        return 16;
     }
     else if (len == 8){
         sscanf(buf, "%02x%02x%02x%02x", &a[0],&a[1],&a[2],&a[3]);
         uuid_struct->u32.u.type = BLE_UUID_TYPE_32;
         uuid_struct->u32.value  = (a[0] << 24) | (a[1] << 16) | (a[2] << 8) | a[3]; 
+        return 32;
     }
     else if (len == 36){
         sscanf(buf, "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",\
@@ -704,6 +715,7 @@ int read_uuid_from_str(char* buf, int len, ble_uuid_any_t* uuid_struct)
         // // &a[0],&a[1],&a[2],&a[3],&a[4],&a[5],&a[6],&a[7],&a[8],&a[9],&a[10],&a[11],&a[12],&a[13],&a[14],&a[15]);
         uuid_struct->u128.u.type = BLE_UUID_TYPE_128;
         memcpy(uuid_struct->u128.value,a,16);
+        return 128;
     }
     return 0;
 }
