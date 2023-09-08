@@ -15,18 +15,20 @@
 // #include "ble_uuid.h"
 #include "cb_event_id.h"
 
+// TODO:发布的时候怎么将printf隐藏掉
 #define printf __platform_printf
 
 #define GATT_SVR_SVC_ALERT_UUID               0x1811
 
 static const char *tag = "NimBLE_BLE";
-bool BLE_ONLY = false;  //只使用BLE,默认否
+bool BLE_ONLY = false;       //只使用BLE,默认否
 bool BLE_FIRST_INIT = true;  //是否第一次初始化,默认是
 // uint8_t own_addr_type;
+PikaEventListener *g_pika_ble_listener = NULL; // 事件监听器
 
 // 函数声明
 // GATT 服务端回调函数
-static int gatt_svc_access(uint16_t conn_handle, uint16_t attr_handle,struct ble_gatt_access_ctxt *ctxt, void *arg);
+static int ble_gatt_svc_access_cb(uint16_t conn_handle, uint16_t attr_handle,struct ble_gatt_access_ctxt *ctxt, void *arg);
 // GATT 客户端写回调函数
 static int ble_cliect_write_cb(uint16_t conn_handle,
                        const struct ble_gatt_error *error,
@@ -43,16 +45,42 @@ static int ble_gatt_mtu_exchange_cb(uint16_t conn_handle,
                             const struct ble_gatt_error *error,
                             uint16_t mtu, void *arg);
 
+// GATT 查找所有服务回调函数
+static int ble_gatt_disc_all_svcs_cb(uint16_t conn_handle,
+                                 const struct ble_gatt_error *error,
+                                 const struct ble_gatt_svc *service,
+                                 void *arg);
+
+// GATT 查找所有服务回调函数
+static int ble_gatt_disc_svcs_by_uuid_cb(uint16_t conn_handle,
+                                 const struct ble_gatt_error *error,
+                                 const struct ble_gatt_svc *service,
+                                 void *arg);
+
+// GATT 查找所有特性回调函数
+static int ble_gatt_disc_all_chrs_cb(uint16_t conn_handle,
+                            const struct ble_gatt_error *error,
+                            const struct ble_gatt_chr *chr, void *arg);
+
+// GATT 查找特定UUID特性回调函数
+static int ble_gatt_disc_chrs_by_uuid_cb(uint16_t conn_handle,
+                            const struct ble_gatt_error *error,
+                            const struct ble_gatt_chr *chr, void *arg);
+
+// GATT 查找所有描述符回调函数
+static int ble_gatt_disc_all_dscs_cb(uint16_t conn_handle,
+                            const struct ble_gatt_error *error,
+                            uint16_t chr_val_handle,
+                            const struct ble_gatt_dsc *dsc,
+                            void *arg);
+
 // GAP层回调函数
-static int ble_nimble_gap_event(struct ble_gap_event *event, void *arg);
+static int ble_gap_event_cb(struct ble_gap_event *event, void *arg);
 
 
 // gatt初始化基本服务
 void gatt_svr_init(void);
 
-
-// 事件监听器
-PikaEventListener *g_pika_ble_listener = NULL;
 
 // 蓝牙任务
 void ble_host_task(void *param)
@@ -68,18 +96,18 @@ uint8_t get_addr_type(int addr_mode)
 {
     uint8_t own_addr_type;
     switch (addr_mode) {
-    case 0:
-        own_addr_type = BLE_OWN_ADDR_PUBLIC;
-        break;
-    case 1:
-        own_addr_type = BLE_OWN_ADDR_RANDOM;
-        break;
-    case 2:
-        own_addr_type = BLE_OWN_ADDR_RPA_PUBLIC_DEFAULT;
-        break;
-    case 3:
-        own_addr_type = BLE_OWN_ADDR_RPA_RANDOM_DEFAULT;
-        break;
+        case 0:
+            own_addr_type = BLE_OWN_ADDR_PUBLIC;
+            break;
+        case 1:
+            own_addr_type = BLE_OWN_ADDR_RANDOM;
+            break;
+        case 2:
+            own_addr_type = BLE_OWN_ADDR_RPA_PUBLIC_DEFAULT;
+            break;
+        case 3:
+            own_addr_type = BLE_OWN_ADDR_RPA_RANDOM_DEFAULT;
+            break;
     }
     return own_addr_type;
 }
@@ -87,7 +115,6 @@ uint8_t get_addr_type(int addr_mode)
 int _bluetooth_BLE_init(PikaObj *self)
 {
     printf("_bluetooth_BLE___init__\r\n");
-    //TODO: flash init 应该放到哪里？
     if (BLE_FIRST_INIT)
     {
         esp_err_t ret = nvs_flash_init();
@@ -123,6 +150,7 @@ pika_bool _bluetooth_BLE_pyi_active(PikaObj *self, pika_bool active)
 pika_bool _bluetooth_BLE_pyi_check_active(PikaObj *self)
 {
     printf("_bluetooth_BLE_pyi_check_active\r\n");
+    //TODO: 未找到检测蓝牙是否活跃的函数
     return true;
 }
 
@@ -146,8 +174,7 @@ void print_addr(const void *addr)
 {
     const uint8_t *u8p;
     u8p = addr;
-    MODLOG_DFLT(INFO, "%02x:%02x:%02x:%02x:%02x:%02x",
-                u8p[5], u8p[4], u8p[3], u8p[2], u8p[1], u8p[0]);
+    printf("%02x:%02x:%02x:%02x:%02x:%02x\r\n",u8p[5], u8p[4], u8p[3], u8p[2], u8p[1], u8p[0]);
 }
 
 /**
@@ -196,7 +223,7 @@ int _bluetooth_BLE_advertise(PikaObj *self, int addr_mode, int interval_us, pika
     fields.name = (uint8_t *)name;
     fields.name_len = strlen(name);
     fields.name_is_complete = 1;
-    // TODO：UUID修改成可变的
+    // TODO:UUID修改成可变的
     fields.uuids16 = (ble_uuid16_t[]) {
         BLE_UUID16_INIT(GATT_SVR_SVC_ALERT_UUID)
     };
@@ -227,18 +254,20 @@ int _bluetooth_BLE_advertise(PikaObj *self, int addr_mode, int interval_us, pika
     adv_params.conn_mode = connet_mode;
     adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN;
   
-    return ble_gap_adv_start(own_addr_type, NULL, BLE_HS_FOREVER, &adv_params, ble_nimble_gap_event, NULL);
+    return ble_gap_adv_start(own_addr_type, NULL, BLE_HS_FOREVER, &adv_params, ble_gap_event_cb, NULL);
 }
 
 int _bluetooth_BLE_gap_connect(PikaObj *self, int addr_type, char* addr, int64_t scan_duration_ms)
 {
     printf("_bluetooth_BLE_gap_connect\r\n");
-    return ble_gap_connect((uint8_t)addr_type,(ble_addr_t *)addr,scan_duration_ms,NULL,NULL,NULL);
+    // TODO:参数待补充
+    return ble_gap_connect((uint8_t)addr_type,(ble_addr_t *)addr,scan_duration_ms,NULL,ble_gap_event_cb,NULL);
 }
 
 int _bluetooth_BLE_gap_disconnect(PikaObj *self)
 {
     printf("_bluetooth_BLE_gap_disconnect\r\n");
+    // TODO:不太确定是否对应该函数
     return ble_gap_conn_cancel();
 }
 
@@ -254,11 +283,12 @@ int _bluetooth_BLE_gap_scan(PikaObj *self, int addr_mode, int duration_ms, int i
         .window = interval_us / 625,
         .passive = ~active,
     };
-    return ble_gap_disc(own_addr_type, duration_ms, &disc_params, ble_nimble_gap_event, NULL);
+    // TODO:参数待补充
+    return ble_gap_disc(own_addr_type, duration_ms, &disc_params, ble_gap_event_cb, NULL);
 }
 
 // 停止扫描
-// 已完成
+// TODO:未验证
 int _bluetooth_BLE_gap_stop_scan(PikaObj *self)
 {
     printf("_bluetooth_BLE_gap_stop_scan\r\n");
@@ -266,14 +296,15 @@ int _bluetooth_BLE_gap_stop_scan(PikaObj *self)
 }
 
 // 停止广播
-// 已完成
+// TODO:未验证
 int _bluetooth_BLE_stop_advertise(PikaObj *self)
 {
     printf("_bluetooth_BLE_stop_advertise");
     return ble_gap_adv_stop();
 }
 
-
+// 注册服务
+// TODO:未验证
 int _bluetooth_BLE_gatts_register_svcs(PikaObj *self, PikaObj* services_info)
 {
     printf("_bluetooth_BLE_gatts_register_svcs\r\n");
@@ -329,7 +360,7 @@ int _bluetooth_BLE_gatts_register_svcs(PikaObj *self, PikaObj* services_info)
                 PikaObj* dsc = arg_getObj(pikaTuple_getArg(dscs, k));
                 char * dscs_UUID = pikaTuple_getInt(dsc, 0);
                 uint16_t dscs_flags = pikaTuple_getInt(dsc, 1);
-                printf("dscs_UUID : %s, dscs_flags : %d\r\n",dscs_UUID,dscs_flags);
+                printf("dsc_UUID : %s, dsc_flags : %d\r\n",dscs_UUID,dscs_flags);
             }
         }
     }
@@ -362,33 +393,22 @@ int _bluetooth_BLE_gatts_register_svcs(PikaObj *self, PikaObj* services_info)
     return 0;
 }
 
+// 设置广播数据
+// TODO:未验证
 int _bluetooth_BLE_set_adv_data(PikaObj *self, char* data, int data_len)
 {
     printf("_bluetooth_BLE_set_adv_data\r\n");
     return ble_gap_adv_set_data((uint8_t*)data,data_len);
 }
 
+// 设置扫描响应数据
+// TODO:未验证
 int _bluetooth_BLE_set_rsp_data(PikaObj *self, char* data, int data_len)
 {
     printf("_bluetooth_BLE_set_rsp_data\r\n");
     return ble_gap_adv_rsp_set_data((uint8_t*)data,data_len);
 }
 
-
-// 回调函数注册
-void _bluetooth_BLE_setCallback(PikaObj *self, Arg* cb)
-{
-    printf("_bluetooth_BLE_setCallback\r\n");
-    if (g_pika_ble_listener == NULL) {
-        pika_eventListener_init(&g_pika_ble_listener);
-        printf("g_pika_ble_listener init\r\n");
-    }
-    uint32_t i = 0;
-    for ( i = 0; i < 31; i++)
-    {
-        pika_eventListener_registEventCallback(g_pika_ble_listener,i,cb);
-    }
-}
 
 int _bluetooth_BLE_config_mac_get(PikaObj *self)
 {
@@ -409,13 +429,12 @@ int _bluetooth_BLE_config_mac_get(PikaObj *self)
     return 0;
 }
 
+
+// 测试通过
 char* _bluetooth_BLE_config_gap_name_get(PikaObj *self){
-// int _bluetooth_BLE_config_gap_name_get(PikaObj *self)
     printf("_bluetooth_BLE_config_addr_gap_name_get\r\n");
     char *name = ble_svc_gap_device_name();
-    // printf(name);
-    // return 1;
-    return name;
+    return obj_cacheStr(self, name);
 }
 
 int _bluetooth_BLE_config_addr_mode_get(PikaObj *self){
@@ -469,17 +488,15 @@ int _bluetooth_BLE_config_bond_update(PikaObj *self, pika_bool bond)
     return 0;
 }
 
+// 基本测试通过
+// TODO:gap_name输入的是其他格式呢?
 int _bluetooth_BLE_config_gap_name_update(PikaObj *self, char* gap_name)
 {
     printf("_bluetooth_BLE_config_gap_name_update\r\n");
-    // struct ble_hs_adv_fields *adv_fields;
-    // adv_fields = (struct ble_hs_adv_fields*)malloc(sizeof(struct ble_hs_adv_fields));
-    // adv_fields->name = (unsigned char *)gap_name;
-    // // adv_fields->name_is_complete
-    // return ble_gap_adv_set_fields(adv_fields);
     return ble_svc_gap_device_name_set(gap_name);
 }
 
+// TODO:未找到对应函数
 int _bluetooth_BLE_config_io_update(PikaObj *self, int io){
     printf("_bluetooth_BLE_config_io_update\r\n");
     return 0;
@@ -500,37 +517,49 @@ int _bluetooth_BLE_config_le_secure_update(PikaObj *self, pika_bool le_secure)
     }
 }
 
+// TODO:未找到实现方法
 int _bluetooth_BLE_config_mac_update(PikaObj *self)
 {
     printf("_bluetooth_BLE_config_mac_update\r\n");
     return 0;
 }
 
+// TODO:未找到对应函数
 int _bluetooth_BLE_config_mitm_update(PikaObj *self, pika_bool mitm)
 {
     printf("_bluetooth_BLE_config_mitm_update\r\n");
     return 0;
 }
 
+// TODO:未找到对应函数
 int _bluetooth_BLE_config_mtu_update(PikaObj *self, int mtu)
 {
     printf("_bluetooth_BLE_config_mtu_update\r\n");
     return 0;
 }
 
+// TODO:未找到对应函数
 int _bluetooth_BLE_config_rxbuf_update(PikaObj *self, int rxbuf)
 {
     printf("_bluetooth_BLE_config_rxbuf_update\r\n");
     return 0;
 }
 
-int _bluetooth_BLE_test2(PikaObj *self)
+void _testtest(uint16_t a)
 {
-    printf("_bluetooth_BLE_test2\r\n");
+    printf("%d\r\n",a);
+}
+
+int _bluetooth_BLE_pyi_test2(PikaObj *self,int num)
+{
+    // printf("_bluetooth_BLE_pyi_test2\r\n");
+    // printf("%d",num);
+    _testtest(num);
     return 0;
 }
 
 int _bluetooth_BLE_gattc_dis_chrs(PikaObj *self, int conn_handle, int start_handle, int end_handle){
+    ble_gattc_disc_all_chrs(conn_handle,start_handle,end_handle,ble_gatt_disc_all_dscs_cb,NULL);
     return 0;
 }
 
@@ -585,6 +614,23 @@ int _bluetooth_BLE_pyi_gattc_read(PikaObj *self, int conn_handle, int value_hand
 }
 
 
+// 回调函数注册
+void _bluetooth_BLE_setCallback(PikaObj *self, Arg* cb)
+{
+    printf("_bluetooth_BLE_setCallback\r\n");
+    if (g_pika_ble_listener == NULL) {
+        pika_eventListener_init(&g_pika_ble_listener);
+        printf("g_pika_ble_listener init\r\n");
+    }
+    uint32_t i = 0;
+    for ( i = 0; i < 31; i++)
+    {
+        pika_eventListener_registEventCallback(g_pika_ble_listener,i,cb);
+    }
+}
+
+
+
 void gatt_svr_init(void)
 {
     ble_svc_gap_init();
@@ -594,7 +640,7 @@ void gatt_svr_init(void)
 
 
 // GATT层:服务端回调函数
-static int gatt_svc_access(uint16_t conn_handle, uint16_t attr_handle,
+static int ble_gatt_svc_access_cb(uint16_t conn_handle, uint16_t attr_handle,
                 struct ble_gatt_access_ctxt *ctxt, void *arg){
     const ble_uuid_t *uuid;
     int rc;
@@ -736,7 +782,7 @@ static int ble_gatt_mtu_exchange_cb(uint16_t conn_handle,
 
 
 // GAP层：广播事件回调函数
-static int ble_nimble_gap_event(struct ble_gap_event *event, void *arg)
+static int ble_gap_event_cb(struct ble_gap_event *event, void *arg)
 {
     struct ble_gap_conn_desc desc;
     int rc;
@@ -1048,5 +1094,62 @@ static int ble_nimble_gap_event(struct ble_gap_event *event, void *arg)
         case BLE_GAP_EVENT_SUBRATE_CHANGE:// 这个是啥事件？
             return 0;
     }
+    return 0;
+}
+
+// GATT 查找所有服务回调函数
+static int ble_gatt_disc_all_svcs_cb(uint16_t conn_handle,
+                                 const struct ble_gatt_error *error,
+                                 const struct ble_gatt_svc *service,
+                                 void *arg){
+
+// pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTS_INDICATE_DONE,
+//     arg_newObj(New_pikaTupleFrom(
+//             arg_newInt(_IRQ_GATTS_INDICATE_DONE),
+//             arg_newInt(event->notify_tx.conn_handle),
+//             arg_newInt(event->notify_tx.attr_handle),
+//             arg_newStr(event->notify_tx.status)
+//             )));
+    return 0; 
+}
+
+// GATT 查找所有服务回调函数
+static int ble_gatt_disc_svcs_by_uuid_cb(uint16_t conn_handle,
+                                 const struct ble_gatt_error *error,
+                                 const struct ble_gatt_svc *service,
+                                 void *arg){
+    return 0;
+}
+
+// GATT 查找所有特性回调函数
+static int ble_gatt_disc_all_chrs_cb(uint16_t conn_handle,
+                            const struct ble_gatt_error *error,
+                            const struct ble_gatt_chr *chr, void *arg){
+                                
+    return 0;
+}
+
+// GATT 查找特定UUID特性回调函数
+static int ble_gatt_disc_chrs_by_uuid_cb(uint16_t conn_handle,
+                            const struct ble_gatt_error *error,
+                            const struct ble_gatt_chr *chr, void *arg){
+    return 0;
+}
+
+
+// GATT 查找所有描述符回调函数
+static int ble_gatt_disc_all_dscs_cb(uint16_t conn_handle,
+                            const struct ble_gatt_error *error,
+                            uint16_t chr_val_handle,
+                            const struct ble_gatt_dsc *dsc,
+                            void *arg){
+pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_DESCRIPTOR_RESULT,
+    arg_newObj(New_pikaTupleFrom(
+            arg_newInt(_IRQ_GATTC_DESCRIPTOR_RESULT),
+            arg_newInt(conn_handle),
+            arg_newInt(dsc->handle) //,
+            // arg_newStr(dsc->uuid.value) //TODO:UUID传递方法
+            )));
+    
     return 0;
 }

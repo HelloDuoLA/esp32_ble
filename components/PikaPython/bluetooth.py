@@ -38,8 +38,9 @@ class BLE(_bluetooth.BLE):
     def test(self, interval_us, adv_data=None, connectable=True,*resp_data):
         print(interval_us)
     
-    def test2(self):
-        super().test2()
+    def test2(self,num):
+        return self.pyi_test2(num)
+
 
     def active(self):
         self.pyi_active()

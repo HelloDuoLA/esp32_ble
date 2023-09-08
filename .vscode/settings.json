@@ -69,6 +69,10 @@
         "regex": "c",
         "tuple": "c",
         "type_traits": "c",
-        "future": "c"
+        "future": "c",
+        "pikamain.h": "c",
+        "ratio": "c",
+        "system_error": "c",
+        "utility": "c"
     }
 }
