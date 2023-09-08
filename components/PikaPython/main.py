@@ -100,7 +100,7 @@ SERVICES = (12345, ("Alice"), ("67890", "Bob"))
 # print("")
 # print(SERVICES)
 # SERVICES = ((1,3),5)
-a.gatts_register_services(SERVICES)
+# a.gatts_register_services(SERVICES)
 
 # SERVICES = ((1,3),(5,6))
 # a.gatts_register_services(SERVICES)
