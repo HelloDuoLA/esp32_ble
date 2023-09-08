@@ -68,6 +68,7 @@
         "istream": "c",
         "regex": "c",
         "tuple": "c",
-        "type_traits": "c"
+        "type_traits": "c",
+        "future": "c"
     }
 }

@@ -108,7 +108,7 @@ PikaObj *pikaPythonInit(void){
             "# UART_SERVICE = (UART_UUID, (UART_TX, UART_RX))\n"
             "# SERVICES = (HR_SERVICE, UART_SERVICE,)\n"
             "SERVICES = (HR_SERVICE,)\n"
-            "SERVICES = (\"12345\", (\"Alice\"), (\"67890\", \"Bob\"))\n"
+            "SERVICES = (12345, (\"Alice\"), (\"67890\", \"Bob\"))\n"
             "# print(\"\")\n"
             "# print(\"\")\n"
             "# print(\"\")\n"

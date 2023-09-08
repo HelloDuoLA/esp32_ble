@@ -25,19 +25,25 @@ bool BLE_FIRST_INIT = true;  //是否第一次初始化,默认是
 // uint8_t own_addr_type;
 
 // 函数声明
-// gatt 服务回调函数
+// GATT 服务端回调函数
 static int gatt_svc_access(uint16_t conn_handle, uint16_t attr_handle,struct ble_gatt_access_ctxt *ctxt, void *arg);
-// 客户端写回调函数
+// GATT 客户端写回调函数
 static int ble_cliect_write_cb(uint16_t conn_handle,
                        const struct ble_gatt_error *error,
                        struct ble_gatt_attr *attr,
                        void *arg);
-// 客户端读回调函数
+// GATT 客户端读回调函数
 static int ble_cliect_read_cb(uint16_t conn_handle,
                        const struct ble_gatt_error *error,
                        struct ble_gatt_attr *attr,
                        void *arg);
-// gap回调函数
+
+// GATT mtu_exchange回调函数
+static int ble_gatt_mtu_exchange_cb(uint16_t conn_handle,
+                            const struct ble_gatt_error *error,
+                            uint16_t mtu, void *arg);
+
+// GAP层回调函数
 static int ble_nimble_gap_event(struct ble_gap_event *event, void *arg);
 
 
@@ -91,6 +97,7 @@ int _bluetooth_BLE_init(PikaObj *self)
         }
         ESP_ERROR_CHECK(ret);
         ret = nimble_port_init();
+        // nimble_port_init();
         if (ret != ESP_OK) {
             printf("Failed to init nimble %d \n", ret);
             return false;
@@ -272,36 +279,98 @@ int _bluetooth_BLE_gatts_register_svcs(PikaObj *self, PikaObj* services_info)
     printf("_bluetooth_BLE_gatts_register_svcs\r\n");
     size_t service_count , chr_count, dsc_count;
     uint8_t i,j,k;
-    service_count = pikaTuple_getSize(services_info);            //服务的个数,是不确定的
-    printf("services_info service_count = %d\r\n",service_count);
-    for (i = 0;i < service_count;i++){                           //对于每个服务
-        PikaObj* service = pikaTuple_getArg(services_info, i);     //读取服务
-        printf("TYPE %d\r\n",pikaTuple_getType(services_info,i));
+    uint8_t *chrs_count_per_service;
+    struct ble_gatt_svc_def* gatt_svr_svcs;
+    struct ble_gatt_chr_def* gatt_svr_chrs;
+    struct ble_gatt_dsc_def* gatt_svr_dscs;
+    Arg*     aService = pikaTuple_getArg(services_info, 0);
+    PikaObj* oService = arg_getObj(aService);
+    service_count = pikaTuple_getSize(oService);
+    // printf("services_info service_count = %d\r\n",service_count);
 
-        service_count = pikaTuple_getSize(service);            //服务的个数,是不确定的
-        printf("services_info service_count = %d\r\n",service_count);
+    // service_count = pikaTuple_getSize(services_info);            //服务的个数,是不确定的
+    // printf("services_info service_count = %d\r\n",service_count);
+
+    // gatt_svr_svcs = (struct ble_gatt_svc_def*) malloc((service_count + 1) * sizeof(struct ble_gatt_svc_def)); //申请空间
+    // chrs_count_per_service    = (uint8_t*) malloc((service_count + 1) * sizeof(uint8_t));
+
+    // if(gatt_svr_svcs == NULL){
+    //     printf("malloc svcs memory error\r\n");
+    //     return -1;
+    // }
+
+
+    // for (i = 0;i < service_count;i++){                             //对于每个服务
+        // PikaObj* service = pikaTuple_getArg(services_info, i);     //读取服务
+        // Arg*    aService = pikaTuple_getArg(services_info, i);
+        // PikaObj* oService = arg_getObj(aService);
+        // service_count = pikaTuple_getSize(oService);
+        // printf("TYPE %d\r\n",pikaTuple_getType(services_info,i));
+
+        // service_count = pikaTuple_getSize(service);              //测试
+        // printf("services_info service_count = %d\r\n",service_count);
 
         // PikaObj* service_UUID = pikaTuple_getStr(service,0);
-        // printf("TYPE %d",pikaTuple_getType(service_UUID));
+        // // printf("TYPE %d",pikaTuple_getType(service_UUID));
         // Arg  * chrs = pikaTuple_getArg(service, 1);              //读取属性合集
         // chr_count = pikaTuple_getSize(chrs);                     // 属性的个数,是不确定的
+
+        // gatt_svr_chrs = (struct ble_gatt_chr_def*) malloc((chr_count  + 1)* sizeof(struct ble_gatt_chr_def)); //申请空间
+        // if(gatt_svr_chrs == NULL){
+        //     printf("malloc chrs memory error\r\n");
+        //     return -1;
+        // }    
+        // chrs_count_per_service[i] = chr_count;
+
         // printf("service %d UUID %s chrs size %d \r\n",i,service_UUID,chr_count);
-    //     for (j = 0;j < chr_count;j++){                           // 对于每个属性
-    //         Arg  * chr = pikaTuple_getArg(chrs, j);              //读取属性
-    //         char * chr_UUID = pikaTuple_getStr(chrs,0);          //属性FLAG    
-    //         uint64_t chr_flags = pikaTuple_getInt(chrs,1);
-    //         Arg  * dscs = pikaTuple_getArg(chrs, 2);             // dscs = 描述符合集
-    //         dsc_count = pikaTuple_getSize(dscs);                 //描述符的个数，是不确定的
-    //         printf("chr_UUID : %s chr_flags : %d  dscs size %d \r\n",chr_UUID,chr_flags,dsc_count);
-    //         for(k = 0;k < dsc_count;k++){                        //对于每个描述符
-    //             Arg * dsc = pikaTuple_getArg(dscs, k);
-    //             char * dscs_UUID = pikaTuple_getInt(dsc, 0);
-    //             uint16_t dscs_flags = pikaTuple_getInt(dsc, 1);
-    //             printf("dscs_UUID : %s, dscs_flags : %d",dscs_UUID,dscs_flags);
-    //         }
-    //     }
-    }
-    // gatt_svr_init();
+        // for (j = 0;j < chr_count;j++){                           // 对于每个属性
+        //     Arg  * chr = pikaTuple_getArg(chrs, j);              //读取属性
+        //     char * chr_UUID = pikaTuple_getStr(chrs,0);          //属性FLAG    
+        //     uint64_t chr_flags = pikaTuple_getInt(chrs,1);
+        //     Arg  * dscs = pikaTuple_getArg(chrs, 2);             // dscs = 描述符合集
+        //     dsc_count = pikaTuple_getSize(dscs);                 //描述符的个数，是不确定的
+
+        //     gatt_svr_dscs = (struct ble_gatt_dsc_def*) malloc((dsc_count + 1 )* sizeof(struct ble_gatt_dsc_def)); //申请空间
+        //     if(gatt_svr_dscs == NULL){
+        //         printf("malloc dscs memory error\r\n");
+        //         return -1;
+        //     }    
+
+        //     printf("chr_UUID : %s chr_flags : %d  dscs size %d \r\n",chr_UUID,chr_flags,dsc_count);
+        //     for(k = 0;k < dsc_count;k++){                        //对于每个描述符
+        //         Arg * dsc = pikaTuple_getArg(dscs, k);
+        //         char * dscs_UUID = pikaTuple_getInt(dsc, 0);
+        //         uint16_t dscs_flags = pikaTuple_getInt(dsc, 1);
+        //         printf("dscs_UUID : %s, dscs_flags : %d",dscs_UUID,dscs_flags);
+        //     }
+        // }
+    // }
+    
+    // //注册基本服务
+    // gatt_svr_init(); 
+
+    // // 注册服务
+    // int rc = ble_gatts_count_cfg(gatt_svr_svcs);
+    // if (rc != 0) {
+    //     return rc;
+    // }
+
+    // rc = ble_gatts_add_svcs(gatt_svr_svcs);
+    // if (rc != 0) {
+    //     return rc;
+    // }
+
+    // // 释放内存空间的时候需要遍历结构体
+    // for (i = 0;i < service_count; i++){  
+    //     gatt_svr_chrs = gatt_svr_svcs[i].characteristics;
+    //     chr_count = chrs_count_per_service[i];       //FIXME:修改一下获取特性数量的方法
+    //     for (j = 0;j < chr_count; j++){
+    //         gatt_svr_dscs = gatt_svr_chrs[j].descriptors;
+    //         free(gatt_svr_dscs);
+    //     } 
+    //     free(gatt_svr_chrs);
+    // }
+    // free(gatt_svr_svcs);
     return 0;
 }
 
@@ -518,6 +587,8 @@ int _bluetooth_BLE_gatts_notify_no_data(PikaObj *self, int conn_handle, int valu
 }
 
 int _bluetooth_BLE_pyi_gattc_exchange_mtu(PikaObj *self, int conn_handle){
+    // TODO:需要一个int -> uint_16
+    ble_gattc_exchange_mtu((uint16_t)conn_handle,ble_gatt_mtu_exchange_cb,NULL);
     return 0;
 }
 
@@ -528,92 +599,79 @@ int _bluetooth_BLE_pyi_gattc_read(PikaObj *self, int conn_handle, int value_hand
 
 void gatt_svr_init(void)
 {
-    // TODO:另外两个初始化函数怎么是无定义的
     ble_svc_gap_init();
     ble_svc_gatt_init();
-    ble_svc_ans_init();
+    // ble_svc_ans_init();
 }
 
 
-// gattd服务回调函数
-// static int gatt_svc_access(uint16_t conn_handle, uint16_t attr_handle,
-//                 struct ble_gatt_access_ctxt *ctxt, void *arg){
-//     const ble_uuid_t *uuid;
-//     int rc;
-//     switch (ctxt->op) {
-//         case BLE_GATT_ACCESS_OP_READ_CHR:
-//             if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
-//                 MODLOG_DFLT(INFO, "Characteristic read; conn_handle=%d attr_handle=%d\n",
-//                             conn_handle, attr_handle);
-//             } else {
-//                 MODLOG_DFLT(INFO, "Characteristic read by NimBLE stack; attr_handle=%d\n",
-//                             attr_handle);
-//             }
-//             uuid = ctxt->chr->uuid;
-//             if (attr_handle == gatt_svr_chr_val_handle) {
-//                 rc = os_mbuf_append(ctxt->om,
-//                                     &gatt_svr_chr_val,
-//                                     sizeof(gatt_svr_chr_val));
-//                 return rc == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
-//             }
-//             goto unknown;
+// GATT层:服务端回调函数
+static int gatt_svc_access(uint16_t conn_handle, uint16_t attr_handle,
+                struct ble_gatt_access_ctxt *ctxt, void *arg){
+    const ble_uuid_t *uuid;
+    int rc;
+    switch (ctxt->op) {                       
+        case BLE_GATT_ACCESS_OP_READ_CHR:       //读属性值
+            if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
+                printf("Characteristic read; conn_handle=%d attr_handle=%d\n",conn_handle, attr_handle);
+                pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTS_READ_REQUEST,
+                    arg_newObj(New_pikaTupleFrom(
+                            arg_newInt(_IRQ_GATTS_READ_REQUEST),
+                            arg_newInt(conn_handle),
+                            arg_newInt(attr_handle)
+                            )));
+            } else {
+                printf("Characteristic read by NimBLE stack; attr_handle=%d\n",attr_handle);
+            }
+            return 0;
 
-//         case BLE_GATT_ACCESS_OP_WRITE_CHR:
-//             if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
-//                 MODLOG_DFLT(INFO, "Characteristic write; conn_handle=%d attr_handle=%d",
-//                             conn_handle, attr_handle);
-//             } else {
-//                 MODLOG_DFLT(INFO, "Characteristic write by NimBLE stack; attr_handle=%d",
-//                             attr_handle);
-//             }
-//             uuid = ctxt->chr->uuid;
-//             if (attr_handle == gatt_svr_chr_val_handle) {
-//                 rc = gatt_svr_write(ctxt->om,
-//                                     sizeof(gatt_svr_chr_val),
-//                                     sizeof(gatt_svr_chr_val),
-//                                     &gatt_svr_chr_val, NULL);
-//                 ble_gatts_chr_updated(attr_handle);
-//                 MODLOG_DFLT(INFO, "Notification/Indication scheduled for "
-//                             "all subscribed peers.\n");
-//                 return rc;
-//             }
-//             goto unknown;
+        case BLE_GATT_ACCESS_OP_WRITE_CHR:     //写属性值
+            if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
+                printf("Characteristic write; conn_handle=%d attr_handle=%d", conn_handle, attr_handle);
+                pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTS_WRITE,
+                    arg_newObj(New_pikaTupleFrom(
+                            arg_newInt(_IRQ_GATTS_WRITE),
+                            arg_newInt(conn_handle),
+                            arg_newInt(attr_handle)
+                            )));
+            } else {
+                printf("Characteristic write by NimBLE stack; attr_handle=%d",attr_handle);
+            }
+            return 0;
 
-//         case BLE_GATT_ACCESS_OP_READ_DSC:
-//             if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
-//                 MODLOG_DFLT(INFO, "Descriptor read; conn_handle=%d attr_handle=%d\n",
-//                             conn_handle, attr_handle);
-//             } else {
-//                 MODLOG_DFLT(INFO, "Descriptor read by NimBLE stack; attr_handle=%d\n",
-//                             attr_handle);
-//             }
-//             uuid = ctxt->dsc->uuid;
-//             if (ble_uuid_cmp(uuid, &gatt_svr_dsc_uuid.u) == 0) {
-//                 rc = os_mbuf_append(ctxt->om,
-//                                     &gatt_svr_dsc_val,
-//                                     sizeof(gatt_svr_chr_val));
-//                 return rc == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
-//             }
-//             goto unknown;
+        case BLE_GATT_ACCESS_OP_READ_DSC:     //读描述符(与属性值先不做区分)
+            if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
+                printf("Descriptor read; conn_handle=%d attr_handle=%d\r\n",conn_handle, attr_handle);
+                pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTS_READ_REQUEST,
+                    arg_newObj(New_pikaTupleFrom(
+                            arg_newInt(_IRQ_GATTS_READ_REQUEST),
+                            arg_newInt(conn_handle),
+                            arg_newInt(attr_handle)
+                            )));
+            } else {
+                printf("Descriptor read by NimBLE stack; attr_handle=%d\r\n",attr_handle);
+            }
+            return 0;
 
-//         case BLE_GATT_ACCESS_OP_WRITE_DSC:
-//             goto unknown;
-
-//         default:
-//             goto unknown;
-//     }
-
-// unknown:
-//     /* Unknown characteristic/descriptor;
-//      * The NimBLE host should not have called this function;
-//      */
-//     assert(0);
-//     return BLE_ATT_ERR_UNLIKELY;
-// }
+        case BLE_GATT_ACCESS_OP_WRITE_DSC:      //写描述符
+            if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
+                printf("Descriptor read; conn_handle=%d attr_handle=%d\r\n",conn_handle, attr_handle);
+                pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTS_WRITE,
+                    arg_newObj(New_pikaTupleFrom(
+                            arg_newInt(_IRQ_GATTS_WRITE),
+                            arg_newInt(conn_handle),
+                            arg_newInt(attr_handle)
+                            )));
+            } else {
+                printf("Descriptor read by NimBLE stack; attr_handle=%d\r\n",attr_handle);
+            }
+            return 0;
+    }
+}
 
 
 
-// 客户端读服务回调函数
+// GATT层：客户端读服务回调函数
 static int ble_cliect_read_cb(uint16_t conn_handle,
                        const struct ble_gatt_error *error,
                        struct ble_gatt_attr *attr,
@@ -621,7 +679,6 @@ static int ble_cliect_read_cb(uint16_t conn_handle,
 {
     printf("Read complete for the subscribable characteristic; "
                 "status=%d conn_handle=%d", error->status, conn_handle);
-
 
     //读取成功
     pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_READ_DONE ,
@@ -648,7 +705,7 @@ static int ble_cliect_read_cb(uint16_t conn_handle,
     return 0;
 }
 
-// 客户端写服务回调函数
+// GATT层：客户端写服务回调函数
 static int ble_cliect_write_cb(uint16_t conn_handle,
                         const struct ble_gatt_error *error,
                         struct ble_gatt_attr *attr,
@@ -663,7 +720,7 @@ static int ble_cliect_write_cb(uint16_t conn_handle,
                 "status=%d conn_handle=%d attr_handle=%d\n",
                 error->status, conn_handle, attr->handle);
         //读到数据
-        pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_READ_RESULT,
+        pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_WRITE_DONE,
             arg_newObj(New_pikaTupleFrom(
                     arg_newInt(_IRQ_GATTC_WRITE_DONE ),
                     arg_newInt(conn_handle),
@@ -673,8 +730,24 @@ static int ble_cliect_write_cb(uint16_t conn_handle,
     return 0;
 }
 
+//GATT层 MTU exchange 回调函数
+static int ble_gatt_mtu_exchange_cb(uint16_t conn_handle,
+                            const struct ble_gatt_error *error,
+                            uint16_t mtu, void *arg)
+{
+    if(error->status == 0){
+        pika_eventListener_send(g_pika_ble_listener,_IRQ_MTU_EXCHANGED ,
+        arg_newObj(New_pikaTupleFrom(
+                arg_newInt(_IRQ_MTU_EXCHANGED),
+                arg_newInt(conn_handle),
+                arg_newInt(mtu)
+                )));
+    }
+    return 0;
+}
 
 
+// GAP层：广播事件回调函数
 static int ble_nimble_gap_event(struct ble_gap_event *event, void *arg)
 {
     struct ble_gap_conn_desc desc;
@@ -684,9 +757,9 @@ static int ble_nimble_gap_event(struct ble_gap_event *event, void *arg)
     switch (event->type) {
     case BLE_GAP_EVENT_CONNECT: //TODO:MicroPyhon 区分 服务端与客户端的连接
         /* A new connection was established or a connection attempt failed. */
-        MODLOG_DFLT(INFO, "connection %s; status=%d ",
-                    event->connect.status == 0 ? "established" : "failed",
-                    event->connect.status);
+        printf("connection %s; status=%d ",
+            event->connect.status == 0 ? "established" : "failed", event->connect.status);
+        printf("\r\n");
         if (event->connect.status == 0) {
             rc = ble_gap_conn_find(event->connect.conn_handle, &desc);
             assert(rc == 0);
@@ -701,7 +774,6 @@ static int ble_nimble_gap_event(struct ble_gap_event *event, void *arg)
                                 arg_newBytes(addr,6)
                                 )));
         }
-        MODLOG_DFLT(INFO, "\n");
 
         if (event->connect.status != 0) {
             /* Connection failed; resume advertising. */
@@ -712,7 +784,7 @@ static int ble_nimble_gap_event(struct ble_gap_event *event, void *arg)
         return 0;
 
     case BLE_GAP_EVENT_DISCONNECT: //断开连接
-        printf("disconnect; reason=%d ", event->disconnect.reason);
+        printf("disconnect; reason=%d \r\n", event->disconnect.reason);
         print_conn_desc(&event->disconnect.conn);
 
         addr_inver(event->disconnect.conn.peer_ota_addr.val,&addr);
@@ -727,7 +799,7 @@ static int ble_nimble_gap_event(struct ble_gap_event *event, void *arg)
 
     case BLE_GAP_EVENT_CONN_UPDATE: //返回结果
         /* The central has updated the connection parameters. */
-        printf("connection updated; status=%d ",event->conn_update.status);
+        printf("connection updated; status=%d \r\n",event->conn_update.status);
         rc = ble_gap_conn_find(event->conn_update.conn_handle, &desc);
         assert(rc == 0);
         print_conn_desc(&desc);
@@ -790,7 +862,7 @@ static int ble_nimble_gap_event(struct ble_gap_event *event, void *arg)
 
     case BLE_GAP_EVENT_DISC_COMPLETE: // 扫描结束
     // MicroPython None
-        printf("discovery complete; reason=%d\n",event->disc_complete.reason);
+        printf("discovery complete; reason=%d\r\n",event->disc_complete.reason);
         pika_eventListener_send(g_pika_ble_listener,_IRQ_SCAN_DONE,
             arg_newObj(New_pikaTupleFrom(
                     arg_newInt(_IRQ_SCAN_DONE),
@@ -800,14 +872,13 @@ static int ble_nimble_gap_event(struct ble_gap_event *event, void *arg)
 
     case BLE_GAP_EVENT_ADV_COMPLETE: //广播完成
     // MicroPython 没有这个事件
-        printf("advertise complete; reason=%d",event->adv_complete.reason);
+        printf("advertise complete; reason=%d\r\n",event->adv_complete.reason);
         return 0;
 
     case BLE_GAP_EVENT_ENC_CHANGE:
     // 暂时不理
         /* Encryption has been enabled or disabled for this connection. */
-        MODLOG_DFLT(INFO, "encryption change event; status=%d ",
-                    event->enc_change.status);
+        printf("encryption change event; status=%d \r\n",event->enc_change.status);
         rc = ble_gap_conn_find(event->enc_change.conn_handle, &desc);
         assert(rc == 0);
         print_conn_desc(&desc);
@@ -816,7 +887,7 @@ static int ble_nimble_gap_event(struct ble_gap_event *event, void *arg)
 
     case BLE_GAP_EVENT_PASSKEY_ACTION :
     // 暂时不理
-            ESP_LOGI(tag, "PASSKEY_ACTION_EVENT started \n");
+        printf("PASSKEY_ACTION_EVENT started \r\n");
         struct ble_sm_io pkey = {0};
         int key = 0;
 
@@ -862,12 +933,12 @@ static int ble_nimble_gap_event(struct ble_gap_event *event, void *arg)
 
     case BLE_GAP_EVENT_NOTIFY_RX: // 客户端
 
-        printf("received %s; conn_handle=%d attr_handle=%d attr_len=%d\r\n",
+        printf("received %s; conn_handle=%d attr_handle=%d attr_len=%d",
                 event->notify_rx.indication ? "indication" : "notification",
                 event->notify_rx.conn_handle,
                 event->notify_rx.attr_handle,
                 OS_MBUF_PKTLEN(event->notify_rx.om));
-
+        printf("\r\n");
         if(event->notify_rx.indication == 1){ // indication
             // MicroPython : conn_handle, value_handle, notify_data
             uint16_t len = event->notify_rx.om->om_len;
