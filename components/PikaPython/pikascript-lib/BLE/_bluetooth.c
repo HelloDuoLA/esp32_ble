@@ -273,7 +273,7 @@ int _bluetooth_BLE_stop_advertise(PikaObj *self)
     return ble_gap_adv_stop();
 }
 
-// TODO:服务的内容该如何传递
+
 int _bluetooth_BLE_gatts_register_svcs(PikaObj *self, PikaObj* services_info)
 {
     printf("_bluetooth_BLE_gatts_register_svcs\r\n");
@@ -283,73 +283,61 @@ int _bluetooth_BLE_gatts_register_svcs(PikaObj *self, PikaObj* services_info)
     struct ble_gatt_svc_def* gatt_svr_svcs;
     struct ble_gatt_chr_def* gatt_svr_chrs;
     struct ble_gatt_dsc_def* gatt_svr_dscs;
-    Arg*     aService = pikaTuple_getArg(services_info, 0);
-    PikaObj* oService = arg_getObj(aService);
-    service_count = pikaTuple_getSize(oService);
-    // printf("services_info service_count = %d\r\n",service_count);
 
-    // service_count = pikaTuple_getSize(services_info);            //服务的个数,是不确定的
-    // printf("services_info service_count = %d\r\n",service_count);
+    service_count = pikaTuple_getSize(services_info);            //服务的个数,是不确定的
+    printf("services_info service_count = %d\r\n",service_count);
 
-    // gatt_svr_svcs = (struct ble_gatt_svc_def*) malloc((service_count + 1) * sizeof(struct ble_gatt_svc_def)); //申请空间
-    // chrs_count_per_service    = (uint8_t*) malloc((service_count + 1) * sizeof(uint8_t));
+    gatt_svr_svcs = (struct ble_gatt_svc_def*) malloc((service_count + 1) * sizeof(struct ble_gatt_svc_def)); //申请空间
+    chrs_count_per_service    = (uint8_t*) malloc((service_count + 1) * sizeof(uint8_t));
 
-    // if(gatt_svr_svcs == NULL){
-    //     printf("malloc svcs memory error\r\n");
-    //     return -1;
-    // }
+    if(gatt_svr_svcs == NULL){
+        printf("malloc svcs memory error\r\n");
+        return -1;
+    }
 
 
-    // for (i = 0;i < service_count;i++){                             //对于每个服务
-        // PikaObj* service = pikaTuple_getArg(services_info, i);     //读取服务
-        // Arg*    aService = pikaTuple_getArg(services_info, i);
-        // PikaObj* oService = arg_getObj(aService);
-        // service_count = pikaTuple_getSize(oService);
-        // printf("TYPE %d\r\n",pikaTuple_getType(services_info,i));
+    for (i = 0;i < service_count;i++){                             //对于每个服务
+        PikaObj* service = arg_getObj(pikaTuple_getArg(services_info, i)); //读取服务
+        char* service_UUID = pikaTuple_getStr(service,0);         //获取服务的UUID
 
-        // service_count = pikaTuple_getSize(service);              //测试
-        // printf("services_info service_count = %d\r\n",service_count);
+        PikaObj* chrs = arg_getObj(pikaTuple_getArg(service, 1));//读取属性合集
+        chr_count = pikaTuple_getSize(chrs);                       // 属性的个数,是不确定的
 
-        // PikaObj* service_UUID = pikaTuple_getStr(service,0);
-        // // printf("TYPE %d",pikaTuple_getType(service_UUID));
-        // Arg  * chrs = pikaTuple_getArg(service, 1);              //读取属性合集
-        // chr_count = pikaTuple_getSize(chrs);                     // 属性的个数,是不确定的
+        gatt_svr_chrs = (struct ble_gatt_chr_def*) malloc((chr_count  + 1)* sizeof(struct ble_gatt_chr_def)); //申请空间
+        if(gatt_svr_chrs == NULL){
+            printf("malloc chrs memory error\r\n");
+            return -1;
+        }    
+        chrs_count_per_service[i] = chr_count;
 
-        // gatt_svr_chrs = (struct ble_gatt_chr_def*) malloc((chr_count  + 1)* sizeof(struct ble_gatt_chr_def)); //申请空间
-        // if(gatt_svr_chrs == NULL){
-        //     printf("malloc chrs memory error\r\n");
-        //     return -1;
-        // }    
-        // chrs_count_per_service[i] = chr_count;
+        printf("service %d UUID %s chrs size %d \r\n",i,service_UUID,chr_count);
+        for (j = 0;j < chr_count;j++){                           // 对于每个属性
+            PikaObj* chr = arg_getObj(pikaTuple_getArg(chrs, j));//读取属性
 
-        // printf("service %d UUID %s chrs size %d \r\n",i,service_UUID,chr_count);
-        // for (j = 0;j < chr_count;j++){                           // 对于每个属性
-        //     Arg  * chr = pikaTuple_getArg(chrs, j);              //读取属性
-        //     char * chr_UUID = pikaTuple_getStr(chrs,0);          //属性FLAG    
-        //     uint64_t chr_flags = pikaTuple_getInt(chrs,1);
-        //     Arg  * dscs = pikaTuple_getArg(chrs, 2);             // dscs = 描述符合集
-        //     dsc_count = pikaTuple_getSize(dscs);                 //描述符的个数，是不确定的
+            char * chr_UUID = pikaTuple_getStr(chr,0);           //属性FLAG    
+            uint64_t chr_flags = pikaTuple_getInt(chr,1);
+            PikaObj* dscs = arg_getObj(pikaTuple_getArg(chr, 2));// dscs = 描述符合集
+            dsc_count = pikaTuple_getSize(dscs);                 //描述符的个数，是不确定的
 
-        //     gatt_svr_dscs = (struct ble_gatt_dsc_def*) malloc((dsc_count + 1 )* sizeof(struct ble_gatt_dsc_def)); //申请空间
-        //     if(gatt_svr_dscs == NULL){
-        //         printf("malloc dscs memory error\r\n");
-        //         return -1;
-        //     }    
-
-        //     printf("chr_UUID : %s chr_flags : %d  dscs size %d \r\n",chr_UUID,chr_flags,dsc_count);
-        //     for(k = 0;k < dsc_count;k++){                        //对于每个描述符
-        //         Arg * dsc = pikaTuple_getArg(dscs, k);
-        //         char * dscs_UUID = pikaTuple_getInt(dsc, 0);
-        //         uint16_t dscs_flags = pikaTuple_getInt(dsc, 1);
-        //         printf("dscs_UUID : %s, dscs_flags : %d",dscs_UUID,dscs_flags);
-        //     }
-        // }
-    // }
+            gatt_svr_dscs = (struct ble_gatt_dsc_def*) malloc((dsc_count + 1 )* sizeof(struct ble_gatt_dsc_def)); //申请空间
+            if(gatt_svr_dscs == NULL){
+                printf("malloc dscs memory error\r\n");
+                return -1;
+            }    
+            printf("chr_UUID : %s chr_flags %d dscs size:%d\r\n",chr_UUID,chr_flags,dsc_count);
+            for(k = 0;k < dsc_count;k++){                        //对于每个描述符
+                PikaObj* dsc = arg_getObj(pikaTuple_getArg(dscs, k));
+                char * dscs_UUID = pikaTuple_getInt(dsc, 0);
+                uint16_t dscs_flags = pikaTuple_getInt(dsc, 1);
+                printf("dscs_UUID : %s, dscs_flags : %d\r\n",dscs_UUID,dscs_flags);
+            }
+        }
+    }
     
-    // //注册基本服务
+    //注册基本服务
     // gatt_svr_init(); 
 
-    // // 注册服务
+    // 注册服务
     // int rc = ble_gatts_count_cfg(gatt_svr_svcs);
     // if (rc != 0) {
     //     return rc;
@@ -360,7 +348,7 @@ int _bluetooth_BLE_gatts_register_svcs(PikaObj *self, PikaObj* services_info)
     //     return rc;
     // }
 
-    // // 释放内存空间的时候需要遍历结构体
+    // 释放内存空间的时候需要遍历结构体
     // for (i = 0;i < service_count; i++){  
     //     gatt_svr_chrs = gatt_svr_svcs[i].characteristics;
     //     chr_count = chrs_count_per_service[i];       //FIXME:修改一下获取特性数量的方法
