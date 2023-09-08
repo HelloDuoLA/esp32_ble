@@ -14,8 +14,8 @@ print('hello PikaPython')
 
 
 a = bluetooth.BLE()
-b = a.active(1)
-c = a.advertise(0,1,1)
+# b = a.active(1)
+# c = a.advertise(0,1,1)
 
 def ble_irq(event,data):
     # event = const._IRQ_CENTRAL_CONNECT
@@ -28,7 +28,7 @@ def ble_irq(event,data):
         print(data)
 
     
-a.irq(ble_irq)
+# a.irq(ble_irq)
 
 # service_uuid = '6E400001-B5A3-F393-E0A9-E50E24DCCA9E'
 # reader_uuid  = '6E400002-B5A3-F393-E0A9-E50E24DCCA9E'
@@ -48,7 +48,10 @@ a.irq(ble_irq)
 # a.gatts_register_services(services)
 
 for i in range(65000,70000):
-    b = a.test2(i)
+    # b = a.test2(str(i) + "t" * (i % 10))
+    # b = a.test2(str(i) + str(70000 - i))
+    b = a.test2("ABCDEF")
+
 # a.test(1)
 # a.test2()
 # a.pyi_active(1)

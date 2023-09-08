@@ -73,6 +73,7 @@
         "pikamain.h": "c",
         "ratio": "c",
         "system_error": "c",
-        "utility": "c"
+        "utility": "c",
+        "algorithm": "c"
     }
 }

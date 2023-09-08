@@ -19,7 +19,7 @@
 #define printf __platform_printf
 
 #define GATT_SVR_SVC_ALERT_UUID               0x1811
-
+// BLE_UUID_base = 0x00000000-0000-1000-8000-00805F9B34FB;
 static const char *tag = "NimBLE_BLE";
 bool BLE_ONLY = false;       //只使用BLE,默认否
 bool BLE_FIRST_INIT = true;  //是否第一次初始化,默认是
@@ -30,12 +30,12 @@ PikaEventListener *g_pika_ble_listener = NULL; // 事件监听器
 // GATT 服务端回调函数
 static int ble_gatt_svc_access_cb(uint16_t conn_handle, uint16_t attr_handle,struct ble_gatt_access_ctxt *ctxt, void *arg);
 // GATT 客户端写回调函数
-static int ble_cliect_write_cb(uint16_t conn_handle,
+static int ble_gatt_client_write_cb(uint16_t conn_handle,
                        const struct ble_gatt_error *error,
                        struct ble_gatt_attr *attr,
                        void *arg);
 // GATT 客户端读回调函数
-static int ble_cliect_read_cb(uint16_t conn_handle,
+static int ble_gatt_client_read_cb(uint16_t conn_handle,
                        const struct ble_gatt_error *error,
                        struct ble_gatt_attr *attr,
                        void *arg);
@@ -340,6 +340,8 @@ int _bluetooth_BLE_gatts_register_svcs(PikaObj *self, PikaObj* services_info)
             return -1;
         }    
         chrs_count_per_service[i] = chr_count;
+        // uint16_t test = i * 55;
+        // gatt_svr_svcs[0].uuid = BLE_UUID16_DECLARE(test);
 
         printf("service %d UUID %s chrs size %d \r\n",i,service_UUID,chr_count);
         for (j = 0;j < chr_count;j++){                           // 对于每个属性
@@ -545,72 +547,118 @@ int _bluetooth_BLE_config_rxbuf_update(PikaObj *self, int rxbuf)
     return 0;
 }
 
-void _testtest(uint16_t a)
-{
-    printf("%d\r\n",a);
-}
 
-int _bluetooth_BLE_pyi_test2(PikaObj *self,int num)
+int _bluetooth_BLE_pyi_test2(PikaObj *self,char *data ,int data_len)
 {
     // printf("_bluetooth_BLE_pyi_test2\r\n");
-    // printf("%d",num);
-    _testtest(num);
+    // printf("%d\r\n",data[0]);
+    // _testtest(num);
+    // uint8_t* prt_num  = (uint8_t * )malloc(data_len);
+    // // printf("%s\r\n",atoi(num));
+    // for ( int i = 0; i < data_len; i++)
+    // {
+    //     prt_num[i] = data[i] - '0';
+    //     // printf("%d",data[i]-48);
+    // }
+    
+    // for ( int i = 0; i < data_len; i++)
+    // {
+    //     printf("%d",prt_num[i]);
+    // }
+    // printf("\r\n");
+    // free(prt_num);
+
+    // BLE_UUID16(uuid)->value;
+
+    // unsigned int aa1, aa2, aa3;//注意不能用unsigned char
+    // sscanf( data, "%02x%02x%02x", &aa1, &aa2, &aa3 );
+    // printf( "%02x,%02x,%02x\n", aa1, aa2, aa3 );
     return 0;
 }
 
+//通过UUID查找全部属性
+//TODO:待验证
 int _bluetooth_BLE_gattc_dis_chrs(PikaObj *self, int conn_handle, int start_handle, int end_handle){
-    ble_gattc_disc_all_chrs(conn_handle,start_handle,end_handle,ble_gatt_disc_all_dscs_cb,NULL);
-    return 0;
+    return ble_gattc_disc_all_chrs(conn_handle,start_handle,end_handle,ble_gatt_disc_all_chrs_cb,NULL);;
 }
 
-int _bluetooth_BLE_gattc_dis_chrs_by_uuid(PikaObj *self, int conn_handle, int start_handle, char* uuid){
-    return 0;
+//通过UUID查找属性
+//TODO:传入UUID的方法未找到，目前好像只是类型
+int _bluetooth_BLE_gattc_dis_chrs_by_uuid(PikaObj *self, int conn_handle, int start_handle, int end_handle, char* uuid){
+    ble_uuid_t * chr_uuid = BLE_UUID_TYPE_16;
+    return ble_gattc_disc_chrs_by_uuid(conn_handle,start_handle,end_handle,chr_uuid,ble_gatt_disc_chrs_by_uuid_cb,NULL);
 }
 
+//查找全部描述符
+//TODO:待验证
 int _bluetooth_BLE_gattc_dis_dscs(PikaObj *self, int conn_handle, int start_handle, int end_handle){
-    return 0;
+    return ble_gattc_disc_all_dscs(conn_handle,start_handle,end_handle,ble_gattc_disc_all_dscs,NULL);
 }
 
+//查找全部服务
+//TODO:待验证
 int _bluetooth_BLE_gattc_dis_svcs(PikaObj *self, int conn_handle){
-    return 0;
+    return ble_gattc_disc_all_svcs(conn_handle, ble_gattc_disc_all_svcs, NULL);
 }
 
+//通过UUID查找服务
+//TODO:传入UUID的方法未找到，目前好像只是类型
 int _bluetooth_BLE_gattc_dis_svcs_by_uuid(PikaObj *self, int conn_handle, char* uuid){
-    return 0;
+    ble_uuid_t * svcs_uuid = BLE_UUID_TYPE_16;
+    return ble_gattc_disc_svc_by_uuid(conn_handle, svcs_uuid,ble_gattc_disc_svc_by_uuid, NULL);
 }
 
-int _bluetooth_BLE_gattc_write_with_no_rsp(PikaObj *self, int conn_handle, int value_handle, char* data){
-    return 0;
-}
-
-int _bluetooth_BLE_gattc_write_with_rsp(PikaObj *self, int conn_handle, int value_handle, char* data){
-    return 0;
-}
-
-int _bluetooth_BLE_gatts_indicate_custom(PikaObj *self, int conn_handle, int value_handle, char* data){
-    return 0;
-}
-
-int _bluetooth_BLE_gatts_indicate_no_data(PikaObj *self, int conn_handle, int value_handle){
-    return 0;
-}
-
-int _bluetooth_BLE_gatts_notify_custom(PikaObj *self, int conn_handle, int value_handle, char* data){
-    return 0;
-}
-
-int _bluetooth_BLE_gatts_notify_no_data(PikaObj *self, int conn_handle, int value_handle){
-    return 0;
-}
-
-int _bluetooth_BLE_pyi_gattc_exchange_mtu(PikaObj *self, int conn_handle){
-    // TODO:需要一个int -> uint_16
-    ble_gattc_exchange_mtu((uint16_t)conn_handle,ble_gatt_mtu_exchange_cb,NULL);
-    return 0;
-}
-
+// GATT读属性、描述符
+// TODO:未验证
 int _bluetooth_BLE_pyi_gattc_read(PikaObj *self, int conn_handle, int value_handle){
-    return 0;
+    return ble_gattc_read(conn_handle, value_handle,ble_gatt_client_read_cb, NULL);
+}
+
+// GATT写属性、描述符
+//TODO:还有一个相同功能的函数但不知道区别
+// ble_gattc_write_no_rsp(uint16_t conn_handle, uint16_t attr_handle, struct os_mbuf *om)
+int _bluetooth_BLE_gattc_write_with_no_rsp(PikaObj *self, int conn_handle, int value_handle, char* data, int data_len){
+    return ble_gattc_write_no_rsp_flat(conn_handle,value_handle,data,data_len);
+}
+
+// GATT写属性、描述符
+//TODO:还有一个相同功能的函数但不知道区别
+// ble_gattc_write(uint16_t conn_handle, uint16_t attr_handle,struct os_mbuf *txom, ble_gatt_attr_fn *cb, void *cb_arg)
+int _bluetooth_BLE_gattc_write_with_rsp(PikaObj *self, int conn_handle, int value_handle, char* data, int data_len){
+    return ble_gattc_write_flat(conn_handle,value_handle,data,data_len,ble_gatt_client_write_cb,NULL);
+}
+
+// GATT indicate
+// TODO:struct os_mbuf txom是个什么样的格式类型
+int _bluetooth_BLE_gatts_indicate_custom(PikaObj *self, int conn_handle, int value_handle, char* data){
+    struct os_mbuf txom = {
+        .om_len = 2,
+    };
+    return ble_gatts_indicate_custom(conn_handle, value_handle, &txom);
+}
+
+// TODO:no data的话实际上传的是啥
+int _bluetooth_BLE_gatts_indicate_no_data(PikaObj *self, int conn_handle, int value_handle){
+    return ble_gatts_indicate(conn_handle, value_handle);
+}
+
+// TODO: struct os_mbuf ??
+int _bluetooth_BLE_gatts_notify_custom(PikaObj *self, int conn_handle, int value_handle, char* data){
+    struct os_mbuf om = {
+        .om_len = 2,
+    };
+    return ble_gattc_notify_custom(conn_handle, value_handle, &om);
+}
+
+// TODO:no data的话实际上传的是啥
+int _bluetooth_BLE_gatts_notify_no_data(PikaObj *self, int conn_handle, int value_handle){
+    return ble_gatts_notify(conn_handle,value_handle);
+}
+
+// 未找到正确的使用方法与效果
+// TODO:待验证
+int _bluetooth_BLE_pyi_gattc_exchange_mtu(PikaObj *self, int conn_handle){
+    return ble_gattc_exchange_mtu(conn_handle,ble_gatt_mtu_exchange_cb,NULL);
 }
 
 
@@ -623,19 +671,41 @@ void _bluetooth_BLE_setCallback(PikaObj *self, Arg* cb)
         printf("g_pika_ble_listener init\r\n");
     }
     uint32_t i = 0;
-    for ( i = 0; i < 31; i++)
-    {
+    for ( i = 0; i < 31; i++){
         pika_eventListener_registEventCallback(g_pika_ble_listener,i,cb);
     }
 }
 
-
-
+// 基本服务注册
 void gatt_svr_init(void)
 {
     ble_svc_gap_init();
     ble_svc_gatt_init();
     // ble_svc_ans_init();
+}
+
+// 从字符串中读取UUID 结构体
+int read_uuid_from_str(char* buf, int len, ble_uuid_any_t* uuid_struct)
+{
+    unsigned int a[16];
+    if (len == 4){
+        sscanf(buf, "%02x%02x", &a[0],&a[1]);
+        uuid_struct->u16.u.type = BLE_UUID_TYPE_16;
+        uuid_struct->u16.value = (a[0] << 8) | a[1];
+    }
+    else if (len == 8){
+        sscanf(buf, "%02x%02x%02x%02x", &a[0],&a[1],&a[2],&a[3]);
+        uuid_struct->u32.u.type = BLE_UUID_TYPE_32;
+        uuid_struct->u32.value  = (a[0] << 24) | (a[1] << 16) | (a[2] << 8) | a[3]; 
+    }
+    else if (len == 36){
+        sscanf(buf, "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",\
+         &a[15],&a[14],&a[13],&a[12],&a[11],&a[10],&a[9],&a[8],&a[7],&a[6],&a[5],&a[4],&a[3],&a[2],&a[1],&a[0]);
+        // // &a[0],&a[1],&a[2],&a[3],&a[4],&a[5],&a[6],&a[7],&a[8],&a[9],&a[10],&a[11],&a[12],&a[13],&a[14],&a[15]);
+        uuid_struct->u128.u.type = BLE_UUID_TYPE_128;
+        memcpy(uuid_struct->u128.value,a,16);
+    }
+    return 0;
 }
 
 
@@ -706,7 +776,7 @@ static int ble_gatt_svc_access_cb(uint16_t conn_handle, uint16_t attr_handle,
 
 
 // GATT层：客户端读服务回调函数
-static int ble_cliect_read_cb(uint16_t conn_handle,
+static int ble_gatt_client_read_cb(uint16_t conn_handle,
                        const struct ble_gatt_error *error,
                        struct ble_gatt_attr *attr,
                        void *arg)
@@ -740,7 +810,7 @@ static int ble_cliect_read_cb(uint16_t conn_handle,
 }
 
 // GATT层：客户端写服务回调函数
-static int ble_cliect_write_cb(uint16_t conn_handle,
+static int ble_gatt_client_write_cb(uint16_t conn_handle,
                         const struct ble_gatt_error *error,
                         struct ble_gatt_attr *attr,
                         void *arg)

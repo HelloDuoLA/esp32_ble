@@ -39,7 +39,7 @@ class BLE(_bluetooth.BLE):
         print(interval_us)
     
     def test2(self,num):
-        return self.pyi_test2(num)
+        return self.pyi_test2(num,len(num))
 
 
     def active(self):
@@ -214,7 +214,7 @@ class BLE(_bluetooth.BLE):
         pass
 
     def gatts_register_services(self, services):
-        convert_services = convert_ble_service_info(services)
+        convert_services = _convert_ble_service_info(services)
         print("convert_services  : ",convert_services)
         self.gatts_register_svcs(convert_services)
         # return convert_services
@@ -273,24 +273,38 @@ class BLE(_bluetooth.BLE):
     def gattc_write(self,conn_handle, value_handle, data, mode=0, /):
         if mode == 0:
             self.gattc_write_with_no_rsp(conn_handle, value_handle, data)
-        else if mode == 1:
+        elif mode == 1:
             self.gattc_write_with_rsp(conn_handle, value_handle, data)
 
     def gattc_exchange_mtu(self,conn_handle):
         self.pyi_gattc_exchange_mtu(conn_handle)
         pass
 
-
-def convert_ble_service_info(data):
+# 将UUID类型转换为字符串
+def _convert_ble_service_info(data):
     new_tuple = []
     for i in data :
         if isinstance(i,UUID) :
             new_tuple.append(i.value)
             # print(i.value)
         elif isinstance(i, tuple):
-            new_tuple.append(convert_ble_service_info(i))
+            new_tuple.append(_convert_ble_service_info(i))
         else:
             new_tuple.append(i)
             # print(i)
     return tuple(new_tuple)
-    # return new_tuple
+
+# 将数据转为字符串格式
+def _to_string(data):
+    data_str = ""
+    if isinstance(data,bytes):
+        data_str = data.decode()
+    elif isinstance(data,bytearray):
+        data_str = data.decode()
+    elif isinstance(data,str):
+        data_str = data
+    elif isinstance(data,int):
+        data_str = str(data)
+    
+    return data_str
+    
