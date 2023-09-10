@@ -69,89 +69,59 @@ class BLE(_bluetooth.BLE):
             return self.pyi_active(False)
 
     def config(self, *param_name, **kv): # a.config(mac="1123",gap_name="test")
-        pass
-        # print("param_name : ",param_name)
-        # print("kv : ",kv)
-        # print(kv.keys)
     # 获取参数属性   a.config("gap_name")
-    #     first_param = param_name[0]
-    #     if first_param == "mac":
-    #         return(super().config_addr_mode_get(),super().config_mac_get())
-    #     elif first_param == "addr_mode":
-    #         return(super().config_addr_mode_get())
-    #     elif first_param == "gap_name":
-    #         # return(self.config_gap_name_get()) #TODO: question 直接return 会报错
-    #         gap_name = self.config_gap_name_get()
-    #         return gap_name
-    #     elif first_param == "rxbuf" :
-    #         super().config_addr_rxbuf_get()
-    #     elif first_param == "mtu" :
-    #         super().config_mtu_get()
-    #     elif first_param == "bond" :
-    #         super().config_bond_get()
-    #     elif first_param == "mitm" :
-    #         super().config_mitm_get()
-    #     elif first_param == "io":
-    #         super().config_io_get()
-    #     elif first_param == "le_secure":
-    #         super().config_le_secure_get()
-    #     else:
-    #         print("ValueError: unknown config param")   
+        first_param = param_name[0]
+        if first_param == "mac":
+            return(super().config_addr_mode_get(),super().config_mac_get())
+        elif first_param == "addr_mode":
+            return(super().config_addr_mode_get())
+        elif first_param == "gap_name":
+            gap_name = self.config_gap_name_get()
+            return gap_name
+        elif first_param == "rxbuf" :
+            super().config_addr_rxbuf_get()
+        elif first_param == "mtu" :
+            super().config_mtu_get()
+        elif first_param == "bond" :
+            super().config_bond_get()
+        elif first_param == "mitm" :
+            super().config_mitm_get()
+        elif first_param == "io":
+            super().config_io_get()
+        elif first_param == "le_secure":
+            super().config_le_secure_get()
+        else:
+            print("ValueError: unknown config param")   
 
-    # # 设定属性
-        # print(kv["mac"])
-        # print(kv["gap_name"])
-        print(kv)
         if "mac" in kv:
-        # if ("193498998" in kv):
-            print("set mac : ", kv["mac"])
-            # super().config_mac_update(kv["mac"])
-            # a.config(mac="test")
+            super().config_mac_update(kv["mac"])
 
-    #     if ("addr_mode" in kv):
-    #         addr_mode = kv["addr_mode"]
-    #         if (addr_mode >= 0 and addr_mode < 5):
-    #             # super().config_addr_mode_update(addr_mode)
-    #             self.addr_mode = addr_mode
-    #             return True
-    #         else :
-    #             return False
-        # try:
-        #     mac = kv["mac"]
-        #     print("set mac : ", kv["mac"])
-        # except:
-        #     pass
+        if ("addr_mode" in kv):
+            super().config_addr_mode_update(kv["addr_mode"])
 
-        # try:
-        #     mac = kv["gap_name"]
-        #     print("set gap_name : ", kv["gap_name"])
-        # except:
-        #     pass
-        # if ("gap_name" in kv):
-        # if ("1094176957" in kv):
-            # print("set gap_name")
-            # return super().config_gap_name_update(kv["gap_name"])
+        if ("gap_name" in kv):
+            return super().config_gap_name_update(kv["gap_name"])
 
-    #     if ("rxbuf" in kv):
-    #         super().config_rxbuf_update(kv["rxbuf"])
+        if ("rxbuf" in kv):
+            super().config_rxbuf_update(kv["rxbuf"])
 
-    #     if ("mtu" in kv):
-    #         super().config_mtu_update(kv["mtu"])
+        if ("mtu" in kv):
+            super().config_mtu_update(kv["mtu"])
 
-    #     if ("bond" in kv):
-    #         super().config_bond_update(kv["bond"])
+        if ("bond" in kv):
+            super().config_bond_update(kv["bond"])
 
-    #     if ("mitm" in kv):
-    #         super().config_mitm_update(kv["mitm"])
+        if ("mitm" in kv):
+            super().config_mitm_update(kv["mitm"])
 
-    #     if ("bond" in kv):
-    #         super().config_mac_update(kv["bond"])
+        if ("bond" in kv):
+            super().config_mac_update(kv["bond"])
 
-    #     if ("io" in kv):
-    #         super().config_io_update(kv["io"])
+        if ("io" in kv):
+            super().config_io_update(kv["io"])
 
-    #     if ("le_secire" in kv):
-    #         super().config_le_secire_update(kv["le_secire"])
+        if ("le_secire" in kv):
+            super().config_le_secire_update(kv["le_secire"])
     
     # a.config("mac"="test","gap_name"="test2")
     # 回调事件处理函数
@@ -166,12 +136,7 @@ class BLE(_bluetooth.BLE):
         # TODO:memoryview没有实现
         self.callback_func(data[0],data[1:])
 
-    # """
-    # interval_us:广告间隔时间, 为none则停止广播
-    # adv_data: 包含在所有广播中, 是任何实现缓冲协议的类型(例如bytes, bytearray, str)
-    # resp_data: 被发送以响应主动扫描, 是任何实现缓冲协议的类型(例如bytes, bytearray, str)
-
-    # """
+    # 完成1
     def gap_advertise(self, interval_us, adv_data=None, resp_data=None, connectable=True):
         if interval_us is None: 
             print("interval_us is None\r\n")
@@ -182,27 +147,15 @@ class BLE(_bluetooth.BLE):
                 adv_data = self.last_adv_data
             else :
                 self.last_adv_data = _to_string(adv_data)
-            
-            print(self.last_adv_data)
-            
-            # errcode = self.set_adv_data(self.last_adv_data,len(self.last_adv_data))
-            # if errcode != 0 :
-            #     print("set adv data error code: ",errcode)
-            #     return errcode
 
             # 设置响应载荷
             if resp_data is None:
                 resp_data = self.last_resp_data
             else :
                 self.last_resp_data = _to_string(resp_data)
-            
-            print(self.last_resp_data)
-            
-            # errcode = self.set_rsp_data(self.last_resp_data,len(self.last_resp_data))
-            # if errcode != 0 :
-            #     print("set rsp data error code: ",errcode)
-            #     return errcode
-        
+                # print(self.last_resp_data)
+                print(resp_data)
+
             return self.advertise(self.addr_mode,int(interval_us/625),connectable,self.last_adv_data,len(self.last_adv_data),self.last_resp_data,len(self.last_resp_data))
 
     # #TODO:active的作用是什么意思
@@ -212,11 +165,11 @@ class BLE(_bluetooth.BLE):
     # """
     def gap_scan(self, duration_ms, interval_us=1280000, window_us=11250, active=False, /):
         if duration_ms is None :
-            super().gap_stop_scan()
+            self.gap_stop_disc()
         elif (duration_ms == 0):
-            super().gap_scan()
+            self.gap_disc()
         else:
-            super().gap_scan_forever()
+            self.gap_disc_forever()
 
     # """
     # micropython:直接输入时间P

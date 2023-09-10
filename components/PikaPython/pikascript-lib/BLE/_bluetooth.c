@@ -16,7 +16,8 @@
 #include "cb_event_id.h"
 
 // TODO:发布的时候怎么将printf隐藏掉
-#define printf __platform_printf
+// #define printf __platform_printf
+#define printf pika_platform_printf
 
 #define GATT_SVR_SVC_ALERT_UUID               0x1811
 // BLE_UUID_base = 0x00000000-0000-1000-8000-00805F9B34FB;
@@ -259,15 +260,12 @@ static void print_conn_desc(struct ble_gap_conn_desc *desc)
 int _bluetooth_BLE_advertise(PikaObj *self, int addr, int interval, pika_bool connectable, 
         char* adv_data, int adv_data_len, char* rsp_data, int rsp_data_len)
 {
-    // nimble_port_freertos_init(ble_host_task);
     nimble_port_freertos_init(ble_host_task);
     printf("_bluetooth_BLE_gap_advertise\r\n");
-    // ble_svc_gap_device_name_set("nimble-bleprph");
     //  声明并初始化广播结构体
     struct ble_hs_adv_fields fields;
     memset(&fields, 0, sizeof fields);
 
-    //TODO:貌似不起作用
     if(BLE_ONLY  == true){
         fields.flags |= BLE_HS_ADV_F_BREDR_UNSUP;
     }
@@ -287,8 +285,11 @@ int _bluetooth_BLE_advertise(PikaObj *self, int addr, int interval, pika_bool co
     fields.num_uuids16 = 1;
     fields.uuids16_is_complete = 1;
 
-    fields.mfg_data = (uint8_t *)adv_data;
-    fields.mfg_data_len = adv_data_len;
+    if(adv_data_len > 0)
+    {
+        fields.mfg_data = (uint8_t *)adv_data;
+        fields.mfg_data_len = adv_data_len;
+    }
 
     int rc = ble_gap_adv_set_fields(&fields);
     
@@ -312,17 +313,19 @@ int _bluetooth_BLE_advertise(PikaObj *self, int addr, int interval, pika_bool co
 
 
     //设置rsp data
-    uint8_t* rsp_data_new = (uint8_t*)malloc(rsp_data_len + 2);
-    rsp_data_new[0] = rsp_data_len + 1;
-    rsp_data_new[1] = 0xff;
-    memcpy(rsp_data_new + 2, rsp_data, rsp_data_len); 
-    rc =  ble_gap_adv_rsp_set_data(rsp_data_new,rsp_data_len+2);
-    if (rc != 0) {
-        printf("error setting advertisement response data; rc=%d\n", rc);
+    if(rsp_data_len > 0) {
+        uint8_t* rsp_data_new = (uint8_t*)malloc(rsp_data_len + 2);
+        rsp_data_new[0] = rsp_data_len + 1;
+        rsp_data_new[1] = 0xff;
+        memcpy(rsp_data_new + 2, rsp_data, rsp_data_len); 
+        rc =  ble_gap_adv_rsp_set_data(rsp_data_new,rsp_data_len+2);
+        if (rc != 0) {
+            printf("error setting advertisement response data; rc=%d\n", rc);
+            free(rsp_data_new);
+            return -1 ;
+        }
         free(rsp_data_new);
-        return -1 ;
     }
-    free(rsp_data_new);
 
 
     // 声明并初始化广播结构体
@@ -367,9 +370,9 @@ int _bluetooth_BLE_gap_disconnect(PikaObj *self)
     return ble_gap_conn_cancel();
 }
 
-int _bluetooth_BLE_gap_scan(PikaObj *self, int addr_mode, int duration_ms, int interval_us, int window_us, pika_bool active)
+int _bluetooth_BLE_gap_disc(PikaObj *self, int addr_mode, int duration_ms, int interval_us, int window_us, pika_bool active)
 {
-    printf("_bluetooth_BLE_gap_scan\r\n");
+    printf("_bluetooth_BLE_gap_disc\r\n");
     // 获取地址类型
     uint8_t own_addr_type =  get_addr_type(addr_mode);
 
@@ -381,6 +384,12 @@ int _bluetooth_BLE_gap_scan(PikaObj *self, int addr_mode, int duration_ms, int i
     };
     // TODO:参数待补充
     return ble_gap_disc(own_addr_type, duration_ms, &disc_params, ble_gap_event_cb, NULL);
+}
+
+int _bluetooth_BLE_gap_disc_forever(PikaObj *self, int addr_mode, int interval_us, int window_us, pika_bool active)
+{
+    printf("_bluetooth_BLE_gap_disc_forever\r\n");
+    return 0;
 }
 
 // 停止扫描
@@ -492,29 +501,26 @@ int _bluetooth_BLE_gatts_register_svcs(PikaObj *self, PikaObj* services_info)
 }
 
 // 设置广播数据
-// TODO:未验证
-int _bluetooth_BLE_set_adv_data(PikaObj *self, char* data, int data_len)
+// 在设置前需要蓝牙协议栈处于同步状态, nimble_port_freertos_init(ble_host_task)
+// 直接发送传入内容, 不按照规范补充格式
+// 若要按规范补充则需要调用ble_gap_adv_set_fields(const struct ble_hs_adv_fields *rsp_fields)函数
+int _bluetooth_BLE_set_adv_data(PikaObj *self, uint8_t* data, int data_len)
 {
-    nimble_port_freertos_init(ble_host_task);
     printf("_bluetooth_BLE_set_adv_data\r\n");
-    // uint8_t test[] = {25, 21, 1, 2, 3, 4, 5};
-    // uint8_t adv_data[] = {0x02, 0x01, 0x06}; 
-    return ble_gap_adv_set_data((uint8_t*)data,data_len);
-    // return ble_gap_adv_set_data(test,7);
-    // return ble_gap_adv_set_data(adv_data, sizeof(adv_data));
+    return ble_gap_adv_set_data(data,data_len);
 }
 
 // 设置扫描响应数据
-// TODO:未验证
-int _bluetooth_BLE_set_rsp_data(PikaObj *self, char* data, int data_len)
+// 在设置前需要蓝牙协议栈处于同步状态, nimble_port_freertos_init(ble_host_task)
+// 直接发送传入内容, 不按照规范补充格式
+// 若要按规范补充则需要调用ble_gap_adv_rsp_set_fields(const struct ble_hs_adv_fields *rsp_fields)函数
+// int _bluetooth_BLE_set_rsp_data(PikaObj *self, char* data, int data_len)
+int _bluetooth_BLE_set_rsp_data(PikaObj *self, uint8_t* data, int data_len)
 {
     printf("_bluetooth_BLE_set_rsp_data\r\n");
-    uint8_t* rsp_data = (uint8_t*)malloc(data_len + 2);
-    rsp_data[0] = data_len + 1;
-    rsp_data[1] = 0xff;
-    memcpy(rsp_data + 2, data, data_len); 
-    return ble_gap_adv_rsp_set_data(rsp_data,data_len+2);
-    // return ble_gap_adv_rsp_set_data(test,7);
+    // printf("%hx %hx %hx %hx\r\n",data[0],data[1],data[2],data[3]);
+    // printf("%d %d %d %d\r\n",data[0],data[1],data[2],data[3]);
+    return  ble_gap_adv_rsp_set_data(data,data_len);
 }
 
 
