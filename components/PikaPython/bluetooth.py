@@ -163,13 +163,12 @@ class BLE(_bluetooth.BLE):
     # 使用interval_us和window_us可选择配置占空比。扫描器将每interval_us微秒运行window_us 微秒，
     # 总共持续duration_ms毫秒。默认间隔和窗口分别为 1.28 秒和 11.25 毫秒（后台扫描）。
     # """
-    def gap_scan(self, duration_ms, interval_us=1280000, window_us=11250, active=False, /):
+    def gap_scan(self, duration_ms, interval_us=1280000, window_us=11250, active=False):
         if duration_ms is None :
-            self.gap_stop_disc()
-        elif (duration_ms == 0):
-            self.gap_disc()
+            return self.gap_stop_disc()
         else:
-            self.gap_disc_forever()
+            print("duration=%d,interval_us=%d, window_us=%d, active=" %( duration_ms,interval_us,window_us),active)
+            return self.gap_disc(self.addr_mode, duration_ms,int(interval_us/625),int(window_us/625),active)
 
     # """
     # micropython:直接输入时间P
@@ -196,7 +195,7 @@ class BLE(_bluetooth.BLE):
     def gatts_register_services(self, services):
         convert_services = _convert_ble_service_info(services)
         print("convert_services  : ",convert_services)
-        self.gatts_register_svcs(convert_services)
+        return self.gatts_register_svcs(convert_services)
         # return convert_services
     
     # # 遍历特征

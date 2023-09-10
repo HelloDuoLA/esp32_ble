@@ -21,39 +21,45 @@ b = a.active(1)
 def ble_irq(event,data):
     if event == const._IRQ_CENTRAL_CONNECT:
         # A central has connected to this peripheral.
-        print("_IRQ_CENTRAL_CONNECT")
+        print("\r\n\r\n_IRQ_CENTRAL_CONNECT\r\n\r\n")
         print(data)
     elif event == const._IRQ_GATTC_SERVICE_DONE:
         print("_IRQ_GATTC_SERVICE_DONE")
         print(data)
+    elif event == const._IRQ_SCAN_RESULT:
+        print("_IRQ_SCAN_RESULT data : ", data)
 
 b = a.irq(ble_irq)
 
-HR_UUID = bluetooth.UUID("0x180D")
-HR_CHAR = (bluetooth.UUID("0x2A37"), bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY,(("DSCSUUID1",bluetooth.FLAG_READ),("DSCSUUID2",bluetooth.FLAG_READ)))
-HR_SERVICE = (HR_UUID, (HR_CHAR,),)
-UART_UUID = bluetooth.UUID('6E400001-B5A3-F393-E0A9-E50E24DCCA9E')
-UART_TX = (bluetooth.UUID('6E400003-B5A3-F393-E0A9-E50E24DCCA9E'), bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY,(("DSCSUUID1",bluetooth.FLAG_NOTIFY),("DSCSUUID2",bluetooth.FLAG_READ),("DSCSUUID3",bluetooth.FLAG_INDICATE)))
-UART_RX = (bluetooth.UUID('6E400002-B5A3-F393-E0A9-E50E24DCCA9E'), bluetooth.FLAG_WRITE,(("DSCSUUID2",bluetooth.FLAG_WRITE),))
-UART_SERVICE = (UART_UUID, (UART_TX, UART_RX))
-SERVICES = (HR_SERVICE, UART_SERVICE,)
+# HR_UUID = bluetooth.UUID("0x180D")
+# HR_CHAR = (bluetooth.UUID("0x2A37"), bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY,(("DSCSUUID1",bluetooth.FLAG_READ),("DSCSUUID2",bluetooth.FLAG_READ)))
+# HR_SERVICE = (HR_UUID, (HR_CHAR,),)
+# UART_UUID = bluetooth.UUID('6E400001-B5A3-F393-E0A9-E50E24DCCA9E')
+# UART_TX = (bluetooth.UUID('6E400003-B5A3-F393-E0A9-E50E24DCCA9E'), bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY,(("DSCSUUID1",bluetooth.FLAG_NOTIFY),("DSCSUUID2",bluetooth.FLAG_READ),("DSCSUUID3",bluetooth.FLAG_INDICATE)))
+# UART_RX = (bluetooth.UUID('6E400002-B5A3-F393-E0A9-E50E24DCCA9E'), bluetooth.FLAG_WRITE,(("DSCSUUID2",bluetooth.FLAG_WRITE),))
+# UART_SERVICE = (UART_UUID, (UART_TX, UART_RX))
+# SERVICES = (HR_SERVICE, UART_SERVICE,)
+# c = a.gatts_register_services(SERVICES)
+# print("gatts_register_services errer code is",c)
 
-c = a.gatts_register_services(SERVICES)
-a.test3()
-a.last_adv_data = "adv_test"
+# a.test3()
+d = a.gap_scan(0, 1280000, 11250, True)
+print(d)
+# c = a.gap_advertise(6250)
+# a.last_adv_data = "adv_test"
 # a.last_resp_data = bluetooth._to_string(bytearray('0x20'))
+# c = a.gap_advertise(6250,resp_data=bytes([0x3,0x33,0x11,0x22]))
 
-c = a.gap_advertise(6250,resp_data=bytes([0x3,0x33,0x11,0x22]))
 # c = a.gap_advertise(6250)
 # c = a.gap_advertise(6250)
 # b'\x03\x21\x0b\x16'
 # 48 51 92 120
-a.set_rsp_data(bytes([0x3,0x33,0x11,0x22]) ,4)
+# a.set_rsp_data(bytes([0x3,0x33,0x11,0x22]) ,4)
 # print(bytes([3,33,11,22]))
 # a.set_rsp_data("03331122" ,4)
 # c = a.gap_advertise(6250,"","")
 # a.gap_advertise(None)
-print(c)
+# print(c)
 # a.test2("data test")
 
 

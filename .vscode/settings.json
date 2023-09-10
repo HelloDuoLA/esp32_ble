@@ -17,7 +17,7 @@
             "priority": 4
         }
     ],
-    "idf.portWin": "COM10",
+    "idf.portWin": "COM13",
     "idf.adapterTargetName": "esp32s3",
     "idf.openOcdConfigs": [
         "interface/ftdi/esp32_devkitj_v1.cfg",
@@ -74,6 +74,7 @@
         "ratio": "c",
         "system_error": "c",
         "utility": "c",
-        "algorithm": "c"
+        "algorithm": "c",
+        "sstream": "c"
     }
 }
