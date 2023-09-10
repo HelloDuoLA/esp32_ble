@@ -1,7 +1,7 @@
-pikascript-core==v1.12.5
-PikaStdLib==v1.12.5
-PikaStdDevice==v2.4.0
-ESP32==v0.4.2
-pika_libc==v1.0.2
-time==v0.1.9
-network==v0.1.3
+pikascript-core==4990b78fe5740def303ad5b1cac375dffea12ded
+PikaStdLib==4990b78fe5740def303ad5b1cac375dffea12ded
+PikaStdDevice==4990b78fe5740def303ad5b1cac375dffea12ded
+ESP32==4990b78fe5740def303ad5b1cac375dffea12ded
+pika_libc==4990b78fe5740def303ad5b1cac375dffea12ded
+time==4990b78fe5740def303ad5b1cac375dffea12ded
+network==4990b78fe5740def303ad5b1cac375dffea12ded

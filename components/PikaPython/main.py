@@ -14,11 +14,11 @@ print('hello PikaPython')
 
 
 a = bluetooth.BLE()
-# b = a.active(1)
-# c = a.advertise(0,1,1)
+b = a.active(1)
+
+
 
 def ble_irq(event,data):
-    # event = const._IRQ_CENTRAL_CONNECT
     if event == const._IRQ_CENTRAL_CONNECT:
         # A central has connected to this peripheral.
         print("_IRQ_CENTRAL_CONNECT")
@@ -27,35 +27,42 @@ def ble_irq(event,data):
         print("_IRQ_GATTC_SERVICE_DONE")
         print(data)
 
-    
-# a.irq(ble_irq)
+b = a.irq(ble_irq)
 
-# service_uuid = '6E400001-B5A3-F393-E0A9-E50E24DCCA9E'
-# reader_uuid  = '6E400002-B5A3-F393-E0A9-E50E24DCCA9E'
-# sender_uuid  = '6E400003-B5A3-F393-E0A9-E50E24DCCA9E'
+# HR_UUID = bluetooth.UUID("0x180D")
+# HR_CHAR = (bluetooth.UUID("0x2A37"), bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY,(("DSCSUUID1",bluetooth.FLAG_READ),("DSCSUUID2",bluetooth.FLAG_READ)))
+# HR_SERVICE = (HR_UUID, (HR_CHAR,),)
+# UART_UUID = bluetooth.UUID('6E400001-B5A3-F393-E0A9-E50E24DCCA9E')
+# UART_TX = (bluetooth.UUID('6E400003-B5A3-F393-E0A9-E50E24DCCA9E'), bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY,(("DSCSUUID1",bluetooth.FLAG_NOTIFY),("DSCSUUID2",bluetooth.FLAG_READ),("DSCSUUID3",bluetooth.FLAG_INDICATE)))
+# UART_RX = (bluetooth.UUID('6E400002-B5A3-F393-E0A9-E50E24DCCA9E'), bluetooth.FLAG_WRITE,(("DSCSUUID2",bluetooth.FLAG_WRITE),))
+# UART_SERVICE = (UART_UUID, (UART_TX, UART_RX))
+# SERVICES = (HR_SERVICE, UART_SERVICE,)
 
-# services = (
-#     (
-#         bluetooth.UUID(service_uuid), 
-#         (
-#             (bluetooth.UUID(sender_uuid), bluetooth.FLAG_NOTIFY), 
-#             (bluetooth.UUID(reader_uuid), bluetooth.FLAG_WRITE),
-#         )
-#     )
-#     ,
-# )
+# c = a.gatts_register_services(SERVICES)
+a.test3()
+c = a.gap_advertise(6250,bytes("adv_test"),bytearray('0x20'))
+# c = a.gap_advertise(6250,"","")
+# a.gap_advertise(None)
+print(c)
+# a.test2("data test")
 
-# a.gatts_register_services(services)
+
+
+
+
+
+
+
 
 # for i in range(65000,70000):
     # b = a.test2(str(i) + "t" * (i % 10))
     # b = a.test2(str(i) + str(70000 - i))
     # c = 0xABCD
     # b = a.test2(str('6E400003-B5A3-F393-E0A9-E50E24DCCA9E'))
-b = a.test2(0x11111111)
-b = a.test2(0xFFFFFFFF)
-b = a.test2(0xeeeeeeee)
-b = a.test2("ABCDEFAB")
+# b = a.test2(0x11111111)
+# b = a.test2(0xFFFFFFFF)
+# b = a.test2(0xeeeeeeee)
+# b = a.test2("ABCDEFAB")
 
 # a = 0xABCDEFEF
 # b = hex(a).upper()
@@ -99,14 +106,5 @@ b = a.test2("ABCDEFAB")
 """
 
 
-# HR_UUID = bluetooth.UUID("0x180D")
-# HR_CHAR = (bluetooth.UUID("0x2A37"), bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY,(("DSCSUUID1",bluetooth.FLAG_READ),("DSCSUUID2",bluetooth.FLAG_READ)))
-# HR_SERVICE = (HR_UUID, (HR_CHAR,),)
-# UART_UUID = bluetooth.UUID('6E400001-B5A3-F393-E0A9-E50E24DCCA9E')
-# UART_TX = (bluetooth.UUID('6E400003-B5A3-F393-E0A9-E50E24DCCA9E'), bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY,(("DSCSUUID1",bluetooth.FLAG_NOTIFY),("DSCSUUID2",bluetooth.FLAG_READ),("DSCSUUID3",bluetooth.FLAG_INDICATE)))
-# UART_RX = (bluetooth.UUID('6E400002-B5A3-F393-E0A9-E50E24DCCA9E'), bluetooth.FLAG_WRITE,(("DSCSUUID2",bluetooth.FLAG_WRITE),))
-# UART_SERVICE = (UART_UUID, (UART_TX, UART_RX))
-# SERVICES = (HR_SERVICE, UART_SERVICE,)
 
-# a.gatts_register_services(SERVICES)
 

@@ -32,19 +32,32 @@ class BLE(_bluetooth.BLE):
 
     def __init__(self):
         print("BLE init")
+        # a = super().__init__()
         a = self.init()
         self.setCallback(self.ble_callback)
     
-    def test(self, interval_us, adv_data=None, connectable=True,*resp_data):
-        print(interval_us)
+    def test(self, interval_us, adv_data=None, resp_data=None, connectable=True):
+        if isinstance(adv_data,bytes) :
+            print( "neirong " ,_to_string(adv_data), "size" ,len(_to_string(adv_data)))
+        print(type(adv_data))
     
-    def test2(self,num):
+    def test2(self, data):
         # print("num  " ,num)
         # print("len num ", len(num))
-        num_str = _to_string(num)
-        print("num_str : ", num_str)
-        return self.pyi_test2(num_str,len(num_str))
+        # num_str = _to_string(num)
+        # print("num_str : ", num_str)
+        # return self.pyi_test2(num_str,len(num_str))
+        # if interval_us == None :
+        # print(interval_us)
+        # print(adv_data)
+        # print(resp_data)
+        # print(connectable)
+        # a.test2(2, resp_data = "resp_data")
+        self.pyi_test2(data,len(data))
 
+
+    def test3(self):
+        self.pyi_test3()
 
     def active(self):
         self.pyi_active()
@@ -88,11 +101,12 @@ class BLE(_bluetooth.BLE):
     # # 设定属性
         # print(kv["mac"])
         # print(kv["gap_name"])
-
-        # if ("mac" in kv.keys()):
+        print(kv)
+        if "mac" in kv:
         # if ("193498998" in kv):
-        #     print("set mac : ", kv["mac"])
+            print("set mac : ", kv["mac"])
             # super().config_mac_update(kv["mac"])
+            # a.config(mac="test")
 
     #     if ("addr_mode" in kv):
     #         addr_mode = kv["addr_mode"]
@@ -158,29 +172,38 @@ class BLE(_bluetooth.BLE):
     # resp_data: 被发送以响应主动扫描, 是任何实现缓冲协议的类型(例如bytes, bytearray, str)
 
     # """
-    def gap_advertise(self, interval_us, adv_data=None, *resp_data, connectable=True):
-        # 设置广播载荷
-        if adv_data is None: #参数为空，则使用上次数据
-            adv_data = self.last_adv_data
-        else :
-            self.last_adv_data = adv_data
-            self.set_adv_data(adv_data,len(adv_data))
-
-        # 设置响应载荷
-        if resp_data is None:
-            resp_data = self.last_resp_data
-        else :
-            self.last_resp_data = resp_data
-            self.set_rsp_data(resp_data,len(resp_data))
-
-        # 停止广播
-        interval_us = 2
-        print("interval_us   ",interval_us)
-        print("adv_data     ",adv_data)
+    def gap_advertise(self, interval_us, adv_data=None, resp_data=None, connectable=True):
         if interval_us is None: 
+            print("interval_us is None\r\n")
             return self.stop_advertise()
         else :
-            return self.advertise(self.addr_mode,1,connectable)
+            # 设置广播载荷
+            if adv_data is None: #参数为空，则使用上次数据
+                adv_data = self.last_adv_data
+            else :
+                self.last_adv_data = _to_string(adv_data)
+            
+            print(self.last_adv_data)
+            
+            # errcode = self.set_adv_data(self.last_adv_data,len(self.last_adv_data))
+            # if errcode != 0 :
+            #     print("set adv data error code: ",errcode)
+            #     return errcode
+
+            # 设置响应载荷
+            if resp_data is None:
+                resp_data = self.last_resp_data
+            else :
+                self.last_resp_data = _to_string(resp_data)
+            
+            print(self.last_resp_data)
+            
+            # errcode = self.set_rsp_data(self.last_resp_data,len(self.last_resp_data))
+            # if errcode != 0 :
+            #     print("set rsp data error code: ",errcode)
+            #     return errcode
+        
+            return self.advertise(self.addr_mode,int(interval_us/625),connectable,self.last_adv_data,len(self.last_adv_data),self.last_resp_data,len(self.last_resp_data))
 
     # #TODO:active的作用是什么意思
     # """

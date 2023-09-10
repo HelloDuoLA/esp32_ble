@@ -42,11 +42,12 @@ typedef enum {
     ARG_TYPE_INT,
     ARG_TYPE_BOOL,
     ARG_TYPE_FLOAT,
-    ARG_TYPE_STRING,         //5
+    ARG_TYPE_STRING,
     ARG_TYPE_BYTES,
     ARG_TYPE_POINTER,
     ARG_TYPE_BIG_ARG_PTR,
-    ARG_TYPE_OBJECT,         // 9
+    ARG_TYPE_OBJECT,
+    ARG_TYPE_OBJECT_WEAK,
     ARG_TYPE_OBJECT_META,
     ARG_TYPE_OBJECT_NEW,
     ARG_TYPE_METHOD_NATIVE,
@@ -88,9 +89,11 @@ struct Arg {
     uint8_t flag;
     Hash name_hash;
 #if PIKA_KERNAL_DEBUG_ENABLE
+    char* name;
     _arg_value* value;
     char* str;
     uint8_t* bytes;
+    char _name_buff[PIKA_NAME_BUFF_SIZE];
 #endif
     uint8_t content[];
 };
@@ -105,9 +108,11 @@ typedef struct ConstArg {
     uint8_t flag;
     Hash name_hash;
 #if PIKA_KERNAL_DEBUG_ENABLE
+    char* name;
     _arg_value* value;
     char* str;
     uint8_t* bytes;
+    char _name_buff[PIKA_NAME_BUFF_SIZE];
 #endif
 } ConstArg;
 
@@ -290,7 +295,8 @@ static inline uint8_t* arg_getContent(Arg* self) {
 }
 
 static inline uint8_t argType_isObject(ArgType type) {
-    return ((type) == ARG_TYPE_OBJECT || (type) == ARG_TYPE_OBJECT_NEW);
+    return ((type) == ARG_TYPE_OBJECT || (type) == ARG_TYPE_OBJECT_NEW ||
+            (type) == ARG_TYPE_OBJECT_WEAK);
 }
 
 static inline uint8_t argType_isCallable(ArgType type) {

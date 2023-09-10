@@ -323,3 +323,31 @@ int pika_hal_WIFI_ioctl_merge_config(pika_hal_WIFI_config* dst,
     _IOCTL_CONFIG_USE_DEFAULT_STR(ap_password, "pikapython.com");
     return 0;
 }
+
+int pika_hal_TIM_ioctl_merge_config(pika_hal_TIM_config* dst,
+                                    pika_hal_TIM_config* src) {
+    _IOCTL_CONFIG_USE_DEFAULT(period, PIKA_HAL_TIM_PERIOD_1S);
+    _IOCTL_CONFIG_USE_DEFAULT(mode, PIKA_HAL_TIM_MODE_CONTINUOUS);
+    _IOCTL_CONFIG_USE_DEFAULT(event_callback_ena,
+                              PIKA_HAL_EVENT_CALLBACK_ENA_ENABLE);
+    _IOCTL_CONFIG_USE_DEFAULT(event_callback, NULL);
+    return 0;
+}
+
+int pika_hal_SOFT_TIM_ioctl_merge_config(pika_hal_SOFT_TIM_config* dst,
+                                         pika_hal_SOFT_TIM_config* src) {
+    _IOCTL_CONFIG_USE_DEFAULT(period, PIKA_HAL_TIM_PERIOD_1S);
+    _IOCTL_CONFIG_USE_DEFAULT(mode, PIKA_HAL_TIM_MODE_CONTINUOUS);
+    _IOCTL_CONFIG_USE_DEFAULT(event_callback_ena,
+                              PIKA_HAL_EVENT_CALLBACK_ENA_ENABLE);
+    _IOCTL_CONFIG_USE_DEFAULT(event_callback, NULL);
+    return 0;
+}
+
+int pika_hal_CAM_ioctl_merge_config(pika_hal_CAM_config* dst,
+                                    pika_hal_CAM_config* src) {
+    _IOCTL_CONFIG_USE_DEFAULT(format, PIKA_HAL_CAM_PIXFORMAT_RGB565);
+    _IOCTL_CONFIG_USE_DEFAULT(framesize, PIKA_HAL_CAM_FRAMESIZE_QVGA);
+    _IOCTL_CONFIG_USE_DEFAULT(buff_len, 320 * 240 * 16);
+    return 0;
+}

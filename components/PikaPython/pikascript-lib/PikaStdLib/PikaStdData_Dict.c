@@ -189,16 +189,9 @@ int PikaStdData_dict_keys___len__(PikaObj* self) {
 }
 
 int dict_contains(PikaDict* dict, Arg* key) {
-    int i = 0;
-    while (PIKA_TRUE) {
-        Arg* item = args_getArgByIndex(_OBJ2KEYS(dict), i);
-        if (NULL == item) {
-            break;
-        }
-        if (arg_isEqual(item, key)) {
-            return PIKA_TRUE;
-        }
-        i++;
+    Hash hash = hash_time33(arg_getStr(key));
+    if (args_isArgExist_hash(_OBJ2DICT(dict), hash)) {
+        return pika_true;
     }
     return pika_false;
 }
@@ -292,4 +285,29 @@ void PikaStdData_Dict_update(PikaObj* self, PikaObj* other) {
             };
     pikaVM_runByteCode(context, (uint8_t*)bytes);
     obj_deinit(context);
+}
+
+int PikaStdData_Dict___eq__(PikaObj* self, Arg* other) {
+    if (!arg_isObject(other)) {
+        return 0;
+    }
+    PikaObj* oOther = arg_getObj(other);
+    if (self->constructor != oOther->constructor) {
+        return 0;
+    }
+    if (obj_getSize(self) != obj_getSize(oOther)) {
+        return 0;
+    }
+    for (size_t i = 0; i < obj_getSize(self); i++) {
+        Arg* key = args_getArgByIndex(_OBJ2KEYS(self), i);
+        Arg* val = args_getArgByIndex(_OBJ2DICT(self), i);
+        Arg* oVal = pikaDict_get(oOther, arg_getStr(key));
+        if (NULL == oVal) {
+            return 0;
+        }
+        if (!arg_isEqual(val, oVal)) {
+            return 0;
+        }
+    }
+    return 1;
 }

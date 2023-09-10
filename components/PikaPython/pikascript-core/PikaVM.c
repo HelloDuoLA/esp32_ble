@@ -1160,7 +1160,8 @@ Arg* obj_runMethodArg(PikaObj* self,
                       PikaObj* method_args_obj,
                       Arg* method_arg) {
     RunState run_state = {.try_state = TRY_STATE_NONE,
-                          .try_result = TRY_RESULT_NONE};
+                          .try_result = TRY_RESULT_NONE,
+                          .in_repl = pika_false};
     return obj_runMethodArgWithState(self, method_args_obj, method_arg,
                                      &run_state);
 }
@@ -1891,7 +1892,8 @@ static Arg* VM_instruction_handler_RUN(PikaObj* self,
     PikaObj* oBuiltin = NULL;
     arg_newReg(arg_reg1, 32);
     RunState tSubRunState = {.try_state = vm->run_state->try_state,
-                             .try_result = TRY_RESULT_NONE};
+                             .try_result = TRY_RESULT_NONE,
+                             .in_repl = pika_false};
     pika_assert(NULL != vm->run_state);
 
     if (NULL != sRunPath) {
@@ -2697,6 +2699,34 @@ static void _OPT_EQU(OperatorInfo* op) {
     }
     if (argType_isObject(op->t1) && argType_isObject(op->t2)) {
         is_equ = (arg_getPtr(op->a1) == arg_getPtr(op->a2));
+        if (is_equ) {
+            goto __exit;
+        }
+        Arg* __eq__ =
+            obj_getMethodArgWithFullPath(arg_getPtr(op->a1), "__eq__");
+        if (NULL != __eq__) {
+            arg_deinit(__eq__);
+            PikaObj* oThis = arg_getObj(op->a1);
+            obj_setArg(oThis, "__others", op->a2);
+            /* clang-format off */
+            PIKA_PYTHON(
+            @res_eq = __eq__(__others)
+            )
+            /* clang-format on */
+            const uint8_t bytes[] = {
+                0x0c, 0x00, 0x00, 0x00, /* instruct array size */
+                0x10, 0x81, 0x01, 0x00, 0x00, 0x02, 0x0a, 0x00, 0x00, 0x04,
+                0x11, 0x00,
+                /* instruct array */
+                0x19, 0x00, 0x00, 0x00, /* const pool size */
+                0x00, 0x5f, 0x5f, 0x6f, 0x74, 0x68, 0x65, 0x72, 0x73, 0x00,
+                0x5f, 0x5f, 0x65, 0x71, 0x5f, 0x5f, 0x00, 0x40, 0x72, 0x65,
+                0x73, 0x5f, 0x65, 0x71, 0x00,
+                /* const pool */
+            };
+            pikaVM_runByteCode(oThis, (uint8_t*)bytes);
+            is_equ = obj_getInt(oThis, "@res_eq");
+        }
         goto __exit;
     }
     /* default: int bool, and float */
@@ -3624,7 +3654,9 @@ static ByteCodeFrame* _cache_bcf_fn_bc(PikaObj* self, uint8_t* bytecode) {
     return _cache_bytecodeframe(self);
 }
 
-static VMParameters* _pikaVM_runPyLines(PikaObj* self, char* py_lines) {
+VMParameters* _pikaVM_runPyLines(PikaObj* self,
+                                 char* py_lines,
+                                 pika_bool in_repl) {
     VMParameters* globals = NULL;
     ByteCodeFrame bytecode_frame_stack = {0};
     ByteCodeFrame* bytecode_frame_p = NULL;
@@ -3650,7 +3682,7 @@ static VMParameters* _pikaVM_runPyLines(PikaObj* self, char* py_lines) {
         goto __exit;
     }
     /* run byteCode */
-    globals = pikaVM_runByteCodeFrame(self, bytecode_frame_p);
+    globals = _pikaVM_runByteCodeFrame(self, bytecode_frame_p, in_repl);
     goto __exit;
 __exit:
     if (!is_use_heap_bytecode) {
@@ -3730,12 +3762,13 @@ VMParameters* pikaVM_runSingleFile(PikaObj* self, char* filename) {
 }
 
 VMParameters* pikaVM_run(PikaObj* self, char* py_lines) {
-    return _pikaVM_runPyLines(self, py_lines);
+    return _pikaVM_runPyLines(self, py_lines, pika_false);
 }
 
 VMParameters* pikaVM_runByteCode(PikaObj* self, const uint8_t* bytecode) {
     RunState run_state = {.try_state = TRY_STATE_NONE,
-                          .try_result = TRY_RESULT_NONE};
+                          .try_result = TRY_RESULT_NONE,
+                          .in_repl = pika_false};
     return _do_pikaVM_runByteCode(self, self, self, (uint8_t*)bytecode,
                                   &run_state, pika_true);
 }
@@ -3777,7 +3810,8 @@ Arg* _do_pikaVM_runByteCodeReturn(PikaObj* self,
 
 VMParameters* pikaVM_runByteCodeInconstant(PikaObj* self, uint8_t* bytecode) {
     RunState run_state = {.try_state = TRY_STATE_NONE,
-                          .try_result = TRY_RESULT_NONE};
+                          .try_result = TRY_RESULT_NONE,
+                          .in_repl = pika_false};
     return _do_pikaVM_runByteCode(self, self, self, (uint8_t*)bytecode,
                                   &run_state, pika_false);
 }
@@ -4123,6 +4157,12 @@ void byteCodeFrame_print(ByteCodeFrame* self) {
                          self->const_pool.size + self->instruct_array.size);
 }
 
+PIKA_WEAK void pika_hook_unused_stack_arg(VMState* vm, Arg* arg) {
+    if (vm->run_state->in_repl) {
+        arg_print(arg, pika_true, "\r\n");
+    }
+}
+
 void VMState_solveUnusedStack(VMState* vm) {
     uint8_t top = stack_getTop(&(vm->stack));
     for (int i = 0; i < top; i++) {
@@ -4136,7 +4176,7 @@ void VMState_solveUnusedStack(VMState* vm) {
             arg_deinit(arg);
             continue;
         }
-        arg_print(arg, pika_true, "\r\n");
+        pika_hook_unused_stack_arg(vm, arg);
         arg_deinit(arg);
     }
 }
@@ -4245,12 +4285,21 @@ static VMParameters* _pikaVM_runByteCodeFrameWithState(
     return result;
 }
 
-VMParameters* pikaVM_runByteCodeFrame(PikaObj* self,
-                                      ByteCodeFrame* byteCode_frame) {
-    RunState run_state = {.try_state = TRY_STATE_NONE,
-                          .try_result = TRY_RESULT_NONE};
+VMParameters* _pikaVM_runByteCodeFrame(PikaObj* self,
+                                       ByteCodeFrame* byteCode_frame,
+                                       pika_bool in_repl) {
+    RunState run_state = {
+        .try_state = TRY_STATE_NONE,
+        .try_result = TRY_RESULT_NONE,
+        .in_repl = in_repl,
+    };
     return _pikaVM_runByteCodeFrameWithState(self, self, self, byteCode_frame,
                                              0, &run_state);
+}
+
+VMParameters* pikaVM_runByteCodeFrame(PikaObj* self,
+                                      ByteCodeFrame* byteCode_frame) {
+    return _pikaVM_runByteCodeFrame(self, byteCode_frame, pika_false);
 }
 
 void constPool_printAsArray(ConstPool* self) {
