@@ -367,17 +367,46 @@ int _bluetooth_BLE_stop_advertise(PikaObj *self)
     return ble_gap_adv_stop();
 }
 
-int _bluetooth_BLE_gap_connect(PikaObj *self, int addr_type, char* addr, int64_t scan_duration_ms)
+int _bluetooth_BLE_pyi_gap_connect(PikaObj *self, uint8_t* peer_addr, int peer_addr_type, int scan_duration_ms)
 {
+    // nimble_port_freertos_init(ble_host_task);
     printf("_bluetooth_BLE_gap_connect\r\n");
-    // TODO:参数待补充
-    return ble_gap_connect((uint8_t)addr_type,(ble_addr_t *)addr,scan_duration_ms,NULL,ble_gap_event_cb,NULL);
+
+    int rc = ble_gap_disc_active();
+    if (rc != 0) {
+        printf("Failed to cancel scan; rc=%d\n", rc);
+        return rc;
+    }
+    // uint8_t own_addr_type = get_addr_type(addr_type);
+    uint8_t own_addr_type ;
+    rc = ble_hs_id_infer_auto(0, &own_addr_type);
+    printf("own_addr_type = %d\r\n", own_addr_type);
+    
+    if (rc != 0) {
+        MODLOG_DFLT(ERROR, "error determining address type; rc=%d\n", rc);
+        return rc;
+    }
+
+    uint8_t peer_addr_value[6];
+    ble_addr_t addr_peer = {
+        .type = 0,
+    };
+    addr_inver(peer_addr,addr_peer.val);
+    // 0x0c,0xae,0xb0,0xb6,0xaf,0xa5
+    // addr_peer.val[0] = 0xa5;
+    // addr_peer.val[1] = 0xaf;
+    // addr_peer.val[2] = 0xb6;
+    // addr_peer.val[3] = 0xb0;
+    // addr_peer.val[4] = 0xae;
+    // addr_peer.val[5] = 0x0c;
+    return ble_gap_connect(own_addr_type,&addr_peer,scan_duration_ms,NULL,ble_gap_event_cb,NULL);
+    // return 0;
 }
 
-int _bluetooth_BLE_gap_disconnect(PikaObj *self)
+int _bluetooth_BLE_pyi_gap_disconnect(PikaObj *self)
 {
     printf("_bluetooth_BLE_gap_disconnect\r\n");
-    // TODO:不太确定是否对应该函数
+    // TODO:不太确定是否对应该函数 
     return ble_gap_conn_cancel();
 }
 
@@ -385,7 +414,7 @@ int _bluetooth_BLE_gap_disc(PikaObj *self, int addr_mode, int duration_ms, int i
 {
     nimble_port_freertos_init(ble_host_task);
     printf("_bluetooth_BLE_gap_disc\r\n");
-    // 获取地址类型
+    // 获取地址类型                                             
     uint8_t own_addr_type =  get_addr_type(addr_mode);
     // 声明并初始化结构体实例
     struct ble_gap_disc_params disc_params = {

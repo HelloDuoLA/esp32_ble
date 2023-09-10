@@ -96,35 +96,36 @@ class BLE(_bluetooth.BLE):
         else:
             print("ValueError: unknown config param")   
 
+    # 设置参数
         if "mac" in kv:
-            super().config_mac_update(kv["mac"])
+            return self.config_mac_update(kv["mac"])
 
         if ("addr_mode" in kv):
-            super().config_addr_mode_update(kv["addr_mode"])
+            return self.config_addr_mode_update(kv["addr_mode"])
 
         if ("gap_name" in kv):
-            return super().config_gap_name_update(kv["gap_name"])
+            return self.config_gap_name_update(kv["gap_name"])
 
         if ("rxbuf" in kv):
-            super().config_rxbuf_update(kv["rxbuf"])
+            return self.config_rxbuf_update(kv["rxbuf"])
 
         if ("mtu" in kv):
-            super().config_mtu_update(kv["mtu"])
+            return self.config_mtu_update(kv["mtu"])
 
         if ("bond" in kv):
-            super().config_bond_update(kv["bond"])
+            return self.config_bond_update(kv["bond"])
 
         if ("mitm" in kv):
-            super().config_mitm_update(kv["mitm"])
+            return self.config_mitm_update(kv["mitm"])
 
         if ("bond" in kv):
-            super().config_mac_update(kv["bond"])
+            return self.config_mac_update(kv["bond"])
 
         if ("io" in kv):
-            super().config_io_update(kv["io"])
+            return self.config_io_update(kv["io"])
 
         if ("le_secire" in kv):
-            super().config_le_secire_update(kv["le_secire"])
+            return self.config_le_secire_update(kv["le_secire"])
     
     # a.config("mac"="test","gap_name"="test2")
     # 回调事件处理函数
@@ -187,13 +188,11 @@ class BLE(_bluetooth.BLE):
     #         duration = duration_ms / 10
     #         super.gap_scan(duration_ms, interval_us, window_us, active)
 
-    def gap_connect(self, addr_type, addr, scan_duration_ms=2000, /):
-        super().gap_connect(addr_type, addr,scan_duration_ms)
-        pass
+    def gap_connect(self,peer_addr,peer_addr_type, scan_duration_ms=2000):
+        return self.pyi_gap_connect(peer_addr,peer_addr_type ,scan_duration_ms)
 
-    def gap_disconnect(self, conn_handle, /):
-        super().gap_disconnect()
-        pass
+    def gap_disconnect(self, conn_handle):
+        return self.pyi_gap_disconnect()
 
     def gatts_register_services(self, services):
         convert_services = _convert_ble_service_info(services)

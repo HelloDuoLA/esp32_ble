@@ -46,7 +46,12 @@ b = a.irq(ble_irq)
 # a.test_call_some_name()
 # a.test3()
 # d = a.gap_scan(0, 1280000, 11250, True)
-d = a.gap_scan(100000,320000,True)
+d = a.gap_scan(1000,320000,active=True)
+# addr = bytes([0x0c,0xae,0xb0,0xb6,0xaf,0xa5])
+# addr = bytes([0x6c,0xf9,0x87,0xd5,0x49,0x24])
+addr = bytes([0xec,0xda,0x3b,0x67,0x7a,0x82])
+a.gap_connect(addr,0)
+# a.gap_disconnect(1)
 # d = a.gap_scan(None)
 # print(d)
 # c = a.gap_advertise(6250)
@@ -65,11 +70,6 @@ d = a.gap_scan(100000,320000,True)
 # a.gap_advertise(None)
 # print(c)
 # a.test2("data test")
-
-
-
-
-
 
 
 
