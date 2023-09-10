@@ -3,7 +3,6 @@ import machine
 import bluetooth
 import _bluetooth
 import const
-# import mytest
 mem = PikaStdLib.MemChecker()
 print('mem used max:')
 mem.max()
@@ -28,6 +27,9 @@ def ble_irq(event,data):
         print(data)
     elif event == const._IRQ_SCAN_RESULT:
         print("_IRQ_SCAN_RESULT data : ", data)
+    elif event == const._IRQ_SCAN_DONE:
+        print("_IRQ_SCAN_DONE: ")
+        print("reason: ",data)
 
 b = a.irq(ble_irq)
 
@@ -41,10 +43,12 @@ b = a.irq(ble_irq)
 # SERVICES = (HR_SERVICE, UART_SERVICE,)
 # c = a.gatts_register_services(SERVICES)
 # print("gatts_register_services errer code is",c)
-
+# a.test_call_some_name()
 # a.test3()
-d = a.gap_scan(0, 1280000, 11250, True)
-print(d)
+# d = a.gap_scan(0, 1280000, 11250, True)
+d = a.gap_scan(100000,320000,True)
+# d = a.gap_scan(None)
+# print(d)
 # c = a.gap_advertise(6250)
 # a.last_adv_data = "adv_test"
 # a.last_resp_data = bluetooth._to_string(bytearray('0x20'))

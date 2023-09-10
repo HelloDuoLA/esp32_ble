@@ -402,7 +402,7 @@ int _bluetooth_BLE_gap_disc(PikaObj *self, int addr_mode, int duration_ms, int i
 }
 
 // 停止扫描
-// TODO:未验证
+// 不会引发扫描中止事件
 int _bluetooth_BLE_gap_stop_disc(PikaObj *self)
 {
     printf("_bluetooth_BLE_gap_stop_scan\r\n");
@@ -705,6 +705,13 @@ int _bluetooth_BLE_pyi_test3(PikaObj *self)
     ble_svc_gap_device_name_set("nimble-test");
     return 0;
 }
+
+int _bluetooth_BLE_test_call_some_name(PikaObj *self)
+{
+    printf("_bluetooth_BLE_test_call_some_name\r\n");
+    return 0;
+}
+
 //通过UUID查找全部属性
 //TODO:待验证
 int _bluetooth_BLE_gattc_dis_chrs(PikaObj *self, int conn_handle, int start_handle, int end_handle){
@@ -1070,6 +1077,7 @@ static int ble_gap_event_cb(struct ble_gap_event *event, void *arg)
         return 0;
 
     case BLE_GAP_EVENT_TERM_FAILURE:
+        
         return 0;
     
     case BLE_GAP_EVENT_DISC: //扫描发现

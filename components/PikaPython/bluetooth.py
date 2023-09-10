@@ -58,7 +58,10 @@ class BLE(_bluetooth.BLE):
 
     def test3(self):
         self.pyi_test3()
-
+    
+    def test_call_some_name(self):
+        super().test_call_some_name()  
+    
     def active(self):
         self.pyi_active()
 
@@ -167,7 +170,7 @@ class BLE(_bluetooth.BLE):
         if duration_ms is None :
             return self.gap_stop_disc()
         else:
-            print("duration=%d,interval_us=%d, window_us=%d, active=" %( duration_ms,interval_us,window_us),active)
+            # print("duration=%d,interval_us=%d, window_us=%d, active=" %( duration_ms,interval_us,window_us),active)
             return self.gap_disc(self.addr_mode, duration_ms,int(interval_us/625),int(window_us/625),active)
 
     # """
