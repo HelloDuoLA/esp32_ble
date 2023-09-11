@@ -11,12 +11,16 @@ def ble_irq(event,data):
         print(data)
     elif event == const._IRQ_CENTRAL_DISCONNECT:
         print("_IRQ_CENTRAL_DISCONNECT")
+        print(data)
     elif event == const._IRQ_GATTS_WRITE :
         print("IRQ_GATTS_WRITE")
+        print(data)
     elif event == const._IRQ_GATTS_READ_REQUEST  :
         print("_IRQ_GATTS_READ_REQUEST")
+        print(data)
     elif event == const._IRQ_SCAN_RESULT:
-        print("_IRQ_SCAN_RESULT data : ", data)
+        print("_IRQ_SCAN_RESULT data : ")
+        print(data)
     elif event == const._IRQ_SCAN_DONE:
         print("_IRQ_SCAN_DONE: ")
         print("data: ",data)
@@ -119,17 +123,21 @@ b = a.irq(ble_irq)
 # a.test3()
 # d = a.gap_scan(0, 1280000, 11250, True)
 d = a.gap_scan(1000,320000,active=True)
+# d = a.gap_scan(1000,320000)
+# d = a.gap_scan(1000,320000,active=False)
 # addr = bytes([0x0c,0xae,0xb0,0xb6,0xaf,0xa5])
 # addr = bytes([0x6c,0xf9,0x87,0xd5,0x49,0x24])
 addr = bytes([0xec,0xda,0x3b,0x67,0x7a,0x82])
-a.gap_connect(addr,0)
+# a.gap_connect(addr,0)
 # a.gap_disconnect(1)
+# print(a.config("mac"))
+# print(a.config("addr_mode"))
 # d = a.gap_scan(None)
 # print(d)
 # c = a.gap_advertise(6250)
 # a.last_adv_data = "adv_test"
 # a.last_resp_data = bluetooth._to_string(bytearray('0x20'))
-# c = a.gap_advertise(6250,resp_data=bytes([0x3,0x33,0x11,0x22]))
+# c = a.gap_advertise(6250,"adv_test","rsp_test")
 
 # c = a.gap_advertise(6250)
 # c = a.gap_advertise(6250)

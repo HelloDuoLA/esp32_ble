@@ -423,6 +423,11 @@ int _bluetooth_BLE_gap_disc(PikaObj *self, int addr_mode, int duration_ms, int i
         .window = window,
         .passive = ~active,
     };
+    // if (active == true){
+    //     printf("bool = true \r\n",active);
+    // }else{
+    //     printf("bool = false \r\n",active);
+    // }
     if (duration_ms == 0){
         return ble_gap_disc(own_addr_type, BLE_HS_FOREVER, &disc_params, ble_gap_event_cb, NULL);
     }else{
@@ -557,23 +562,23 @@ int _bluetooth_BLE_set_rsp_data(PikaObj *self, uint8_t* data, int data_len)
 }
 
 
-int _bluetooth_BLE_config_mac_get(PikaObj *self)
+char * _bluetooth_BLE_config_mac_get(PikaObj *self)
 {
+    // nimble_port_freertos_init(ble_host_task);
     printf("_bluetooth_BLE_config_mac_get\r\n");
-    // uint8_t addr[6];
-    // ble_addr_t baddr;
-    
-    // /* 获取设备的MAC地址 */
-    // printf("nimble_port_get_addr result: %d",nimble_port_get_addr(&baddr));
-    
-    // /* 将地址拷贝到 addr 数组中 */
-    // memcpy(addr, baddr.val, sizeof(addr));
-    
-    // /* 打印MAC地址 */
-    // printf("Device MAC Address: %02x:%02x:%02x:%02x:%02x:%02x\n",
-    //        addr[5], addr[4], addr[3], addr[2], addr[1], addr[0]);
-
-    return 0;
+    uint8_t own_addr_type;
+    uint8_t addr_val[6] = {0};
+    int rc = ble_hs_id_infer_auto(0, &own_addr_type);
+    if (rc != 0) {
+        printf("error determining address type; rc=%d\n", rc);
+        return obj_cacheStr(self,"");
+    }
+    rc = ble_hs_id_copy_addr(own_addr_type, addr_val, NULL);
+    // print_addr(addr_val);
+    char mac[18];
+    sprintf(&mac, "%02x:%02x:%02x:%02x:%02x:%02x",addr_val[5], addr_val[4], addr_val[3], addr_val[2], addr_val[1], addr_val[0]);
+    // nimble_port_stop();
+    return obj_cacheStr(self,mac);
 }
 
 
@@ -584,9 +589,14 @@ char* _bluetooth_BLE_config_gap_name_get(PikaObj *self){
     return obj_cacheStr(self, name);
 }
 
+
 int _bluetooth_BLE_config_addr_mode_get(PikaObj *self){
     printf("_bluetooth_BLE_config_addr_mode_get\r\n");
-    return 0;
+    // nimble_port_freertos_init(ble_host_task);
+    uint8_t own_addr_type;
+    int rc = ble_hs_id_infer_auto(0, &own_addr_type);
+    // nimble_port_stop();
+    return own_addr_type;
 }
 
 int _bluetooth_BLE_config_mtu_get(PikaObj *self){
@@ -1082,7 +1092,7 @@ static int ble_gap_event_cb(struct ble_gap_event *event, void *arg)
         }else if(event->disconnect.conn.role == BLE_GAP_ROLE_MASTER){
             pika_eventListener_send(g_pika_ble_listener,_IRQ_CENTRAL_DISCONNECT ,
                                 arg_newObj(New_pikaTupleFrom(
-                                        arg_newInt(_IRQ_CENTRAL_DISCONNECT ),
+                                        arg_newInt(_IRQ_CENTRAL_DISCONNECT),
                                         arg_newInt(event->disconnect.conn.conn_handle),
                                         arg_newInt(desc.peer_id_addr.type),
                                         arg_newBytes(addr,6)

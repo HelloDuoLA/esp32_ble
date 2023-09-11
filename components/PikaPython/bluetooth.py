@@ -27,7 +27,6 @@ class BLE(_bluetooth.BLE):
     last_resp_data = ""  #回应扫描内容
     addr_mode      =  0  #地址类型 BLE_OWN_ADDR_PUBLIC,BLE_OWN_ADDR_RANDOM,BLE_OWN_ADDR_RPA_PUBLIC_DEFAULT,BLE_OWN_ADDR_RPA_RANDOM_DEFAULT
     conn_handle    = ""  #连接句柄
-
     callback_func  = None  #回调函数
 
     def __init__(self):
@@ -72,15 +71,14 @@ class BLE(_bluetooth.BLE):
             return self.pyi_active(False)
 
     def config(self, *param_name, **kv): # a.config(mac="1123",gap_name="test")
-    # 获取参数属性   a.config("gap_name")
+    # 获取参数属性   a.config("mac")
         first_param = param_name[0]
         if first_param == "mac":
-            return(super().config_addr_mode_get(),super().config_mac_get())
+            return (self.config_addr_mode_get(),self.config_mac_get())
         elif first_param == "addr_mode":
-            return(super().config_addr_mode_get())
+            return self.config_addr_mode_get()
         elif first_param == "gap_name":
-            gap_name = self.config_gap_name_get()
-            return gap_name
+            return self.config_gap_name_get()
         elif first_param == "rxbuf" :
             super().config_addr_rxbuf_get()
         elif first_param == "mtu" :
@@ -126,8 +124,8 @@ class BLE(_bluetooth.BLE):
 
         if ("le_secire" in kv):
             return self.config_le_secire_update(kv["le_secire"])
-    
     # a.config("mac"="test","gap_name"="test2")
+
     # 回调事件处理函数
     def irq(self,func):
         # self.setCallback(func)
@@ -162,7 +160,7 @@ class BLE(_bluetooth.BLE):
 
             return self.advertise(self.addr_mode,int(interval_us/625),connectable,self.last_adv_data,len(self.last_adv_data),self.last_resp_data,len(self.last_resp_data))
 
-    # #TODO:active的作用是什么意思
+    # active的作用是接受扫描响应数据
     # """
     # 使用interval_us和window_us可选择配置占空比。扫描器将每interval_us微秒运行window_us 微秒，
     # 总共持续duration_ms毫秒。默认间隔和窗口分别为 1.28 秒和 11.25 毫秒（后台扫描）。
@@ -172,6 +170,7 @@ class BLE(_bluetooth.BLE):
             return self.gap_stop_disc()
         else:
             # print("duration=%d,interval_us=%d, window_us=%d, active=" %( duration_ms,interval_us,window_us),active)
+            print("active=",active)
             return self.gap_disc(self.addr_mode, duration_ms,int(interval_us/625),int(window_us/625),active)
 
     # """
