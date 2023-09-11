@@ -92,6 +92,7 @@ static const ble_uuid128_t gatt_svr_svc_uuid =
 /* A characteristic that can be subscribed to */
 static uint8_t gatt_svr_chr_val;
 static uint16_t gatt_svr_chr_val_handle;
+
 static const ble_uuid128_t gatt_svr_chr_uuid =
     BLE_UUID128_INIT(0x00, 0x00, 0x00, 0x00, 0x11, 0x11, 0x11, 0x11,
                      0x22, 0x22, 0x22, 0x22, 0x33, 0x33, 0x33, 0x33);
@@ -223,8 +224,16 @@ void addr_inver(const void *addr,uint8_t *addr_inver)
     {
         addr_inver[i] =  u8p[5-i];
     }
-
     // sprintf((char*)addr_inver,"%d%d%d%d%d%d",u8p[5],u8p[4],u8p[3],u8p[2],u8p[1],u8p[0]);
+}
+
+void data_inver(const void *addr,uint8_t *addr_inver,uint8_t size)
+{
+    const uint8_t *u8p;
+    u8p = addr;
+    for ( int i = 0; i < size; i++){
+        addr_inver[i] =  u8p[size-i];
+    }
 }
 
 void print_addr(const void *addr)
@@ -515,12 +524,14 @@ int _bluetooth_BLE_gatts_register_svcs(PikaObj *self, PikaObj* services_info)
     // 注册服务
     int rc = ble_gatts_count_cfg(gatt_svr_svcs);
     if (rc != 0) {
-        return rc;
+        // return rc;
+        return -1;
     }
 
     rc = ble_gatts_add_svcs(gatt_svr_svcs);
     if (rc != 0) {
-        return rc;
+        // return rc;
+        return -1;
     }
 
     // 释放内存空间的时候需要遍历结构体
@@ -535,7 +546,8 @@ int _bluetooth_BLE_gatts_register_svcs(PikaObj *self, PikaObj* services_info)
     // }
     // free(gatt_svr_svcs);
     // nimble_port_freertos_init(ble_host_task);
-    return 0;
+    // TODO:如何区分返回的错误代码和正确的handle呢
+    return gatt_svr_chr_val_handle;
 }
 
 // 设置广播数据
@@ -739,11 +751,14 @@ int _bluetooth_BLE_pyi_test2(PikaObj *self,char *data ,int data_len)
     return 0;
 }
 
-int _bluetooth_BLE_pyi_test3(PikaObj *self)
+int _bluetooth_BLE_pyi_test3(PikaObj *self, int connhandle, int valuehandle)
 {
     printf("_bluetooth_BLE_pyi_test3\r\n");
-    ble_svc_gap_device_name_set("nimble-test");
-    return 0;
+    // ble_svc_gap_device_name_set("nimble-test");
+    char data[] = "test write data";
+    uint16_t data_len = strlen(data);
+    printf("datalen = %d\r\n",data_len);
+    return ble_gattc_write_no_rsp_flat(connhandle, valuehandle, data,data_len);
 }
 
 int _bluetooth_BLE_test_call_some_name(PikaObj *self)
@@ -774,7 +789,7 @@ int _bluetooth_BLE_gattc_dis_dscs(PikaObj *self, int conn_handle, int start_hand
 //查找全部服务
 //TODO:待验证
 int _bluetooth_BLE_gattc_dis_svcs(PikaObj *self, int conn_handle){
-    return ble_gattc_disc_all_svcs(conn_handle, ble_gattc_disc_all_svcs, NULL);
+    return ble_gattc_disc_all_svcs(conn_handle, ble_gatt_disc_all_svcs_cb, NULL);
 }
 
 //通过UUID查找服务
@@ -1413,15 +1428,61 @@ static int ble_gatt_disc_all_svcs_cb(uint16_t conn_handle,
                                  const struct ble_gatt_error *error,
                                  const struct ble_gatt_svc *service,
                                  void *arg){
-    // printf();
-    // pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTS_INDICATE_DONE,
-    //     arg_newObj(New_pikaTupleFrom(
-    //             arg_newInt(_IRQ_GATTS_INDICATE_DONE),
-    //             arg_newInt(event->notify_tx.conn_handle),
-    //             arg_newInt(event->notify_tx.attr_handle),
-    //             arg_newStr(event->notify_tx.status)
-    //             )));
-    return 0; 
+    printf("ble_gatt_disc_all_svcs_cb\r\n");
+    printf("error: %d att_handle: %d\r\n", error->status,error->att_handle);
+    if(error->status == 0)
+    {
+        printf("starthandle: %d endhandle: %d\r\n", service->start_handle,service->end_handle);
+        if(service->uuid.u.type == 16) // = 16 
+        {
+            pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_SERVICE_RESULT,
+                arg_newObj(New_pikaTupleFrom(
+                    arg_newInt(_IRQ_GATTC_SERVICE_RESULT),
+                    arg_newInt(conn_handle),
+                    arg_newInt(service->start_handle),
+                    arg_newInt(service->end_handle),
+                    arg_newInt(service->uuid.u16.value),
+                    arg_newInt(service->uuid.u.type)
+                    )));
+        }else if(service->uuid.u.type == 32){ // 32
+            pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_SERVICE_RESULT,
+                arg_newObj(New_pikaTupleFrom(
+                    arg_newInt(_IRQ_GATTC_SERVICE_RESULT),
+                    arg_newInt(conn_handle),
+                    arg_newInt(service->start_handle),
+                    arg_newInt(service->end_handle),
+                    arg_newInt(service->uuid.u32.value),
+                    arg_newInt(service->uuid.u.type)
+                    )));
+        }else{ // 128 TODO:待验证
+            uint8_t uuid[16];
+            data_inver(service->uuid.u128.value,uuid,16);
+            pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_SERVICE_RESULT,
+                arg_newObj(New_pikaTupleFrom(
+                    arg_newInt(_IRQ_GATTC_SERVICE_RESULT),
+                    arg_newInt(conn_handle),
+                    arg_newInt(service->start_handle),
+                    arg_newInt(service->end_handle),
+                    arg_newBytes(uuid,16)
+                    )));}
+        return 0;
+    }else if(error->status == 14){
+        pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_SERVICE_DONE,
+        arg_newObj(New_pikaTupleFrom(
+                arg_newInt(_IRQ_GATTC_SERVICE_DONE),
+                arg_newInt(conn_handle),
+                arg_newInt(0)
+                )));
+        return 0;
+    }else{
+        pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_SERVICE_DONE,
+        arg_newObj(New_pikaTupleFrom(
+                arg_newInt(_IRQ_GATTC_SERVICE_DONE),
+                arg_newInt(conn_handle),
+                arg_newInt(error->status)
+                )));
+        return 0;
+    }
 }
 
 // GATT 查找所有服务回调函数

@@ -55,8 +55,8 @@ class BLE(_bluetooth.BLE):
         self.pyi_test2(data,len(data))
 
 
-    def test3(self):
-        self.pyi_test3()
+    def test3(self,connhandle,valuehandle):
+        return self.pyi_test3(connhandle,valuehandle)
     
     def test_call_some_name(self):
         super().test_call_some_name()  
@@ -232,29 +232,29 @@ class BLE(_bluetooth.BLE):
         # 暂不清楚对照哪个函数
         pass
 
-    def gattc_discover_services(self,conn_handle, uuid:UUID=None, /):
+    def gattc_discover_services(self,conn_handle, uuid:UUID=None):
         if uuid == None:
-            self.gattc_dis_svcs(conn_handle)
+            return self.gattc_dis_svcs(conn_handle)
         else :
-            self.gattc_dis_svcs_by_uuid(conn_handle,uuid.value)
+            return self.gattc_dis_svcs_by_uuid(conn_handle,uuid.value)
 
-    def gattc_discover_characteristics(self,conn_handle, start_handle, end_handle, uuid:UUID=None, /):
+    def gattc_discover_characteristics(self,conn_handle, start_handle, end_handle, uuid:UUID=None):
         if uuid == None:
-            self.gattc_dis_chrs(conn_handle,start_handle, end_handle)
+            return self.gattc_dis_chrs(conn_handle,start_handle, end_handle)
         else :
-            self.gattc_dis_chrs_by_uuid(conn_handle, start_handle, end_handle,uuid.value)
+            return self.gattc_dis_chrs_by_uuid(conn_handle, start_handle, end_handle,uuid.value)
 
-    def gattc_discover_descriptors(self,conn_handle, start_handle, end_handle, /):
-        self.gattc_dis_dscs(conn_handle,start_handle, end_handle)
+    def gattc_discover_descriptors(self,conn_handle, start_handle, end_handle):
+        return self.gattc_dis_dscs(conn_handle,start_handle, end_handle)
 
     def gattc_read(self,conn_handle, value_handle):
-        self.pyi_gattc_read(conn_handle, value_handle)
+        return self.pyi_gattc_read(conn_handle, value_handle)
 
-    def gattc_write(self,conn_handle, value_handle, data, mode=0, /):
+    def gattc_write(self,conn_handle, value_handle, data, mode = 0):
         if mode == 0:
-            self.gattc_write_with_no_rsp(conn_handle, value_handle, data)
+            return self.gattc_write_with_no_rsp(conn_handle, value_handle, data)
         elif mode == 1:
-            self.gattc_write_with_rsp(conn_handle, value_handle, data)
+            return self.gattc_write_with_rsp(conn_handle, value_handle, data)
 
     def gattc_exchange_mtu(self,conn_handle):
         self.pyi_gattc_exchange_mtu(conn_handle)

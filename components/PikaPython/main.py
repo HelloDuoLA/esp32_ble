@@ -109,6 +109,7 @@ a = bluetooth.BLE()
 b = a.active(1)
 b = a.irq(ble_irq)
 
+# 注册服务，服务端
 # HR_UUID = bluetooth.UUID("0x180D")
 # HR_CHAR = (bluetooth.UUID("0x2A37"), bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY,(("DSCSUUID1",bluetooth.FLAG_READ),("DSCSUUID2",bluetooth.FLAG_READ)))
 # HR_SERVICE = (HR_UUID, (HR_CHAR,),)
@@ -118,31 +119,34 @@ b = a.irq(ble_irq)
 # UART_SERVICE = (UART_UUID, (UART_TX, UART_RX))
 # SERVICES = (HR_SERVICE, UART_SERVICE,)
 # c = a.gatts_register_services(SERVICES)
-# print("gatts_register_services errer code is",c)
-# a.test_call_some_name()
-# a.test3()
+# print("chrs handle is",c)
+# # c = a.gap_advertise(6250)
+# a.last_adv_data = "adv_test"
+# a.last_resp_data = bluetooth._to_string(bytearray('0x20'))
+# c = a.gap_advertise(6250,"adv_test","rsp_test")
+
+# 扫描服务，客户端
 # d = a.gap_scan(0, 1280000, 11250, True)
 d = a.gap_scan(1000,320000,active=True)
 # d = a.gap_scan(1000,320000)
 # d = a.gap_scan(1000,320000,active=False)
 # addr = bytes([0x0c,0xae,0xb0,0xb6,0xaf,0xa5])
 # addr = bytes([0x6c,0xf9,0x87,0xd5,0x49,0x24])
-addr = bytes([0xec,0xda,0x3b,0x67,0x7a,0x82])
+# addr = bytes([0x34,0x85,0x18,0x92,0x0d,0xb6]) # old esp32
+addr = bytes([0xec,0xda,0x3b,0x67,0x7a,0x82])  # new eps32 s3
 # a.gap_connect(addr,0)
+
+# a.test3(1,0)
+# a.gattc_discover_services(1)
+
 # a.gap_disconnect(1)
+
 # print(a.config("mac"))
 # print(a.config("addr_mode"))
-# d = a.gap_scan(None)
-# print(d)
-# c = a.gap_advertise(6250)
-# a.last_adv_data = "adv_test"
-# a.last_resp_data = bluetooth._to_string(bytearray('0x20'))
-# c = a.gap_advertise(6250,"adv_test","rsp_test")
+
 
 # c = a.gap_advertise(6250)
 # c = a.gap_advertise(6250)
-# b'\x03\x21\x0b\x16'
-# 48 51 92 120
 # a.set_rsp_data(bytes([0x3,0x33,0x11,0x22]) ,4)
 # print(bytes([3,33,11,22]))
 # a.set_rsp_data("03331122" ,4)
@@ -186,6 +190,9 @@ addr = bytes([0xec,0xda,0x3b,0x67,0x7a,0x82])
  
 # for everyOne in girl_tuple:
 #     print(everyOne)
+
+# 待测试函数
+# a.test_call_some_name()
 
 """
 问题汇总
