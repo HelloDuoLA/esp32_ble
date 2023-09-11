@@ -403,11 +403,12 @@ int _bluetooth_BLE_pyi_gap_connect(PikaObj *self, uint8_t* peer_addr, int peer_a
     // return 0;
 }
 
-int _bluetooth_BLE_pyi_gap_disconnect(PikaObj *self)
+int _bluetooth_BLE_pyi_gap_disconnect(PikaObj *self, int conn_handle)
 {
     printf("_bluetooth_BLE_gap_disconnect\r\n");
     // TODO:不太确定是否对应该函数 
-    return ble_gap_conn_cancel();
+    // return ble_gap_conn_cancel();
+    return ble_gap_terminate(conn_handle, BLE_ERR_REM_USER_CONN_TERM);
 }
 
 int _bluetooth_BLE_gap_disc(PikaObj *self, int addr_mode, int duration_ms, int interval, int window, pika_bool active)
@@ -1038,47 +1039,55 @@ static int ble_gap_event_cb(struct ble_gap_event *event, void *arg)
             assert(rc == 0);
             print_conn_desc(&desc);
             addr_inver(desc.peer_ota_addr.val,&addr);
-            // char * test2 = "test2";
-            // char * test3 = (char*)malloc(6);
-            // test3[0] = 't';  
-            // test3[1] = 'e';  
-            // test3[2] = 's';  
-            // test3[3] = 't';  
-            // test3[4] = '3';  
-            // test3[5] = '\0';  
-            pika_eventListener_send(g_pika_ble_listener,_IRQ_CENTRAL_CONNECT,
-                        arg_newObj(New_pikaTupleFrom(
-                                arg_newInt(_IRQ_CENTRAL_CONNECT),
-                                arg_newInt(event->connect.conn_handle),
-                                arg_newInt(desc.peer_id_addr.type),
-                                // arg_newStr("test"), //TODO:修改为arg_newBytes(desc.peer_ota_addr.val,6)
-                                // arg_newStr(test2), 
-                                // arg_newStr(test3), 
-                                arg_newBytes(addr,6)
-                                )));
-            // free(test3);
-        }
 
-        if (event->connect.status != 0) {
+            if(desc.role == BLE_GAP_ROLE_SLAVE){
+                pika_eventListener_send(g_pika_ble_listener,_IRQ_PERIPHERAL_CONNECT ,
+                            arg_newObj(New_pikaTupleFrom(
+                                    arg_newInt(_IRQ_PERIPHERAL_CONNECT),
+                                    arg_newInt(event->connect.conn_handle),
+                                    arg_newInt(desc.peer_id_addr.type),
+                                    arg_newBytes(addr,6)
+                                    )));
+            } else if (desc.role == BLE_GAP_ROLE_MASTER){
+                pika_eventListener_send(g_pika_ble_listener,_IRQ_CENTRAL_CONNECT ,
+                     arg_newObj(New_pikaTupleFrom(
+                    arg_newInt(_IRQ_CENTRAL_CONNECT),
+                    arg_newInt(event->connect.conn_handle),
+                    arg_newInt(desc.peer_id_addr.type),
+                    arg_newBytes(addr,6)
+                    )));
+            }
+            
+        }else if (event->connect.status != 0) {
             /* Connection failed; resume advertising. */
             // bleprph_advertise();
-            // TODO: 重新广播
+            // TODO: 重新广播，或通知客户端
             printf("Connection failed; resume advertising.");
         }
         return 0;
 
     case BLE_GAP_EVENT_DISCONNECT: //断开连接
         printf("disconnect; reason=%d \r\n", event->disconnect.reason);
-        print_conn_desc(&event->disconnect.conn);
+        // print_conn_desc(&event->disconnect.conn);
 
         addr_inver(event->disconnect.conn.peer_ota_addr.val,&addr);
-        pika_eventListener_send(g_pika_ble_listener,_IRQ_CENTRAL_DISCONNECT,
-                            arg_newObj(New_pikaTupleFrom(
-                                    arg_newInt(_IRQ_CENTRAL_DISCONNECT),
-                                    arg_newInt(event->disconnect.conn.conn_handle),
-                                    arg_newInt(desc.peer_id_addr.type),
-                                    arg_newBytes(addr,6)
-                                    )));
+        if(event->disconnect.conn.role == BLE_GAP_ROLE_SLAVE){
+            pika_eventListener_send(g_pika_ble_listener,_IRQ_PERIPHERAL_DISCONNECT,
+                    arg_newObj(New_pikaTupleFrom(
+                            arg_newInt(_IRQ_PERIPHERAL_DISCONNECT),
+                            arg_newInt(event->disconnect.conn.conn_handle),
+                            arg_newInt(desc.peer_id_addr.type),
+                            arg_newBytes(addr,6)
+                            )));
+        }else if(event->disconnect.conn.role == BLE_GAP_ROLE_MASTER){
+            pika_eventListener_send(g_pika_ble_listener,_IRQ_CENTRAL_DISCONNECT ,
+                                arg_newObj(New_pikaTupleFrom(
+                                        arg_newInt(_IRQ_CENTRAL_DISCONNECT ),
+                                        arg_newInt(event->disconnect.conn.conn_handle),
+                                        arg_newInt(desc.peer_id_addr.type),
+                                        arg_newBytes(addr,6)
+                                        )));
+        }
         return 0;
 
     case BLE_GAP_EVENT_CONN_UPDATE: //返回结果
@@ -1091,6 +1100,7 @@ static int ble_gap_event_cb(struct ble_gap_event *event, void *arg)
 
     case BLE_GAP_EVENT_CONN_UPDATE_REQ :
         // MicroPython : conn_handle, conn_interval, conn_latency, supervision_timeout, status 
+        printf("BLE_GAP_EVENT_CONN_UPDATE_REQ\r\n");
         pika_eventListener_send(g_pika_ble_listener,_IRQ_CONNECTION_UPDATE,
                     arg_newObj(New_pikaTupleFrom(
                             arg_newInt(_IRQ_CONNECTION_UPDATE),
@@ -1103,13 +1113,15 @@ static int ble_gap_event_cb(struct ble_gap_event *event, void *arg)
          return 0;
 
     case BLE_GAP_EVENT_L2CAP_UPDATE_REQ :
+        printf("BLE_GAP_EVENT_L2CAP_UPDATE_REQ\r\n");
         return 0;
 
     case BLE_GAP_EVENT_TERM_FAILURE:
-        
+        printf("BLE_GAP_EVENT_TERM_FAILURE; conn_handle=%d reason=%d\r\n",event->term_failure.conn_handle,event->term_failure.status);
         return 0;
     
     case BLE_GAP_EVENT_DISC: //扫描发现
+    // printf("BLE_GAP_EVENT_DISC\r\n");
     // MicroPython addr_type, addr, adv_type, rssi, adv_data
         struct ble_gap_conn_desc desc;
         struct ble_hs_adv_fields fields;
@@ -1315,13 +1327,14 @@ static int ble_gap_event_cb(struct ble_gap_event *event, void *arg)
         return 0;
 
     case BLE_GAP_EVENT_MTU:
-        MODLOG_DFLT(INFO, "mtu update event; conn_handle=%d cid=%d mtu=%d\n",
+        printf("mtu update event; conn_handle=%d cid=%d mtu=%d\r\n",
                     event->mtu.conn_handle,
                     event->mtu.channel_id,
                     event->mtu.value);
         return 0;
 
     case BLE_GAP_EVENT_IDENTITY_RESOLVED:
+            printf("BLE_GAP_EVENT_IDENTITY_RESOLVED\r\n");
         return 0;
 
     case BLE_GAP_EVENT_REPEAT_PAIRING:
@@ -1329,6 +1342,8 @@ static int ble_gap_event_cb(struct ble_gap_event *event, void *arg)
          * establish a new secure link.  This app sacrifices security for
          * convenience: just throw away the old bond and accept the new link.
          */
+        printf("BLE_GAP_EVENT_REPEAT_PAIRING\r\n");
+
 
         /* Delete the old bond. */
         rc = ble_gap_conn_find(event->repeat_pairing.conn_handle, &desc);
@@ -1341,33 +1356,43 @@ static int ble_gap_event_cb(struct ble_gap_event *event, void *arg)
         return BLE_GAP_REPEAT_PAIRING_RETRY;
 
         case BLE_GAP_EVENT_PHY_UPDATE_COMPLETE:
+            printf("BLE_GAP_EVENT_PHY_UPDATE_COMPLETE\r\n");
             return 0;
 
         case BLE_GAP_EVENT_EXT_DISC:
+            printf("BLE_GAP_EVENT_EXT_DISC\r\n");
             return 0;
 
         case BLE_GAP_EVENT_PERIODIC_SYNC:
+            printf("BLE_GAP_EVENT_PERIODIC_SYNC\r\n");
             return 0;
 
         case BLE_GAP_EVENT_PERIODIC_REPORT:
+            printf("BLE_GAP_EVENT_PERIODIC_REPORT\r\n");
             return 0;
 
         case BLE_GAP_EVENT_PERIODIC_SYNC_LOST:
+            printf("BLE_GAP_EVENT_PERIODIC_SYNC_LOST\r\n");
             return 0;
 
         case BLE_GAP_EVENT_SCAN_REQ_RCVD:
+            printf("BLE_GAP_EVENT_SCAN_REQ_RCVD\r\n");
             return 0;
 
         case BLE_GAP_EVENT_PERIODIC_TRANSFER:
+            printf("BLE_GAP_EVENT_PERIODIC_TRANSFER\r\n");
             return 0;
 
         case BLE_GAP_EVENT_PATHLOSS_THRESHOLD:
+            printf("BLE_GAP_EVENT_PATHLOSS_THRESHOLD\r\n");
             return 0;
 
         case BLE_GAP_EVENT_TRANSMIT_POWER:
+            printf("BLE_GAP_EVENT_TRANSMIT_POWER\r\n");
             return 0;
 
         case BLE_GAP_EVENT_SUBRATE_CHANGE:// 这个是啥事件？
+            printf("BLE_GAP_EVENT_SUBRATE_CHANGE\r\n");
             return 0;
     }
     return 0;
@@ -1378,14 +1403,14 @@ static int ble_gatt_disc_all_svcs_cb(uint16_t conn_handle,
                                  const struct ble_gatt_error *error,
                                  const struct ble_gatt_svc *service,
                                  void *arg){
-
-// pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTS_INDICATE_DONE,
-//     arg_newObj(New_pikaTupleFrom(
-//             arg_newInt(_IRQ_GATTS_INDICATE_DONE),
-//             arg_newInt(event->notify_tx.conn_handle),
-//             arg_newInt(event->notify_tx.attr_handle),
-//             arg_newStr(event->notify_tx.status)
-//             )));
+    // printf();
+    // pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTS_INDICATE_DONE,
+    //     arg_newObj(New_pikaTupleFrom(
+    //             arg_newInt(_IRQ_GATTS_INDICATE_DONE),
+    //             arg_newInt(event->notify_tx.conn_handle),
+    //             arg_newInt(event->notify_tx.attr_handle),
+    //             arg_newStr(event->notify_tx.status)
+    //             )));
     return 0; 
 }
 

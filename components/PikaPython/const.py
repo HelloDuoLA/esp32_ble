@@ -1,5 +1,7 @@
 _IRQ_CENTRAL_CONNECT               = 1
 _IRQ_CENTRAL_DISCONNECT            = 2
+# _IRQ_CONNECT                       = 1
+# _IRQ_DISCONNECT                    = 2
 _IRQ_GATTS_WRITE                   = 3
 _IRQ_GATTS_READ_REQUEST            = 4
 _IRQ_SCAN_RESULT                   = 5

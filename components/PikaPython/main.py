@@ -4,6 +4,95 @@ import bluetooth
 import _bluetooth
 import const
 mem = PikaStdLib.MemChecker()
+
+def ble_irq(event,data):
+    if event == const._IRQ_CENTRAL_CONNECT:
+        print("_IRQ_CENTRAL_CONNECT")
+        print(data)
+    elif event == const._IRQ_CENTRAL_DISCONNECT:
+        print("_IRQ_CENTRAL_DISCONNECT")
+    elif event == const._IRQ_GATTS_WRITE :
+        print("IRQ_GATTS_WRITE")
+    elif event == const._IRQ_GATTS_READ_REQUEST  :
+        print("_IRQ_GATTS_READ_REQUEST")
+    elif event == const._IRQ_SCAN_RESULT:
+        print("_IRQ_SCAN_RESULT data : ", data)
+    elif event == const._IRQ_SCAN_DONE:
+        print("_IRQ_SCAN_DONE: ")
+        print("data: ",data)
+    elif event == const._IRQ_PERIPHERAL_CONNECT:
+        print("_IRQ_PERIPHERAL_CONNECT")
+        print("data: ",data)
+    elif event == const._IRQ_PERIPHERAL_DISCONNECT:
+        print("_IRQ_PERIPHERAL_DISCONNECT: ")
+        print("data: ",data)
+    elif event == const._IRQ_GATTC_SERVICE_RESULT :
+        print("_IRQ_GATTC_SERVICE_RESULT")
+        print(data)
+    elif event == const._IRQ_GATTC_SERVICE_DONE:
+        print("_IRQ_GATTC_SERVICE_DONE")
+        print(data)
+    elif event == const._IRQ_GATTC_CHARACTERISTIC_RESULT:   
+        print("_IRQ_GATTC_CHARACTERISTIC_RESULT")
+        print(data)
+    elif event == const._IRQ_GATTC_CHARACTERISTIC_DONE:    
+        print("_IRQ_GATTC_CHARACTERISTIC_DONE")
+        print(data)
+    elif event == const._IRQ_GATTC_DESCRIPTOR_RESULT:           
+        print("_IRQ_GATTC_DESCRIPTOR_RESULT")
+        print(data)
+    elif event == const._IRQ_GATTC_DESCRIPTOR_DONE  :          
+        print("_IRQ_GATTC_DESCRIPTOR_DONE")
+        print(data)
+    elif event == const._IRQ_GATTC_READ_RESULT      :        
+        print("_IRQ_GATTC_READ_RESULT")
+        print(data)
+    elif event == const._IRQ_GATTC_READ_DONE        :        
+        print("_IRQ_GATTC_READ_DONE")
+        print(data)
+    elif event == const._IRQ_GATTC_WRITE_DONE       :       
+        print("_IRQ_GATTC_WRITE_DONE ")
+        print(data)
+    elif event == const._IRQ_GATTC_NOTIFY           :      
+        print("_IRQ_GATTC_NOTIFY ")
+        print(data)
+    elif event == const._IRQ_GATTC_INDICATE         :          
+        print("_IRQ_GATTC_INDICATE ")
+        print(data)
+    elif event == const._IRQ_GATTS_INDICATE_DONE    :          
+        print("_IRQ_GATTS_INDICATE_DONE")
+        print(data) 
+    elif event == const._IRQ_MTU_EXCHANGED          :           
+        print("_IRQ_MTU_EXCHANGED ")
+        print(data)
+    elif event == const._IRQ_L2CAP_ACCEPT           :           
+        print("_IRQ_L2CAP_ACCEPT")
+        print(data) 
+    elif event == const._IRQ_L2CAP_CONNECT          :           
+        print("_IRQ_L2CAP_CONNECT ")
+        print(data)
+    elif event == const._IRQ_L2CAP_DISCONNECT       :           
+        print("_IRQ_L2CAP_DISCONNECT ")
+        print(data)
+    elif event == const._IRQ_L2CAP_RECV             :           
+        print("_IRQ_L2CAP_RECV   ")
+        print(data)
+    elif event == const._IRQ_L2CAP_SEND_READY       :           
+        print("_IRQ_L2CAP_SEND_READY ")
+        print(data)
+    elif event == const._IRQ_CONNECTION_UPDATE      :          
+        print("_IRQ_CONNECTION_UPDATE")
+        print(data)
+    elif event == const._IRQ_ENCRYPTION_UPDATE      :           
+        print("_IRQ_ENCRYPTION_UPDATE")
+        print(data)
+    elif event == const._IRQ_GET_SECRET             :           
+        print("_IRQ_GET_SECRET")
+        print(data)
+    elif event == const._IRQ_SET_SECRET             :           
+        print("_IRQ_SET_SECRET")
+        print(data)
+
 print('mem used max:')
 mem.max()
 print('mem used now:')
@@ -14,23 +103,6 @@ print('hello PikaPython')
 
 a = bluetooth.BLE()
 b = a.active(1)
-
-
-
-def ble_irq(event,data):
-    if event == const._IRQ_CENTRAL_CONNECT:
-        # A central has connected to this peripheral.
-        print("\r\n\r\n_IRQ_CENTRAL_CONNECT\r\n\r\n")
-        print(data)
-    elif event == const._IRQ_GATTC_SERVICE_DONE:
-        print("_IRQ_GATTC_SERVICE_DONE")
-        print(data)
-    elif event == const._IRQ_SCAN_RESULT:
-        print("_IRQ_SCAN_RESULT data : ", data)
-    elif event == const._IRQ_SCAN_DONE:
-        print("_IRQ_SCAN_DONE: ")
-        print("reason: ",data)
-
 b = a.irq(ble_irq)
 
 # HR_UUID = bluetooth.UUID("0x180D")

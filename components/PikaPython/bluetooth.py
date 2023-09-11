@@ -192,7 +192,7 @@ class BLE(_bluetooth.BLE):
         return self.pyi_gap_connect(peer_addr,peer_addr_type ,scan_duration_ms)
 
     def gap_disconnect(self, conn_handle):
-        return self.pyi_gap_disconnect()
+        return self.pyi_gap_disconnect(conn_handle)
 
     def gatts_register_services(self, services):
         convert_services = _convert_ble_service_info(services)
