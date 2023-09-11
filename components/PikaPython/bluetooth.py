@@ -236,11 +236,17 @@ class BLE(_bluetooth.BLE):
         if uuid == None:
             return self.gattc_dis_svcs(conn_handle)
         else :
-            return self.gattc_dis_svcs_by_uuid(conn_handle,uuid.value)
+            value = uuid.value
+            if isinstance(value,int) and value > 0:
+                return self.gattc_dis_svcs_by_uuid(conn_handle,value)
+            elif isinstance(value,str): # UUID Bit == 128
+                pass
+            else:
+                return -1
 
     def gattc_discover_characteristics(self,conn_handle, start_handle, end_handle, uuid:UUID=None):
         if uuid == None:
-            return self.gattc_dis_chrs(conn_handle,start_handle, end_handle)
+            return self.gattc_dis_chrs(conn_handle,start_handle,end_handle)
         else :
             return self.gattc_dis_chrs_by_uuid(conn_handle, start_handle, end_handle,uuid.value)
 

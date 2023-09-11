@@ -72,8 +72,7 @@ static int ble_gatt_disc_chrs_by_uuid_cb(uint16_t conn_handle,
 static int ble_gatt_disc_all_dscs_cb(uint16_t conn_handle,
                             const struct ble_gatt_error *error,
                             uint16_t chr_val_handle,
-                            const struct ble_gatt_dsc *dsc,
-                            void *arg);
+                            const struct ble_gatt_dsc *dsc, void *arg);
 
 // GAP层回调函数
 static int ble_gap_event_cb(struct ble_gap_event *event, void *arg);
@@ -232,7 +231,7 @@ void data_inver(const void *addr,uint8_t *addr_inver,uint8_t size)
     const uint8_t *u8p;
     u8p = addr;
     for ( int i = 0; i < size; i++){
-        addr_inver[i] =  u8p[size-i];
+        addr_inver[i] =  u8p[size - i - 1];
     }
 }
 
@@ -767,8 +766,19 @@ int _bluetooth_BLE_test_call_some_name(PikaObj *self)
     return 0;
 }
 
+//查找全部服务
+int _bluetooth_BLE_gattc_dis_svcs(PikaObj *self, int conn_handle){
+    return ble_gattc_disc_all_svcs(conn_handle, ble_gatt_disc_all_svcs_cb, NULL);
+}
+
+//通过UUID查找服务
+//TODO:传入UUID的方法未找到，目前好像只是类型
+int _bluetooth_BLE_gattc_dis_svcs_by_uuid(PikaObj *self, int conn_handle, char* uuid){
+    ble_uuid_t * svcs_uuid = BLE_UUID_TYPE_16;
+    return ble_gattc_disc_svc_by_uuid(conn_handle,svcs_uuid,ble_gatt_disc_svcs_by_uuid_cb, NULL);
+}
+
 //通过UUID查找全部属性
-//TODO:待验证
 int _bluetooth_BLE_gattc_dis_chrs(PikaObj *self, int conn_handle, int start_handle, int end_handle){
     return ble_gattc_disc_all_chrs(conn_handle,start_handle,end_handle,ble_gatt_disc_all_chrs_cb,NULL);;
 }
@@ -781,22 +791,8 @@ int _bluetooth_BLE_gattc_dis_chrs_by_uuid(PikaObj *self, int conn_handle, int st
 }
 
 //查找全部描述符
-//TODO:待验证
 int _bluetooth_BLE_gattc_dis_dscs(PikaObj *self, int conn_handle, int start_handle, int end_handle){
-    return ble_gattc_disc_all_dscs(conn_handle,start_handle,end_handle,ble_gattc_disc_all_dscs,NULL);
-}
-
-//查找全部服务
-//TODO:待验证
-int _bluetooth_BLE_gattc_dis_svcs(PikaObj *self, int conn_handle){
-    return ble_gattc_disc_all_svcs(conn_handle, ble_gatt_disc_all_svcs_cb, NULL);
-}
-
-//通过UUID查找服务
-//TODO:传入UUID的方法未找到，目前好像只是类型
-int _bluetooth_BLE_gattc_dis_svcs_by_uuid(PikaObj *self, int conn_handle, char* uuid){
-    ble_uuid_t * svcs_uuid = BLE_UUID_TYPE_16;
-    return ble_gattc_disc_svc_by_uuid(conn_handle, svcs_uuid,ble_gattc_disc_svc_by_uuid, NULL);
+    return ble_gattc_disc_all_dscs(conn_handle,start_handle,end_handle,ble_gatt_disc_all_dscs_cb,NULL);
 }
 
 // GATT读属性、描述符
@@ -1429,7 +1425,7 @@ static int ble_gatt_disc_all_svcs_cb(uint16_t conn_handle,
                                  const struct ble_gatt_svc *service,
                                  void *arg){
     printf("ble_gatt_disc_all_svcs_cb\r\n");
-    printf("error: %d att_handle: %d\r\n", error->status,error->att_handle);
+    // printf("error: %d att_handle: %d\r\n", error->status,error->att_handle);
     if(error->status == 0)
     {
         printf("starthandle: %d endhandle: %d\r\n", service->start_handle,service->end_handle);
@@ -1485,20 +1481,133 @@ static int ble_gatt_disc_all_svcs_cb(uint16_t conn_handle,
     }
 }
 
-// GATT 查找所有服务回调函数
+// GATT 查找特定UUID回调函数
 static int ble_gatt_disc_svcs_by_uuid_cb(uint16_t conn_handle,
                                  const struct ble_gatt_error *error,
                                  const struct ble_gatt_svc *service,
                                  void *arg){
-    return 0;
+
+    printf("ble_gatt_disc_svcs_by_uuid_cb\r\n");
+    printf("error: %d att_handle: %d\r\n", error->status,error->att_handle);
+    if(error->status == 0)
+    {
+        printf("starthandle: %d endhandle: %d\r\n", service->start_handle,service->end_handle);
+        if(service->uuid.u.type == 16) // = 16 
+        {
+            pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_SERVICE_RESULT,
+                arg_newObj(New_pikaTupleFrom(
+                    arg_newInt(_IRQ_GATTC_SERVICE_RESULT),
+                    arg_newInt(conn_handle),
+                    arg_newInt(service->start_handle),
+                    arg_newInt(service->end_handle),
+                    arg_newInt(service->uuid.u16.value),
+                    arg_newInt(service->uuid.u.type)
+                    )));
+        }else if(service->uuid.u.type == 32){ // 32
+            pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_SERVICE_RESULT,
+                arg_newObj(New_pikaTupleFrom(
+                    arg_newInt(_IRQ_GATTC_SERVICE_RESULT),
+                    arg_newInt(conn_handle),
+                    arg_newInt(service->start_handle),
+                    arg_newInt(service->end_handle),
+                    arg_newInt(service->uuid.u32.value),
+                    arg_newInt(service->uuid.u.type)
+                    )));
+        }else{ // 128 TODO:待验证
+            uint8_t uuid[16];
+            data_inver(service->uuid.u128.value,uuid,16);
+            pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_SERVICE_RESULT,
+                arg_newObj(New_pikaTupleFrom(
+                    arg_newInt(_IRQ_GATTC_SERVICE_RESULT),
+                    arg_newInt(conn_handle),
+                    arg_newInt(service->start_handle),
+                    arg_newInt(service->end_handle),
+                    arg_newBytes(uuid,16),
+                    arg_newInt(service->uuid.u.type)
+                    )));}
+        return 0;
+    }else if(error->status == 14){
+        pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_SERVICE_DONE,
+        arg_newObj(New_pikaTupleFrom(
+                arg_newInt(_IRQ_GATTC_SERVICE_DONE),
+                arg_newInt(conn_handle),
+                arg_newInt(0)
+                )));
+        return 0;
+    }else{
+        pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_SERVICE_DONE,
+        arg_newObj(New_pikaTupleFrom(
+                arg_newInt(_IRQ_GATTC_SERVICE_DONE),
+                arg_newInt(conn_handle),
+                arg_newInt(error->status)
+                )));
+        return 0;
+    }
 }
 
 // GATT 查找所有特性回调函数
 static int ble_gatt_disc_all_chrs_cb(uint16_t conn_handle,
                             const struct ble_gatt_error *error,
                             const struct ble_gatt_chr *chr, void *arg){
-                                
-    return 0;
+        
+    printf("ble_gatt_disc_all_chrs_cb\r\n");
+    printf("error: %d att_handle: %d\r\n", error->status,error->att_handle);
+    if(error->status == 0){
+        // printf("starthandle: %d endhandle: %d\r\n", service->start_handle,service->end_handle);
+        if(chr->uuid.u.type == 16) // = 16 
+        {
+            pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_CHARACTERISTIC_RESULT,
+                arg_newObj(New_pikaTupleFrom(
+                    arg_newInt(_IRQ_GATTC_CHARACTERISTIC_RESULT),
+                    arg_newInt(conn_handle),
+                    arg_newInt(chr->def_handle),  
+                    arg_newInt(chr->val_handle),
+                    arg_newInt(chr->properties),
+                    arg_newInt(chr->uuid.u16.value),
+                    arg_newInt(chr->uuid.u.type)
+                    )));
+        }else if(chr->uuid.u.type == 32){ // 32
+            pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_CHARACTERISTIC_RESULT,
+                arg_newObj(New_pikaTupleFrom(
+                    arg_newInt(_IRQ_GATTC_CHARACTERISTIC_RESULT),
+                    arg_newInt(conn_handle),
+                    arg_newInt(chr->def_handle),  
+                    arg_newInt(chr->val_handle),
+                    arg_newInt(chr->properties),
+                    arg_newInt(chr->uuid.u32.value),
+                    arg_newInt(chr->uuid.u.type)
+                    )));
+        }else{ // 128 TODO:待验证
+            uint8_t uuid[16];
+            data_inver(chr->uuid.u128.value,uuid,16);
+            pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_CHARACTERISTIC_RESULT,
+                arg_newObj(New_pikaTupleFrom(
+                    arg_newInt(_IRQ_GATTC_CHARACTERISTIC_RESULT),
+                    arg_newInt(conn_handle),
+                    arg_newInt(chr->def_handle),  
+                    arg_newInt(chr->val_handle),
+                    arg_newInt(chr->properties),
+                    arg_newBytes(uuid,16),
+                    arg_newInt(chr->uuid.u.type)
+                    )));}
+        return 0;
+    }else if(error->status == 14){
+        pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_CHARACTERISTIC_DONE,
+        arg_newObj(New_pikaTupleFrom(
+                arg_newInt(_IRQ_GATTC_CHARACTERISTIC_DONE),
+                arg_newInt(conn_handle),
+                arg_newInt(0)
+                )));
+        return 0;
+    }else{
+        pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_CHARACTERISTIC_DONE,
+        arg_newObj(New_pikaTupleFrom(
+                arg_newInt(_IRQ_GATTC_CHARACTERISTIC_DONE),
+                arg_newInt(conn_handle),
+                arg_newInt(error->status)
+                )));
+        return 0;
+    }
 }
 
 // GATT 查找特定UUID特性回调函数
@@ -1515,13 +1624,62 @@ static int ble_gatt_disc_all_dscs_cb(uint16_t conn_handle,
                             uint16_t chr_val_handle,
                             const struct ble_gatt_dsc *dsc,
                             void *arg){
-    pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_DESCRIPTOR_RESULT,
+    printf("ble_gatt_disc_all_dscs_cb\r\n");
+    printf("error: %d att_handle: %d\r\n", error->status,error->att_handle);
+    if(error->status == 0){
+        // printf("starthandle: %d endhandle: %d\r\n", service->start_handle,service->end_handle);
+        if(dsc->uuid.u.type == 16) // = 16 
+        {
+            pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_DESCRIPTOR_RESULT,
+                arg_newObj(New_pikaTupleFrom(
+                    arg_newInt(_IRQ_GATTC_DESCRIPTOR_RESULT),
+                    arg_newInt(conn_handle),
+                    arg_newInt(chr_val_handle),
+                    arg_newInt(dsc->handle),  
+                    arg_newInt(dsc->uuid.u16.value),
+                    arg_newInt(dsc->uuid.u.type)
+                    )));
+        }else if(dsc->uuid.u.type == 32){ // 32
+            pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_DESCRIPTOR_RESULT,
+                arg_newObj(New_pikaTupleFrom(
+                    arg_newInt(_IRQ_GATTC_DESCRIPTOR_RESULT),
+                    arg_newInt(conn_handle),
+                    arg_newInt(chr_val_handle),
+                    arg_newInt(dsc->handle),  
+                    arg_newInt(dsc->uuid.u32.value),
+                    arg_newInt(dsc->uuid.u.type)
+                    )));
+        }else{ // 128 TODO:待验证
+            uint8_t uuid[16];
+            data_inver(dsc->uuid.u128.value,uuid,16);
+            pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_DESCRIPTOR_RESULT,
+                arg_newObj(New_pikaTupleFrom(
+                    arg_newInt(_IRQ_GATTC_DESCRIPTOR_RESULT),
+                    arg_newInt(conn_handle),
+                    arg_newInt(chr_val_handle),
+                    arg_newInt(dsc->handle),  
+                    arg_newInt(dsc->uuid.u16.value),
+                    arg_newBytes(uuid,16),
+                    arg_newInt(dsc->uuid.u.type)
+                    )));}
+        return 0;
+    }else if(error->status == 14){
+        pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_DESCRIPTOR_DONE,
         arg_newObj(New_pikaTupleFrom(
-                arg_newInt(_IRQ_GATTC_DESCRIPTOR_RESULT),
+                arg_newInt(_IRQ_GATTC_DESCRIPTOR_DONE),
                 arg_newInt(conn_handle),
-                arg_newInt(dsc->handle) //,
-                // arg_newStr(dsc->uuid.value) //TODO:UUID传递方法
+                arg_newInt(0)
                 )));
+        return 0;
+    }else{
+        pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_DESCRIPTOR_DONE,
+        arg_newObj(New_pikaTupleFrom(
+                arg_newInt(_IRQ_GATTC_DESCRIPTOR_DONE),
+                arg_newInt(conn_handle),
+                arg_newInt(error->status)
+                )));
+        return 0;
+    }
     
     return 0;
 }
