@@ -343,7 +343,7 @@ int _bluetooth_BLE_advertise(PikaObj *self, int addr, int interval, pika_bool co
     struct ble_gap_adv_params adv_params;
     memset(&adv_params, 0, sizeof(adv_params));
 
-    // 获取地址类型
+    // 获取地址类型 TODO:能不能直接获得
     uint8_t own_addr_type =  get_addr_type(addr);
     
     // 连接模式
@@ -414,8 +414,6 @@ int _bluetooth_BLE_pyi_gap_connect(PikaObj *self, uint8_t* peer_addr, int peer_a
 int _bluetooth_BLE_pyi_gap_disconnect(PikaObj *self, int conn_handle)
 {
     printf("_bluetooth_BLE_gap_disconnect\r\n");
-    // TODO:不太确定是否对应该函数 
-    // return ble_gap_conn_cancel();
     return ble_gap_terminate(conn_handle, BLE_ERR_REM_USER_CONN_TERM);
 }
 
@@ -657,7 +655,6 @@ int _bluetooth_BLE_config_bond_update(PikaObj *self, pika_bool bond)
 }
 
 // 基本测试通过
-// TODO:gap_name输入的是其他格式呢?
 int _bluetooth_BLE_config_gap_name_update(PikaObj *self, char* gap_name)
 {
     printf("_bluetooth_BLE_config_gap_name_update\r\n");
@@ -800,22 +797,15 @@ int _bluetooth_BLE_gattc_dis_chrs(PikaObj *self, int conn_handle, int start_hand
 }
 
 //通过UUID查找属性
-//TODO:传入UUID的方法未找到，目前好像只是类型
 int _bluetooth_BLE_gattc_dis_chrs_by_uuid(PikaObj *self, int conn_handle, int start_handle, int end_handle, uint8_t* uuid,int len){
     ble_uuid_any_t uuid_any = {0};
-    // printf("UUID: %02x %02x\r\n",uuid[0],uuid[1]);
     if(len == 2){
         uuid_any.u16.u.type = BLE_UUID_TYPE_16;
         uuid_any.u16.value = uuid[0] << 8 | uuid[1];
-        // uuid_any.u16.value = uuid[0] * 256 +  uuid[1];
-        // uuid_any.u16.value = 0x1800;
-        // uuid_any.u16.value = 0x26;
-        // memcpy((uint8_t*)&(uuid_any.u16.value),uuid,2);
     }else if(len == 4){
         uuid_any.u32.u.type = BLE_UUID_TYPE_32;
         uuid_any.u32.value = uuid[0] << 24 | uuid[1] << 16 | uuid[2] << 8 | uuid[3];
     }else{
-        // uint8_t data[16];
         uuid_any.u128.u.type = BLE_UUID_TYPE_128;
         data_inver(uuid,uuid_any.u128.value,16);
     }
@@ -997,7 +987,6 @@ static int ble_gatt_svc_access_cb(uint16_t conn_handle, uint16_t attr_handle,
 }
 
 
-
 // GATT层：客户端读服务回调函数
 static int ble_gatt_client_read_cb(uint16_t conn_handle,
                        const struct ble_gatt_error *error,
@@ -1005,9 +994,9 @@ static int ble_gatt_client_read_cb(uint16_t conn_handle,
                        void *arg)
 {
     printf("Read complete for the subscribable characteristic; "
-                "status=%d conn_handle=%d", error->status, conn_handle);
-
+            "status=%d conn_handle=%d\r\n", error->status, conn_handle);
     //读取成功
+    // TODO:读完之后不会引起其他事件，所以要done 和result一起触发
     pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_READ_DONE ,
         arg_newObj(New_pikaTupleFrom(
                 arg_newInt(_IRQ_GATTC_READ_DONE),
@@ -1015,19 +1004,20 @@ static int ble_gatt_client_read_cb(uint16_t conn_handle,
                 arg_newInt(attr->handle),
                 arg_newInt(error->status) 
                 )));
-
     if (error->status == 0) {
-        printf(" attr_handle=%d value=", attr->handle);
         //读到数据
+        // printf("om_data:%d\r\n",*(attr->om->om_data));
+        // printf("om_flags:%d\r\n",attr->om->om_flags);
+        // printf("om_pkthdr_len:%d\r\n",attr->om->om_pkthdr_len);
+        // printf("om_data:%d\r\n",attr->om->om_len);
+        // print_mbuf(attr->om); //TODO:该函数无引用，但在blecentn能够使用
         pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_READ_RESULT,
             arg_newObj(New_pikaTupleFrom(
                     arg_newInt(_IRQ_GATTC_READ_RESULT),
                     arg_newInt(conn_handle),
                     arg_newInt(attr->handle),
-                    arg_newStr("test string") //, 
-                    // arg_newBytes(attr->om->om_databuf,attr->om->om_len) //TODO:未验证
+                    arg_newBytes(attr->om->om_data,attr->om->om_len) 
                     )));
-        // print_mbuf(attr->om); //TODO:该函数无引用，但在blecentn能够使用
     }
     return 0;
 }
@@ -1082,8 +1072,7 @@ static int ble_gap_event_cb(struct ble_gap_event *event, void *arg)
     uint8_t addr[6];
 
     switch (event->type) {
-    case BLE_GAP_EVENT_CONNECT: //TODO:MicroPyhon 区分 服务端与客户端的连接
-        /* A new connection was established or a connection attempt failed. */
+    case BLE_GAP_EVENT_CONNECT: 
         printf("connection %s; status=%d ",
             event->connect.status == 0 ? "established" : "failed", event->connect.status);
         printf("\r\n");
@@ -1484,7 +1473,7 @@ static int ble_gatt_disc_all_svcs_cb(uint16_t conn_handle,
                     arg_newInt(conn_handle),
                     arg_newInt(service->start_handle),
                     arg_newInt(service->end_handle),
-                    arg_newBytes(uuid,data_len/8),
+                    arg_newBytes(uuid,data_len/8)
                 )));
         free(uuid);
         return 0;
@@ -1543,7 +1532,7 @@ static int ble_gatt_disc_svcs_by_uuid_cb(uint16_t conn_handle,
                     arg_newInt(conn_handle),
                     arg_newInt(service->start_handle),
                     arg_newInt(service->end_handle),
-                    arg_newBytes(uuid,data_len/8),
+                    arg_newBytes(uuid,data_len/8)
                 )));
         free(uuid);
         return 0;

@@ -19,14 +19,13 @@ FLAG_WRITE_AUTHORIZED    = 0x4000
 class UUID():
     value  = ""
     def __init__(self,value):
-        self.value = value
+        self.value =  UUID_to_bytes(value)
 
 class BLE(_bluetooth.BLE):
 
     last_adv_data  = ""  #广播内容
     last_resp_data = ""  #回应扫描内容
     addr_mode      =  0  #地址类型 BLE_OWN_ADDR_PUBLIC,BLE_OWN_ADDR_RANDOM,BLE_OWN_ADDR_RPA_PUBLIC_DEFAULT,BLE_OWN_ADDR_RPA_RANDOM_DEFAULT
-    conn_handle    = ""  #连接句柄
     callback_func  = None  #回调函数
 
     def __init__(self):
@@ -80,17 +79,17 @@ class BLE(_bluetooth.BLE):
         elif first_param == "gap_name":
             return self.config_gap_name_get()
         elif first_param == "rxbuf" :
-            super().config_addr_rxbuf_get()
+            self.config_addr_rxbuf_get()
         elif first_param == "mtu" :
-            super().config_mtu_get()
+            self.config_mtu_get()
         elif first_param == "bond" :
-            super().config_bond_get()
+            self.config_bond_get()
         elif first_param == "mitm" :
-            super().config_mitm_get()
+            self.config_mitm_get()
         elif first_param == "io":
-            super().config_io_get()
+            self.config_io_get()
         elif first_param == "le_secure":
-            super().config_le_secure_get()
+            self.config_le_secure_get()
         else:
             print("ValueError: unknown config param")   
 
@@ -132,13 +131,10 @@ class BLE(_bluetooth.BLE):
         self.callback_func = func
 
     def ble_callback(self,data):
-        # memory_view = memoryview(bytes.fromhex(data[1:]))  # 创建对字节数据的memoryview对象
-        # print(memory_view)
-        # print(list(memory_view))
         # TODO:memoryview没有实现
         self.callback_func(data[0],data[1:])
 
-    # 完成1
+    # 完成
     def gap_advertise(self, interval_us, adv_data=None, resp_data=None, connectable=True):
         if interval_us is None: 
             print("interval_us is None\r\n")
@@ -173,20 +169,6 @@ class BLE(_bluetooth.BLE):
             print("active=",active)
             return self.gap_disc(self.addr_mode, duration_ms,int(interval_us/625),int(window_us/625),active)
 
-    # """
-    # micropython:直接输入时间P
-
-    # nimble: 按照单位算时间
-    # duration:  
-
-    # """
-    # def gap_scan(self, duration_ms, interval_us=1280000, window_us=11250, active=False, /):
-    #     if duration_ms is None :
-    #         super.gap_stop_scan()
-    #     else:
-    #         duration = duration_ms / 10
-    #         super.gap_scan(duration_ms, interval_us, window_us, active)
-
     def gap_connect(self,peer_addr,peer_addr_type, scan_duration_ms=2000):
         return self.pyi_gap_connect(peer_addr,peer_addr_type ,scan_duration_ms)
 
@@ -198,14 +180,6 @@ class BLE(_bluetooth.BLE):
         print("convert_services  : ",convert_services)
         return self.gatts_register_svcs(convert_services)
         # return convert_services
-    
-    # # 遍历特征
-    # for characteristic in characteristics:
-    #     char_uuid, flags = characteristic
-    #     print(f"Characteristic UUID: {char_uuid}")
-    #     print(f"Flags: {flags}")
-    #     super.register_a_service()
-
 
     def gatts_read(self,value_handle):
         # 暂不清楚对照哪个函数,或者直接调用gattc试一试
@@ -252,9 +226,9 @@ class BLE(_bluetooth.BLE):
 
     def gattc_write(self,conn_handle, value_handle, data, mode = 0):
         if mode == 0:
-            return self.gattc_write_with_no_rsp(conn_handle, value_handle, data)
+            return self.gattc_write_with_no_rsp(conn_handle, value_handle, data, len(data))
         elif mode == 1:
-            return self.gattc_write_with_rsp(conn_handle, value_handle, data)
+            return self.gattc_write_with_rsp(conn_handle, value_handle, data,len(data))
 
     def gattc_exchange_mtu(self,conn_handle):
         self.pyi_gattc_exchange_mtu(conn_handle)
@@ -285,6 +259,18 @@ def _to_string(data):
         data_str = data
     elif isinstance(data,int):
         data_str = hex(data)[2:]
-    
-    return data_str
+
+def UUID_to_bytes(value:UUID):
+    value_bytes = ""
+    if isinstance(value,bytes):
+        value_bytes = value
+    elif isinstance(value,bytearray): #貌似没有太好的方式转到bytes上
+        value_bytes = value.decode()
+    elif isinstance(value,str):
+        value_str = value.replace("-","")
+        value_bytes = bytes([int(value_str[i:i+2],16) for i in range(0, len(value_str), 2)])
+    elif isinstance(value,int): # 65535 
+        value_bytes = bytes([value])
+
+    return value_bytes
     
