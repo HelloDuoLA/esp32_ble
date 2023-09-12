@@ -138,9 +138,17 @@ addr = bytes([0xec,0xda,0x3b,0x67,0x7a,0x82])  # new eps32 s3
 
 # a.test3(1,0)
 # a.gattc_discover_services(1)
+# a.gattc_discover_services(1,bluetooth.UUID(bytes([0x18,0x00])))
+# a.gattc_discover_services(1,bluetooth.UUID(bytes([0x18,0x01])))
+
 # a.gattc_discover_characteristics(1, 6, 9)
 # a.gattc_discover_characteristics(1, 10, 23)
-a.gattc_discover_characteristics(1, 12, 0xff)
+# a.gattc_discover_characteristics(1, 12, 0xff)
+# a.gattc_discover_characteristics(1, 1, 0xff)
+# a.gattc_discover_characteristics(1, 1, 0xff,bluetooth.UUID(bytes([0x2A,0x00])))
+
+# a.gattc_discover_descriptors(1, 1, 0xff)
+# a.gattc_discover_descriptors(1, 23,24)
 # a.gap_disconnect(1)
 
 # print(a.config("mac"))

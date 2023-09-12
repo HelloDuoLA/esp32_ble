@@ -772,10 +772,26 @@ int _bluetooth_BLE_gattc_dis_svcs(PikaObj *self, int conn_handle){
 }
 
 //通过UUID查找服务
-//TODO:传入UUID的方法未找到，目前好像只是类型
-int _bluetooth_BLE_gattc_dis_svcs_by_uuid(PikaObj *self, int conn_handle, char* uuid){
-    ble_uuid_t * svcs_uuid = BLE_UUID_TYPE_16;
-    return ble_gattc_disc_svc_by_uuid(conn_handle,svcs_uuid,ble_gatt_disc_svcs_by_uuid_cb, NULL);
+int _bluetooth_BLE_gattc_dis_svcs_by_uuid(PikaObj *self, int conn_handle, uint8_t* uuid,int len){
+    ble_uuid_any_t uuid_any = {0};
+    // printf("UUID: %02x %02x\r\n",uuid[0],uuid[1]);
+    if(len == 2){
+        uuid_any.u16.u.type = BLE_UUID_TYPE_16;
+        uuid_any.u16.value = uuid[0] << 8 | uuid[1];
+        // uuid_any.u16.value = uuid[0] * 256 +  uuid[1];
+        // uuid_any.u16.value = 0x1800;
+        // uuid_any.u16.value = 0x26;
+        // memcpy((uint8_t*)&(uuid_any.u16.value),uuid,2);
+    }else if(len == 4){
+        uuid_any.u32.u.type = BLE_UUID_TYPE_32;
+        uuid_any.u32.value = uuid[0] << 24 | uuid[1] << 16 | uuid[2] << 8 | uuid[3];
+    }else{
+        // uint8_t data[16];
+        uuid_any.u128.u.type = BLE_UUID_TYPE_128;
+        data_inver(uuid,uuid_any.u128.value,16);
+        
+    }
+    return ble_gattc_disc_svc_by_uuid(conn_handle,&uuid_any.u,ble_gatt_disc_svcs_by_uuid_cb, NULL);
 }
 
 //通过UUID查找全部属性
@@ -785,9 +801,25 @@ int _bluetooth_BLE_gattc_dis_chrs(PikaObj *self, int conn_handle, int start_hand
 
 //通过UUID查找属性
 //TODO:传入UUID的方法未找到，目前好像只是类型
-int _bluetooth_BLE_gattc_dis_chrs_by_uuid(PikaObj *self, int conn_handle, int start_handle, int end_handle, char* uuid){
-    ble_uuid_t * chr_uuid = BLE_UUID_TYPE_16;
-    return ble_gattc_disc_chrs_by_uuid(conn_handle,start_handle,end_handle,chr_uuid,ble_gatt_disc_chrs_by_uuid_cb,NULL);
+int _bluetooth_BLE_gattc_dis_chrs_by_uuid(PikaObj *self, int conn_handle, int start_handle, int end_handle, uint8_t* uuid,int len){
+    ble_uuid_any_t uuid_any = {0};
+    // printf("UUID: %02x %02x\r\n",uuid[0],uuid[1]);
+    if(len == 2){
+        uuid_any.u16.u.type = BLE_UUID_TYPE_16;
+        uuid_any.u16.value = uuid[0] << 8 | uuid[1];
+        // uuid_any.u16.value = uuid[0] * 256 +  uuid[1];
+        // uuid_any.u16.value = 0x1800;
+        // uuid_any.u16.value = 0x26;
+        // memcpy((uint8_t*)&(uuid_any.u16.value),uuid,2);
+    }else if(len == 4){
+        uuid_any.u32.u.type = BLE_UUID_TYPE_32;
+        uuid_any.u32.value = uuid[0] << 24 | uuid[1] << 16 | uuid[2] << 8 | uuid[3];
+    }else{
+        // uint8_t data[16];
+        uuid_any.u128.u.type = BLE_UUID_TYPE_128;
+        data_inver(uuid,uuid_any.u128.value,16);
+    }
+    return ble_gattc_disc_chrs_by_uuid(conn_handle,start_handle,end_handle,&uuid_any.u,ble_gatt_disc_chrs_by_uuid_cb,NULL);
 }
 
 //查找全部描述符
@@ -1425,42 +1457,36 @@ static int ble_gatt_disc_all_svcs_cb(uint16_t conn_handle,
                                  const struct ble_gatt_svc *service,
                                  void *arg){
     printf("ble_gatt_disc_all_svcs_cb\r\n");
-    // printf("error: %d att_handle: %d\r\n", error->status,error->att_handle);
     if(error->status == 0)
     {
-        printf("starthandle: %d endhandle: %d\r\n", service->start_handle,service->end_handle);
-        if(service->uuid.u.type == 16) // = 16 
-        {
-            pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_SERVICE_RESULT,
-                arg_newObj(New_pikaTupleFrom(
-                    arg_newInt(_IRQ_GATTC_SERVICE_RESULT),
-                    arg_newInt(conn_handle),
-                    arg_newInt(service->start_handle),
-                    arg_newInt(service->end_handle),
-                    arg_newInt(service->uuid.u16.value),
-                    arg_newInt(service->uuid.u.type)
-                    )));
-        }else if(service->uuid.u.type == 32){ // 32
-            pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_SERVICE_RESULT,
-                arg_newObj(New_pikaTupleFrom(
-                    arg_newInt(_IRQ_GATTC_SERVICE_RESULT),
-                    arg_newInt(conn_handle),
-                    arg_newInt(service->start_handle),
-                    arg_newInt(service->end_handle),
-                    arg_newInt(service->uuid.u32.value),
-                    arg_newInt(service->uuid.u.type)
-                    )));
-        }else{ // 128 TODO:待验证
-            uint8_t uuid[16];
+        uint8_t data_len = service->uuid.u.type;
+        uint8_t *uuid;
+        if(data_len == 16){ // = 16 
+            uint16_t value = service->uuid.u16.value;
+            uuid    = (uint8_t *)malloc(2);
+            uuid[0] = (uint8_t)(value >> 8);        // 取高位字节
+            uuid[1] = (uint8_t) value;             // 取低位字节
+        }else if(data_len == 32){ // 32
+            uint16_t value = service->uuid.u32.value;
+            uuid    = (uint8_t *)malloc(4);
+            uuid[0] = (uint8_t)(value >> 24); // 取高位字节
+            uuid[1] = (uint8_t)(value >> 16); // 取次高位字节
+            uuid[2] = (uint8_t)(value >> 8);  // 取次低位字节
+            uuid[3] = (uint8_t)value;         // 取低位字节
+        }else{ // 128 
+            uuid    = (uint8_t *)malloc(16);
             data_inver(service->uuid.u128.value,uuid,16);
-            pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_SERVICE_RESULT,
+        }
+
+        pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_SERVICE_RESULT,
                 arg_newObj(New_pikaTupleFrom(
                     arg_newInt(_IRQ_GATTC_SERVICE_RESULT),
                     arg_newInt(conn_handle),
                     arg_newInt(service->start_handle),
                     arg_newInt(service->end_handle),
-                    arg_newBytes(uuid,16)
-                    )));}
+                    arg_newBytes(uuid,data_len/8),
+                )));
+        free(uuid);
         return 0;
     }else if(error->status == 14){
         pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_SERVICE_DONE,
@@ -1481,50 +1507,45 @@ static int ble_gatt_disc_all_svcs_cb(uint16_t conn_handle,
     }
 }
 
-// GATT 查找特定UUID回调函数
+// GATT 查找特定UUID服务回调函数
 static int ble_gatt_disc_svcs_by_uuid_cb(uint16_t conn_handle,
                                  const struct ble_gatt_error *error,
                                  const struct ble_gatt_svc *service,
                                  void *arg){
 
     printf("ble_gatt_disc_svcs_by_uuid_cb\r\n");
-    printf("error: %d att_handle: %d\r\n", error->status,error->att_handle);
+    printf("error: %d,att handle %d\r\n",error->status,error->att_handle);
+    // printf("start handle: %d,end handle %d\r\n",service->start_handle,service->end_handle);
     if(error->status == 0)
     {
-        printf("starthandle: %d endhandle: %d\r\n", service->start_handle,service->end_handle);
-        if(service->uuid.u.type == 16) // = 16 
-        {
-            pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_SERVICE_RESULT,
-                arg_newObj(New_pikaTupleFrom(
-                    arg_newInt(_IRQ_GATTC_SERVICE_RESULT),
-                    arg_newInt(conn_handle),
-                    arg_newInt(service->start_handle),
-                    arg_newInt(service->end_handle),
-                    arg_newInt(service->uuid.u16.value),
-                    arg_newInt(service->uuid.u.type)
-                    )));
-        }else if(service->uuid.u.type == 32){ // 32
-            pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_SERVICE_RESULT,
-                arg_newObj(New_pikaTupleFrom(
-                    arg_newInt(_IRQ_GATTC_SERVICE_RESULT),
-                    arg_newInt(conn_handle),
-                    arg_newInt(service->start_handle),
-                    arg_newInt(service->end_handle),
-                    arg_newInt(service->uuid.u32.value),
-                    arg_newInt(service->uuid.u.type)
-                    )));
-        }else{ // 128 TODO:待验证
-            uint8_t uuid[16];
+        uint8_t data_len = service->uuid.u.type;
+        uint8_t *uuid;
+        if(data_len == 16){ // = 16 
+            uint16_t value = service->uuid.u16.value;
+            uuid    = (uint8_t *)malloc(2);
+            uuid[0] = (uint8_t)(value >> 8);        // 取高位字节
+            uuid[1] = (uint8_t) value;             // 取低位字节
+        }else if(data_len == 32){ // 32
+            uint16_t value = service->uuid.u32.value;
+            uuid    = (uint8_t *)malloc(4);
+            uuid[0] = (uint8_t)(value >> 24); // 取高位字节
+            uuid[1] = (uint8_t)(value >> 16); // 取次高位字节
+            uuid[2] = (uint8_t)(value >> 8);  // 取次低位字节
+            uuid[3] = (uint8_t)value;         // 取低位字节
+        }else{ // 128 
+            uuid    = (uint8_t *)malloc(16);
             data_inver(service->uuid.u128.value,uuid,16);
-            pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_SERVICE_RESULT,
+        }
+
+        pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_SERVICE_RESULT,
                 arg_newObj(New_pikaTupleFrom(
                     arg_newInt(_IRQ_GATTC_SERVICE_RESULT),
                     arg_newInt(conn_handle),
                     arg_newInt(service->start_handle),
                     arg_newInt(service->end_handle),
-                    arg_newBytes(uuid,16),
-                    arg_newInt(service->uuid.u.type)
-                    )));}
+                    arg_newBytes(uuid,data_len/8),
+                )));
+        free(uuid);
         return 0;
     }else if(error->status == 14){
         pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_SERVICE_DONE,
@@ -1551,45 +1572,35 @@ static int ble_gatt_disc_all_chrs_cb(uint16_t conn_handle,
                             const struct ble_gatt_chr *chr, void *arg){
         
     printf("ble_gatt_disc_all_chrs_cb\r\n");
-    printf("error: %d att_handle: %d\r\n", error->status,error->att_handle);
     if(error->status == 0){
-        // printf("starthandle: %d endhandle: %d\r\n", service->start_handle,service->end_handle);
-        if(chr->uuid.u.type == 16) // = 16 
-        {
-            pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_CHARACTERISTIC_RESULT,
-                arg_newObj(New_pikaTupleFrom(
-                    arg_newInt(_IRQ_GATTC_CHARACTERISTIC_RESULT),
-                    arg_newInt(conn_handle),
-                    arg_newInt(chr->def_handle),  
-                    arg_newInt(chr->val_handle),
-                    arg_newInt(chr->properties),
-                    arg_newInt(chr->uuid.u16.value),
-                    arg_newInt(chr->uuid.u.type)
-                    )));
-        }else if(chr->uuid.u.type == 32){ // 32
-            pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_CHARACTERISTIC_RESULT,
-                arg_newObj(New_pikaTupleFrom(
-                    arg_newInt(_IRQ_GATTC_CHARACTERISTIC_RESULT),
-                    arg_newInt(conn_handle),
-                    arg_newInt(chr->def_handle),  
-                    arg_newInt(chr->val_handle),
-                    arg_newInt(chr->properties),
-                    arg_newInt(chr->uuid.u32.value),
-                    arg_newInt(chr->uuid.u.type)
-                    )));
-        }else{ // 128 TODO:待验证
-            uint8_t uuid[16];
+        uint8_t data_len = chr->uuid.u.type;
+        uint8_t *uuid;
+        if(data_len == 16){ // = 16 
+            uint16_t value = chr->uuid.u16.value;
+            uuid    = (uint8_t *)malloc(2);
+            uuid[0] = (uint8_t)(value >> 8);        // 取高位字节
+            uuid[1] = (uint8_t) value;             // 取低位字节
+        }else if(data_len == 32){ // 32
+            uint16_t value = chr->uuid.u32.value;
+            uuid    = (uint8_t *)malloc(4);
+            uuid[0] = (uint8_t)(value >> 24); // 取高位字节
+            uuid[1] = (uint8_t)(value >> 16); // 取次高位字节
+            uuid[2] = (uint8_t)(value >> 8);  // 取次低位字节
+            uuid[3] = (uint8_t)value;         // 取低位字节
+        }else{ // 128 
+            uuid    = (uint8_t *)malloc(16);
             data_inver(chr->uuid.u128.value,uuid,16);
-            pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_CHARACTERISTIC_RESULT,
+        }
+        pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_CHARACTERISTIC_RESULT,
                 arg_newObj(New_pikaTupleFrom(
                     arg_newInt(_IRQ_GATTC_CHARACTERISTIC_RESULT),
                     arg_newInt(conn_handle),
                     arg_newInt(chr->def_handle),  
                     arg_newInt(chr->val_handle),
                     arg_newInt(chr->properties),
-                    arg_newBytes(uuid,16),
-                    arg_newInt(chr->uuid.u.type)
-                    )));}
+                    arg_newBytes(uuid,data_len/8)
+                )));
+        free(uuid);
         return 0;
     }else if(error->status == 14){
         pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_CHARACTERISTIC_DONE,
@@ -1614,54 +1625,93 @@ static int ble_gatt_disc_all_chrs_cb(uint16_t conn_handle,
 static int ble_gatt_disc_chrs_by_uuid_cb(uint16_t conn_handle,
                             const struct ble_gatt_error *error,
                             const struct ble_gatt_chr *chr, void *arg){
-    return 0;
+    printf("ble_gatt_disc_chrs_by_uuid_cb\r\n");
+    if(error->status == 0){
+        uint8_t data_len = chr->uuid.u.type;
+        uint8_t *uuid;
+        if(data_len == 16){ // = 16 
+            uint16_t value = chr->uuid.u16.value;
+            uuid    = (uint8_t *)malloc(2);
+            uuid[0] = (uint8_t)(value >> 8);        // 取高位字节
+            uuid[1] = (uint8_t) value;             // 取低位字节
+        }else if(data_len == 32){ // 32
+            uint16_t value = chr->uuid.u32.value;
+            uuid    = (uint8_t *)malloc(4);
+            uuid[0] = (uint8_t)(value >> 24); // 取高位字节
+            uuid[1] = (uint8_t)(value >> 16); // 取次高位字节
+            uuid[2] = (uint8_t)(value >> 8);  // 取次低位字节
+            uuid[3] = (uint8_t)value;         // 取低位字节
+        }else{ // 128 
+            uuid    = (uint8_t *)malloc(16);
+            data_inver(chr->uuid.u128.value,uuid,16);
+        }
+        pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_CHARACTERISTIC_RESULT,
+                arg_newObj(New_pikaTupleFrom(
+                    arg_newInt(_IRQ_GATTC_CHARACTERISTIC_RESULT),
+                    arg_newInt(conn_handle),
+                    arg_newInt(chr->def_handle),  
+                    arg_newInt(chr->val_handle),
+                    arg_newInt(chr->properties),
+                    arg_newBytes(uuid,data_len/8)
+                )));
+        free(uuid);
+        return 0;
+    }else if(error->status == 14){
+        pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_CHARACTERISTIC_DONE,
+        arg_newObj(New_pikaTupleFrom(
+                arg_newInt(_IRQ_GATTC_CHARACTERISTIC_DONE),
+                arg_newInt(conn_handle),
+                arg_newInt(0)
+                )));
+        return 0;
+    }else{
+        pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_CHARACTERISTIC_DONE,
+        arg_newObj(New_pikaTupleFrom(
+                arg_newInt(_IRQ_GATTC_CHARACTERISTIC_DONE),
+                arg_newInt(conn_handle),
+                arg_newInt(error->status)
+                )));
+        return 0;
+    }
 }
 
 
 // GATT 查找所有描述符回调函数
+// TODO:把描述符也显示了
 static int ble_gatt_disc_all_dscs_cb(uint16_t conn_handle,
                             const struct ble_gatt_error *error,
                             uint16_t chr_val_handle,
                             const struct ble_gatt_dsc *dsc,
                             void *arg){
     printf("ble_gatt_disc_all_dscs_cb\r\n");
-    printf("error: %d att_handle: %d\r\n", error->status,error->att_handle);
-    if(error->status == 0){
-        // printf("starthandle: %d endhandle: %d\r\n", service->start_handle,service->end_handle);
-        if(dsc->uuid.u.type == 16) // = 16 
-        {
-            pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_DESCRIPTOR_RESULT,
-                arg_newObj(New_pikaTupleFrom(
-                    arg_newInt(_IRQ_GATTC_DESCRIPTOR_RESULT),
-                    arg_newInt(conn_handle),
-                    arg_newInt(chr_val_handle),
-                    arg_newInt(dsc->handle),  
-                    arg_newInt(dsc->uuid.u16.value),
-                    arg_newInt(dsc->uuid.u.type)
-                    )));
-        }else if(dsc->uuid.u.type == 32){ // 32
-            pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_DESCRIPTOR_RESULT,
-                arg_newObj(New_pikaTupleFrom(
-                    arg_newInt(_IRQ_GATTC_DESCRIPTOR_RESULT),
-                    arg_newInt(conn_handle),
-                    arg_newInt(chr_val_handle),
-                    arg_newInt(dsc->handle),  
-                    arg_newInt(dsc->uuid.u32.value),
-                    arg_newInt(dsc->uuid.u.type)
-                    )));
-        }else{ // 128 TODO:待验证
-            uint8_t uuid[16];
+    if(error->status == 0){        
+        uint8_t data_len = dsc->uuid.u.type;
+        uint8_t *uuid;
+        if(data_len == 16){ // = 16 
+            uint16_t value = dsc->uuid.u16.value;
+            uuid    = (uint8_t *)malloc(2);
+            uuid[0] = (uint8_t)(value >> 8);        // 取高位字节
+            uuid[1] = (uint8_t) value;             // 取低位字节
+        }else if(data_len == 32){ // 32
+            uint16_t value = dsc->uuid.u32.value;
+            uuid    = (uint8_t *)malloc(4);
+            uuid[0] = (uint8_t)(value >> 24); // 取高位字节
+            uuid[1] = (uint8_t)(value >> 16); // 取次高位字节
+            uuid[2] = (uint8_t)(value >> 8);  // 取次低位字节
+            uuid[3] = (uint8_t)value;         // 取低位字节
+        }else{ // 128 
+            uuid    = (uint8_t *)malloc(16);
             data_inver(dsc->uuid.u128.value,uuid,16);
-            pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_DESCRIPTOR_RESULT,
+        }
+        pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_DESCRIPTOR_RESULT,
                 arg_newObj(New_pikaTupleFrom(
                     arg_newInt(_IRQ_GATTC_DESCRIPTOR_RESULT),
                     arg_newInt(conn_handle),
                     arg_newInt(chr_val_handle),
                     arg_newInt(dsc->handle),  
-                    arg_newInt(dsc->uuid.u16.value),
-                    arg_newBytes(uuid,16),
-                    arg_newInt(dsc->uuid.u.type)
-                    )));}
+                    arg_newBytes(uuid,data_len/8)
+                )));
+        free(uuid);
         return 0;
     }else if(error->status == 14){
         pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_DESCRIPTOR_DONE,
@@ -1679,7 +1729,6 @@ static int ble_gatt_disc_all_dscs_cb(uint16_t conn_handle,
                 arg_newInt(error->status)
                 )));
         return 0;
-    }
-    
+    }   
     return 0;
 }
