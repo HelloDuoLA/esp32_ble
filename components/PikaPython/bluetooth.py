@@ -1,5 +1,5 @@
 import _bluetooth
-# 标志位
+# 特性标志位
 FLAG_BROADCAST = 0x0001
 FLAG_READ      = 0x0002
 FLAG_WRITE_NO_RESPONSE = 0x0004
@@ -7,6 +7,16 @@ FLAG_WRITE     = 0x0008
 FLAG_NOTIFY    = 0x0010
 FLAG_INDICATE  = 0x0020
 FLAG_AUTHENTICATED_SIGNED_WRITE = 0x0040
+
+# 描述符标志位
+FLAG_DSC_READ           = 0x01
+FLAG_DSC_WRITE          = 0x02
+FLAG_DSC_READ_ENC       = 0x04
+FLAG_DSC_READ_AUTHEN    = 0x08
+FLAG_DSC_READ_AUTHOR    = 0x10
+FLAG_DSC_WRITE_ENC      = 0x20
+FLAG_DSC_WRITE_AUTHEN   = 0x40
+FLAG_DSC_WRITE_AUTHOR   = 0x80
 
 FLAG_AUX_WRITE           = 0x0100
 FLAG_READ_ENCRYPTED      = 0x0200
@@ -135,7 +145,7 @@ class BLE(_bluetooth.BLE):
 
     def ble_callback(self,data):
         # TODO:memoryview没有实现
-        self.callback_func(data[0],data[1:])
+        return self.callback_func(data[0],data[1:])
 
     # 完成
     def gap_advertise(self, interval_us, adv_data=None, resp_data=None, connectable=True):
@@ -217,9 +227,9 @@ class BLE(_bluetooth.BLE):
 
     def gattc_discover_characteristics(self,conn_handle, start_handle, end_handle, uuid:UUID=None):
         if uuid == None:
-            return self.gattc_dis_chrs(conn_handle,start_handle,end_handle)
+            return self.gattc_diss(conn_handle,start_handle,end_handle)
         else :
-            return self.gattc_dis_chrs_by_uuid(conn_handle, start_handle, end_handle,uuid.value,len(uuid.value))
+            return self.gattc_diss_by_uuid(conn_handle, start_handle, end_handle,uuid.value,len(uuid.value))
 
     def gattc_discover_descriptors(self,conn_handle, start_handle, end_handle):
         return self.gattc_dis_dscs(conn_handle,start_handle, end_handle)

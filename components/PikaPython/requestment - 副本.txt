@@ -1,0 +1,7 @@
+pikascript-core
+PikaStdLib
+PikaStdDevice
+ESP32
+pika_libc
+time
+network

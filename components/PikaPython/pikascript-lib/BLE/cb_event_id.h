@@ -34,3 +34,11 @@
 #define _IRQ_SET_SECRET                    30
 #define _IRQ_GATTC_SUBSCRIBE               31
 #define _IRQ_TEST                          32
+
+
+#define _GATTS_NO_ERROR                           0x00
+#define _GATTS_ERROR_READ_NOT_PERMITTED           0x02
+#define _GATTS_ERROR_WRITE_NOT_PERMITTED          0x03
+#define _GATTS_ERROR_INSUFFICIENT_AUTHENTICATION  0x05
+#define _GATTS_ERROR_INSUFFICIENT_AUTHORIZATION   0x08
+#define _GATTS_ERROR_INSUFFICIENT_ENCRYPTION      0x0f

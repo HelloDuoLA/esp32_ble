@@ -18,6 +18,8 @@ def ble_irq(event,data):
     elif event == const._IRQ_GATTS_READ_REQUEST  :
         print("_IRQ_GATTS_READ_REQUEST")
         print(data)
+        # return const._GATTS_NO_ERROR
+        return const._GATTS_ERROR_READ_NOT_PERMITTED
     elif event == const._IRQ_SCAN_RESULT:
         print("_IRQ_SCAN_RESULT data : ")
         print(data)
@@ -122,14 +124,14 @@ b = a.irq(ble_irq)
 
 test_char1_UUID =  bluetooth.UUID('33333333-2222-2222-1111-111100000001')
 test_flag1      =  bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY
-test_dsc1       = (bluetooth.UUID('34343434-2323-2323-1212-121201010101'),bluetooth.FLAG_READ)
-test_dsc2       = (bluetooth.UUID('34343434-2323-2323-1212-121201010102'),bluetooth.FLAG_READ)
+test_dsc1       = (bluetooth.UUID('34343434-2323-2323-1212-121201010101'),bluetooth.FLAG_DSC_READ )
+test_dsc2       = (bluetooth.UUID('34343434-2323-2323-1212-121201010102'),bluetooth.FLAG_DSC_WRITE)
 test_dscs1      = (test_dsc1,test_dsc2)
 test_char1      = (test_char1_UUID,test_flag1,test_dscs1)
 
 test_char2_UUID =  bluetooth.UUID('33333333-2222-2222-1111-111100000002')
 test_flag2      =  bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY
-test_dsc3       = (bluetooth.UUID('34343434-2323-2323-1212-121201010103'),bluetooth.FLAG_READ)
+test_dsc3       = (bluetooth.UUID('34343434-2323-2323-1212-121201010103'),bluetooth.FLAG_DSC_READ | bluetooth.FLAG_DSC_WRITE)
 test_dscs2      = (test_dsc3,) # 单个的时候,是必须的
 test_char2      = (test_char2_UUID,test_flag2,test_dscs2)
 

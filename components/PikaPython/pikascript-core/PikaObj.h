@@ -703,6 +703,10 @@ Arg* __eventListener_runEvent(PikaEventListener* lisener,
                               uint32_t eventId,
                               Arg* eventData);
 
+Arg* pika_eventListener_sendAwaitResult(PikaEventListener* self,
+                                 uint32_t eventId,
+                                 Arg* eventData);
+
 Arg* pika_eventListener_sendSignalAwaitResult(PikaEventListener* self,
                                               uint32_t eventId,
                                               int eventSignal);

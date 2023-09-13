@@ -21,20 +21,31 @@
 
 #define GATT_SVR_SVC_ALERT_UUID               0x1811
 // BLE_UUID_base = 0x00000000-0000-1000-8000-00805F9B34FB;
+
 static const char *tag = "NimBLE_BLE";
-bool BLE_ONLY = false;       //只使用BLE,默认否
-bool BLE_FIRST_INIT = true;  //是否第一次初始化,默认是
+bool BLE_ONLY = false;                         //只使用BLE,默认否
+bool BLE_FIRST_INIT = true;                    //是否第一次初始化,默认是
 // uint8_t own_addr_type;
 PikaEventListener *g_pika_ble_listener = NULL; // 事件监听器
+struct ble_gatt_svc_def* gatt_svr_svcs = NULL; // BLE服务句柄
+
+/* A characteristic that can be subscribed to */
+static uint8_t gatt_svr_chr_val;
+static uint16_t gatt_svr_chr_val_handle;
+
+/* A custom descriptor */
+static uint8_t gatt_svr_dsc_val;
 
 // 函数声明
 // GATT 服务端回调函数
 static int ble_gatt_svc_access_cb(uint16_t conn_handle, uint16_t attr_handle,struct ble_gatt_access_ctxt *ctxt, void *arg);
+
 // GATT 客户端写回调函数
 static int ble_gatt_client_write_cb(uint16_t conn_handle,
                        const struct ble_gatt_error *error,
                        struct ble_gatt_attr *attr,
                        void *arg);
+
 // GATT 客户端读回调函数
 static int ble_gatt_client_read_cb(uint16_t conn_handle,
                        const struct ble_gatt_error *error,
@@ -77,64 +88,12 @@ static int ble_gatt_disc_all_dscs_cb(uint16_t conn_handle,
 // GAP层回调函数
 static int ble_gap_event_cb(struct ble_gap_event *event, void *arg);
 
-
 // gatt初始化基本服务
 void gatt_svr_init(void);
 
 //
 int read_uuid_from_str(char* buf, int len, ble_uuid_any_t* uuid_struct);
 
-// static const ble_uuid128_t gatt_svr_svc_uuid =
-//     BLE_UUID128_INIT(0x2d, 0x71, 0xa2, 0x59, 0xb4, 0x58, 0xc8, 0x12,
-//                      0x99, 0x99, 0x43, 0x95, 0x12, 0x2f, 0x46, 0x59);
-
-/* A characteristic that can be subscribed to */
-static uint8_t gatt_svr_chr_val;
-static uint16_t gatt_svr_chr_val_handle;
-
-// static const ble_uuid128_t gatt_svr_chr_uuid =
-//     BLE_UUID128_INIT(0x00, 0x00, 0x00, 0x00, 0x11, 0x11, 0x11, 0x11,
-//                      0x22, 0x22, 0x22, 0x22, 0x33, 0x33, 0x33, 0x33);
-
-/* A custom descriptor */
-static uint8_t gatt_svr_dsc_val;
-// static const ble_uuid128_t gatt_svr_dsc_uuid =
-//     BLE_UUID128_INIT(0x01, 0x01, 0x01, 0x01, 0x12, 0x12, 0x12, 0x12,
-//                      0x23, 0x23, 0x23, 0x23, 0x34, 0x34, 0x34, 0x34);
-
-// static const struct ble_gatt_svc_def gatt_svr_svc_o[] = {
-//     {
-//         /*** Service ***/
-//         .type = BLE_GATT_SVC_TYPE_PRIMARY,
-//         .uuid = &gatt_svr_svc_uuid.u,
-//         .characteristics = (struct ble_gatt_chr_def[])
-//         { {
-//                 /*** This characteristic can be subscribed to by writing 0x00 and 0x01 to the CCCD ***/
-//                 .uuid = &gatt_svr_chr_uuid.u,
-//                 .access_cb = ble_gatt_svc_access_cb,
-//                 .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_NOTIFY | BLE_GATT_CHR_F_INDICATE,
-//                 .val_handle = &gatt_svr_chr_val_handle,
-//                 .descriptors = (struct ble_gatt_dsc_def[])
-//                 { 
-//                     {
-//                       .uuid = &gatt_svr_dsc_uuid.u,
-//                       .att_flags = BLE_ATT_F_READ,
-//                       .access_cb = ble_gatt_svc_access_cb,
-//                     }, 
-//                     {
-//                       0, /* No more descriptors in this characteristic */
-//                     }
-//                 },
-//             }, {
-//                 0, /* No more characteristics in this service. */
-//             }
-//         },
-//     },
-
-//     {
-//         0, /* No more services. */
-//     },
-// };
 
 // 蓝牙任务
 void ble_host_task(void *param)
@@ -461,7 +420,6 @@ int _bluetooth_BLE_gap_stop_disc(PikaObj *self)
 
 // 注册服务
 // TODO:未验证
-struct ble_gatt_svc_def* gatt_svr_svcs;
 int _bluetooth_BLE_gatts_register_svcs(PikaObj *self, PikaObj* services_info)
 {
     // nimble_port_stop();
@@ -572,6 +530,7 @@ int _bluetooth_BLE_gatts_register_svcs(PikaObj *self, PikaObj* services_info)
                 gatt_svr_dscs[k].uuid        = &(dsc_UUID->u);
                 gatt_svr_dscs[k].access_cb   = ble_gatt_svc_access_cb;
                 gatt_svr_dscs[k].att_flags   = dsc_flags;
+                // gatt_svr_dscs[k].att_flags   = BLE_ATT_F_READ ;
                 // gatt_svr_chrs[j].val_handle  =  //TODO:描述符的句柄如何安排呢?
                 if(UUID_bytes == 2){
                     dsc_UUID->u.type       = BLE_UUID_TYPE_16;
@@ -594,7 +553,6 @@ int _bluetooth_BLE_gatts_register_svcs(PikaObj *self, PikaObj* services_info)
     // 注册服务
     // int rc = ble_gatts_count_cfg(gatt_svr_svc_o);
     int rc = ble_gatts_count_cfg(gatt_svr_svcs);
-    // rc = ble_gatts_count_cfg(gatt_svr_svcs);
     if (rc != 0) {
         return rc;
         // return -1;
@@ -618,6 +576,7 @@ int _bluetooth_BLE_gatts_register_svcs(PikaObj *self, PikaObj* services_info)
     //     free(gatt_svr_chrs);
     // }
     // free(gatt_svr_svcs);
+    // gatt_svr_svcs = NULL;
     // nimble_port_freertos_init(ble_host_task);
     // TODO:如何区分返回的错误代码和正确的handle呢
     return gatt_svr_chr_val_handle;
@@ -827,7 +786,8 @@ int _bluetooth_BLE_pyi_test3(PikaObj *self, int connhandle, int valuehandle)
 {
     uint8_t test = 2;
     printf("_bluetooth_BLE_pyi_test3\r\n");
-    printf("sizeof(&test) = %d",sizeof(&test));
+    // printf("sizeof(&test) = %d",sizeof(&test));
+    free(gatt_svr_svcs);
     return 0;
 }
 
@@ -1012,6 +972,7 @@ static int ble_gatt_svc_access_cb(uint16_t conn_handle, uint16_t attr_handle,
                             arg_newInt(conn_handle),
                             arg_newInt(attr_handle)
                             )));
+                            //TODO:需要等待返回值
             } else {
                 printf("Characteristic read by NimBLE stack; attr_handle=%d\n",attr_handle);
             }
@@ -1031,15 +992,26 @@ static int ble_gatt_svc_access_cb(uint16_t conn_handle, uint16_t attr_handle,
             }
             return 0;
 
-        case BLE_GATT_ACCESS_OP_READ_DSC:     //读描述符(与属性值先不做区分)
+        case BLE_GATT_ACCESS_OP_READ_DSC:     //读描述符(回调函数与属性值先不做区分)//TODO:待验证,没反应
             if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
                 printf("Descriptor read; conn_handle=%d attr_handle=%d\r\n",conn_handle, attr_handle);
-                pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTS_READ_REQUEST,
+
+                Arg* res = pika_eventListener_sendAwaitResult(g_pika_ble_listener,_IRQ_GATTS_READ_REQUEST,
                     arg_newObj(New_pikaTupleFrom(
                             arg_newInt(_IRQ_GATTS_READ_REQUEST),
                             arg_newInt(conn_handle),
                             arg_newInt(attr_handle)
                             )));
+                
+                int res_int = arg_getInt(res);  //TODO:传输结果不太对
+                if(res_int == _GATTS_NO_ERROR){ //允许读,如何返回解决结果?
+                    gatt_svr_dsc_val = 0xFF;
+                    rc = os_mbuf_append(ctxt->om,
+                                &gatt_svr_dsc_val,
+                                sizeof(gatt_svr_chr_val));
+                    return rc == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
+                }
+
             } else {
                 printf("Descriptor read by NimBLE stack; attr_handle=%d\r\n",attr_handle);
             }
@@ -1047,7 +1019,7 @@ static int ble_gatt_svc_access_cb(uint16_t conn_handle, uint16_t attr_handle,
 
         case BLE_GATT_ACCESS_OP_WRITE_DSC:      //写描述符
             if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
-                printf("Descriptor read; conn_handle=%d attr_handle=%d\r\n",conn_handle, attr_handle);
+                printf("Descriptor write; conn_handle=%d attr_handle=%d\r\n",conn_handle, attr_handle);
                 pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTS_WRITE,
                     arg_newObj(New_pikaTupleFrom(
                             arg_newInt(_IRQ_GATTS_WRITE),

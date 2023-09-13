@@ -2870,6 +2870,30 @@ PIKA_RES pika_eventListener_send(PikaEventListener* self,
     return _do_pika_eventListener_send(self, eventId, eventData, pika_true);
 }
 
+Arg* pika_eventListener_sendAwaitResult(PikaEventListener* self,
+                                 uint32_t eventId,
+                                 Arg* eventData) {
+    /*
+     * Await result from event.
+     * need implement `pika_platform_thread_delay()` to support thread switch */
+#if !PIKA_EVENT_ENABLE
+    pika_platform_printf("PIKA_EVENT_ENABLE is not enable");
+    while (1) {
+    };
+#else
+    extern volatile VMSignal g_PikaVMSignal;
+    int tail = g_PikaVMSignal.cq.tail;
+    pika_eventListener_send(self,eventId,eventData);
+    while (1) {
+        Arg* res = g_PikaVMSignal.cq.res[tail];
+        pika_platform_thread_yield();
+        if (NULL != res) {
+            return res;
+        }
+    }
+#endif
+}
+
 PIKA_RES pika_eventListener_sendSignal(PikaEventListener* self,
                                        uint32_t eventId,
                                        int eventSignal) {
