@@ -166,8 +166,11 @@ class BLE(_bluetooth.BLE):
                 self.last_resp_data = _to_string(resp_data)
                 # print(self.last_resp_data)
                 print(resp_data)
+            
+            # if resp_data is None and adv_data is None and interval_us is not None:
+            #     self.advertise_continue()
 
-            return self.advertise(self.addr_mode,int(interval_us/625),connectable,self.last_adv_data,len(self.last_adv_data),self.last_resp_data,len(self.last_resp_data))
+        return self.advertise(self.addr_mode,int(interval_us/625),connectable,self.last_adv_data,len(self.last_adv_data),self.last_resp_data,len(self.last_resp_data))
 
     # active的作用是接受扫描响应数据
     # """

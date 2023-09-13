@@ -76,6 +76,9 @@
         "utility": "c",
         "algorithm": "c",
         "sstream": "c",
-        "compare": "c"
+        "compare": "c",
+        "ble_svc_ans.h": "c",
+        "util.h": "c",
+        "ble_hs.h": "c"
     }
 }

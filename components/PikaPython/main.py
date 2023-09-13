@@ -4,7 +4,7 @@ import bluetooth
 import _bluetooth
 import const
 mem = PikaStdLib.MemChecker()
-
+a = 0
 def ble_irq(event,data):
     if event == const._IRQ_CENTRAL_CONNECT:
         print("_IRQ_CENTRAL_CONNECT")
@@ -18,8 +18,8 @@ def ble_irq(event,data):
     elif event == const._IRQ_GATTS_READ_REQUEST  :
         print("_IRQ_GATTS_READ_REQUEST")
         print(data)
-        # return const._GATTS_NO_ERROR
-        return const._GATTS_ERROR_READ_NOT_PERMITTED
+        return const._GATTS_NO_ERROR
+        # return const._GATTS_ERROR_READ_NOT_PERMITTED
     elif event == const._IRQ_SCAN_RESULT:
         print("_IRQ_SCAN_RESULT data : ")
         print(data)
@@ -30,6 +30,7 @@ def ble_irq(event,data):
         print("_IRQ_PERIPHERAL_CONNECT")
         print("data: ",data)
     elif event == const._IRQ_PERIPHERAL_DISCONNECT:
+        a.gap_advertise(6250)
         print("_IRQ_PERIPHERAL_DISCONNECT: ")
         print("data: ",data)
     elif event == const._IRQ_GATTC_SERVICE_RESULT :
