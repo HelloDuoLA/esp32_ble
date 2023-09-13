@@ -18,8 +18,11 @@ FLAG_WRITE_AUTHORIZED    = 0x4000
 
 class UUID():
     value  = ""
+    _UUID_bits = ""
     def __init__(self,value):
-        self.value =  UUID_to_bytes(value)
+        self.value,self._UUID_bits = UUID_to_bytes(value)
+    
+
 
 class BLE(_bluetooth.BLE):
 
@@ -177,7 +180,7 @@ class BLE(_bluetooth.BLE):
 
     def gatts_register_services(self, services):
         convert_services = _convert_ble_service_info(services)
-        print("convert_services  : ",convert_services)
+        # print("convert_services  : ",convert_services)
         return self.gatts_register_svcs(convert_services)
         # return convert_services
 
@@ -240,6 +243,7 @@ def _convert_ble_service_info(data):
     for i in data :
         if isinstance(i,UUID) :
             new_tuple.append(i.value)
+            new_tuple.append(i._UUID_bits)
             # print(i.value)
         elif isinstance(i, tuple):
             new_tuple.append(_convert_ble_service_info(i))
@@ -261,16 +265,37 @@ def _to_string(data):
         data_str = hex(data)[2:]
 
 def UUID_to_bytes(value:UUID):
-    value_bytes = ""
-    if isinstance(value,bytes):
-        value_bytes = value
-    elif isinstance(value,bytearray): #貌似没有太好的方式转到bytes上
+    value_bytes = []
+    if isinstance(value,bytearray): #貌似没有太好的方式转到bytes上
         value_bytes = value.decode()
+    elif isinstance(value, bytes):
+        value_bytes = value
     elif isinstance(value,str):
         value_str = value.replace("-","")
-        value_bytes = bytes([int(value_str[i:i+2],16) for i in range(0, len(value_str), 2)])
-    elif isinstance(value,int): # 65535 
-        value_bytes = bytes([value])
+        # print(value_str)
+        # value_bytes = bytes([int(value_str[i:i+2],16) for i in range(0, len(value_str), 2)])
+        value_list = []
+        for i in range(0, len(value_str), 2):
+            value_list.append(int(value_str[i:i+2],16))
+        value_bytes = bytes(value_list)
 
-    return value_bytes
+    elif isinstance(value,int): # 65535 
+        value_list = []
+        if value >= 0 and value < 65536 : #8 bit uuid
+            value_list.append(int(value/256))
+            value_list.append(value%256)
+        elif value >= 0 and value < 65536 * 65536:
+            value_list.append(int(value/(65536 * 256)))
+            value_list.append(int((value%(65536 * 256))/65536))
+            value_list.append(int((value%(65536))/256))
+            value_list.append((value%(256)))
+
+        value_bytes = bytes(value_list)
+    
+    UUID_bits = len(value_bytes)
+    # print(value_bytes)
+    return value_bytes,UUID_bits
+
+# 在python中如何将0x2a37转化为b'\x2a\x37'
+
     

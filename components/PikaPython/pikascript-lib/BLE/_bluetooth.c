@@ -84,57 +84,57 @@ void gatt_svr_init(void);
 //
 int read_uuid_from_str(char* buf, int len, ble_uuid_any_t* uuid_struct);
 
-static const ble_uuid128_t gatt_svr_svc_uuid =
-    BLE_UUID128_INIT(0x2d, 0x71, 0xa2, 0x59, 0xb4, 0x58, 0xc8, 0x12,
-                     0x99, 0x99, 0x43, 0x95, 0x12, 0x2f, 0x46, 0x59);
+// static const ble_uuid128_t gatt_svr_svc_uuid =
+//     BLE_UUID128_INIT(0x2d, 0x71, 0xa2, 0x59, 0xb4, 0x58, 0xc8, 0x12,
+//                      0x99, 0x99, 0x43, 0x95, 0x12, 0x2f, 0x46, 0x59);
 
 /* A characteristic that can be subscribed to */
 static uint8_t gatt_svr_chr_val;
 static uint16_t gatt_svr_chr_val_handle;
 
-static const ble_uuid128_t gatt_svr_chr_uuid =
-    BLE_UUID128_INIT(0x00, 0x00, 0x00, 0x00, 0x11, 0x11, 0x11, 0x11,
-                     0x22, 0x22, 0x22, 0x22, 0x33, 0x33, 0x33, 0x33);
+// static const ble_uuid128_t gatt_svr_chr_uuid =
+//     BLE_UUID128_INIT(0x00, 0x00, 0x00, 0x00, 0x11, 0x11, 0x11, 0x11,
+//                      0x22, 0x22, 0x22, 0x22, 0x33, 0x33, 0x33, 0x33);
 
 /* A custom descriptor */
 static uint8_t gatt_svr_dsc_val;
-static const ble_uuid128_t gatt_svr_dsc_uuid =
-    BLE_UUID128_INIT(0x01, 0x01, 0x01, 0x01, 0x12, 0x12, 0x12, 0x12,
-                     0x23, 0x23, 0x23, 0x23, 0x34, 0x34, 0x34, 0x34);
+// static const ble_uuid128_t gatt_svr_dsc_uuid =
+//     BLE_UUID128_INIT(0x01, 0x01, 0x01, 0x01, 0x12, 0x12, 0x12, 0x12,
+//                      0x23, 0x23, 0x23, 0x23, 0x34, 0x34, 0x34, 0x34);
 
-static const struct ble_gatt_svc_def gatt_svr_svcs[] = {
-    {
-        /*** Service ***/
-        .type = BLE_GATT_SVC_TYPE_PRIMARY,
-        .uuid = &gatt_svr_svc_uuid.u,
-        .characteristics = (struct ble_gatt_chr_def[])
-        { {
-                /*** This characteristic can be subscribed to by writing 0x00 and 0x01 to the CCCD ***/
-                .uuid = &gatt_svr_chr_uuid.u,
-                .access_cb = ble_gatt_svc_access_cb,
-                .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_NOTIFY | BLE_GATT_CHR_F_INDICATE,
-                .val_handle = &gatt_svr_chr_val_handle,
-                .descriptors = (struct ble_gatt_dsc_def[])
-                { 
-                    {
-                      .uuid = &gatt_svr_dsc_uuid.u,
-                      .att_flags = BLE_ATT_F_READ,
-                      .access_cb = ble_gatt_svc_access_cb,
-                    }, 
-                    {
-                      0, /* No more descriptors in this characteristic */
-                    }
-                },
-            }, {
-                0, /* No more characteristics in this service. */
-            }
-        },
-    },
+// static const struct ble_gatt_svc_def gatt_svr_svc_o[] = {
+//     {
+//         /*** Service ***/
+//         .type = BLE_GATT_SVC_TYPE_PRIMARY,
+//         .uuid = &gatt_svr_svc_uuid.u,
+//         .characteristics = (struct ble_gatt_chr_def[])
+//         { {
+//                 /*** This characteristic can be subscribed to by writing 0x00 and 0x01 to the CCCD ***/
+//                 .uuid = &gatt_svr_chr_uuid.u,
+//                 .access_cb = ble_gatt_svc_access_cb,
+//                 .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_NOTIFY | BLE_GATT_CHR_F_INDICATE,
+//                 .val_handle = &gatt_svr_chr_val_handle,
+//                 .descriptors = (struct ble_gatt_dsc_def[])
+//                 { 
+//                     {
+//                       .uuid = &gatt_svr_dsc_uuid.u,
+//                       .att_flags = BLE_ATT_F_READ,
+//                       .access_cb = ble_gatt_svc_access_cb,
+//                     }, 
+//                     {
+//                       0, /* No more descriptors in this characteristic */
+//                     }
+//                 },
+//             }, {
+//                 0, /* No more characteristics in this service. */
+//             }
+//         },
+//     },
 
-    {
-        0, /* No more services. */
-    },
-};
+//     {
+//         0, /* No more services. */
+//     },
+// };
 
 // 蓝牙任务
 void ble_host_task(void *param)
@@ -242,6 +242,15 @@ void print_addr(const void *addr)
     printf("%02x:%02x:%02x:%02x:%02x:%02x\r\n",u8p[5], u8p[4], u8p[3], u8p[2], u8p[1], u8p[0]);
 }
 
+
+void print_uuid_128(uint8_t *uuid)
+{
+    for (size_t i = 0; i < 16; i++)
+        {
+            printf("%02x",uuid[15 - i]);
+        }
+        printf("\r\n");
+}
 /**
  * Logs information about a connection to the console.
  */
@@ -452,83 +461,150 @@ int _bluetooth_BLE_gap_stop_disc(PikaObj *self)
 
 // 注册服务
 // TODO:未验证
+struct ble_gatt_svc_def* gatt_svr_svcs;
 int _bluetooth_BLE_gatts_register_svcs(PikaObj *self, PikaObj* services_info)
 {
     // nimble_port_stop();
-    // printf("_bluetooth_BLE_gatts_register_svcs\r\n");
-    // size_t service_count , chr_count, dsc_count;
-    // uint8_t i,j,k;
-    // uint8_t *chrs_count_per_service;
+    printf("_bluetooth_BLE_gatts_register_svcs\r\n");
+    size_t service_count , chr_count, dsc_count;
+    uint8_t i,j,k;
+    uint8_t *chrs_count_per_service;
+    uint8_t  UUID_bytes;
     // struct ble_gatt_svc_def* gatt_svr_svcs;
-    // struct ble_gatt_chr_def* gatt_svr_chrs;
-    // struct ble_gatt_dsc_def* gatt_svr_dscs;
+    struct ble_gatt_chr_def* gatt_svr_chrs;
+    struct ble_gatt_dsc_def* gatt_svr_dscs;
 
-    // service_count = pikaTuple_getSize(services_info);            //服务的个数,是不确定的
-    // printf("services_info service_count = %d\r\n",service_count);
+    service_count = pikaTuple_getSize(services_info);            //服务的个数,是不确定的
+    printf("services_info service_count = %d\r\n",service_count);
 
-    // gatt_svr_svcs = (struct ble_gatt_svc_def*) malloc((service_count + 1) * sizeof(struct ble_gatt_svc_def)); //申请空间
-    // chrs_count_per_service    = (uint8_t*) malloc((service_count + 1) * sizeof(uint8_t));
+    gatt_svr_svcs = (struct ble_gatt_svc_def*) malloc((service_count + 1) * sizeof(struct ble_gatt_svc_def)); //申请空间
+    chrs_count_per_service    = (uint8_t*) malloc((service_count + 1) * sizeof(uint8_t));
+    if(gatt_svr_svcs == NULL){
+        printf("malloc svcs memory error\r\n");
+        return -1;
+    }
+    gatt_svr_svcs[service_count].type = 0; //服务数量中止
 
-    // if(gatt_svr_svcs == NULL){
-    //     printf("malloc svcs memory error\r\n");
-    //     return -1;
-    // }
+    for (i = 0;i < service_count;i++){                             //对于每个服务
+        PikaObj* service = arg_getObj(pikaTuple_getArg(services_info, i)); //读取服务
+        uint8_t* service_bytes_UUID = arg_getBytes(pikaTuple_getArg(service,0)); //获取服务的UUID
+        UUID_bytes   = arg_getInt(pikaTuple_getArg(service,1));            //获取服务的UUID大小
+        
+        PikaObj* chrs = arg_getObj(pikaTuple_getArg(service, 2));//读取属性合集
+        chr_count = pikaTuple_getSize(chrs);                       // 属性的个数,是不确定的
 
+        gatt_svr_chrs = (struct ble_gatt_chr_def*) malloc((chr_count  + 1)* sizeof(struct ble_gatt_chr_def)); //申请空间
+        if(gatt_svr_chrs == NULL){
+            printf("malloc chrs memory error\r\n");
+            return -1;
+        }    
+        gatt_svr_chrs[chr_count].uuid = 0;    //特性数量中止
 
-    // for (i = 0;i < service_count;i++){                             //对于每个服务
-    //     PikaObj* service = arg_getObj(pikaTuple_getArg(services_info, i)); //读取服务
-    //     char* service_UUID = pikaTuple_getStr(service,0);         //获取服务的UUID
+        chrs_count_per_service[i] = chr_count; //存储特性数量,方便后续释放空间
 
-    //     PikaObj* chrs = arg_getObj(pikaTuple_getArg(service, 1));//读取属性合集
-    //     chr_count = pikaTuple_getSize(chrs);                       // 属性的个数,是不确定的
+        // 设置服务
+        ble_uuid_any_t* service_UUID = (ble_uuid_any_t*) malloc(sizeof(ble_uuid_any_t));
 
-    //     gatt_svr_chrs = (struct ble_gatt_chr_def*) malloc((chr_count  + 1)* sizeof(struct ble_gatt_chr_def)); //申请空间
-    //     if(gatt_svr_chrs == NULL){
-    //         printf("malloc chrs memory error\r\n");
-    //         return -1;
-    //     }    
-    //     chrs_count_per_service[i] = chr_count;
-    //     // int uuid_size = read_uuid_from_str(service_UUID,);
-    //     // gatt_svr_svcs[0].uuid = BLE_UUID16_DECLARE(test);
+        gatt_svr_svcs[i].type = BLE_GATT_SVC_TYPE_PRIMARY;
+        gatt_svr_svcs[i].characteristics = gatt_svr_chrs;
+        gatt_svr_svcs[i].uuid = &(service_UUID->u);
+        gatt_svr_svcs[i].includes = NULL; //很关键
+        if(UUID_bytes == 2){
+            service_UUID->u.type       = BLE_UUID_TYPE_16;
+            service_UUID->u16.value    = service_bytes_UUID[0] << 8 | service_bytes_UUID[1];
+        }else if(UUID_bytes == 4) {
+            service_UUID->u.type       = BLE_UUID_TYPE_32;
+            service_UUID->u32.value    = service_bytes_UUID[0] << 24 | service_bytes_UUID[1] << 16 | service_bytes_UUID[2] << 8 | service_bytes_UUID[3];
+        }else{
+            service_UUID->u.type       = BLE_UUID_TYPE_128;
+            data_inver(service_bytes_UUID,service_UUID->u128.value,16);
+        }
 
-    //     printf("service %d UUID %s chrs size %d \r\n",i,service_UUID,chr_count);
-    //     for (j = 0;j < chr_count;j++){                           // 对于每个属性
-    //         PikaObj* chr = arg_getObj(pikaTuple_getArg(chrs, j));//读取属性
+        printf("service %d chrs size %d \r\n",i,chr_count);
+        for (j = 0;j < chr_count;j++){                           // 对于每个属性
+            PikaObj* chr = arg_getObj(pikaTuple_getArg(chrs, j));//读取属性
 
-    //         char * chr_UUID = pikaTuple_getStr(chr,0);           //属性FLAG    
-    //         uint64_t chr_flags = pikaTuple_getInt(chr,1);
-    //         PikaObj* dscs = arg_getObj(pikaTuple_getArg(chr, 2));// dscs = 描述符合集
-    //         dsc_count = pikaTuple_getSize(dscs);                 //描述符的个数，是不确定的
+            uint8_t * chr_bytes_UUID = arg_getBytes(pikaTuple_getArg(chr,0));           //属性UUID
+            uint8_t UUID_bytes = arg_getInt(pikaTuple_getArg(chr,1));
+            uint64_t chr_flags = pikaTuple_getInt(chr,2);        //属性FLAG   
+            PikaObj* dscs = arg_getObj(pikaTuple_getArg(chr, 3));// dscs = 描述符合集
+            dsc_count = pikaTuple_getSize(dscs);                 //描述符的个数，是不确定的
 
-    //         gatt_svr_dscs = (struct ble_gatt_dsc_def*) malloc((dsc_count + 1 )* sizeof(struct ble_gatt_dsc_def)); //申请空间
-    //         if(gatt_svr_dscs == NULL){
-    //             printf("malloc dscs memory error\r\n");
-    //             return -1;
-    //         }    
-    //         printf("chr_UUID : %s chr_flags %d dscs size:%d\r\n",chr_UUID,chr_flags,dsc_count);
-    //         for(k = 0;k < dsc_count;k++){                        //对于每个描述符
-    //             PikaObj* dsc = arg_getObj(pikaTuple_getArg(dscs, k));
-    //             char * dscs_UUID = pikaTuple_getInt(dsc, 0);
-    //             uint16_t dscs_flags = pikaTuple_getInt(dsc, 1);
-    //             printf("dsc_UUID : %s, dsc_flags : %d\r\n",dscs_UUID,dscs_flags);
-    //         }
-    //     }
-    // }
-    
+            gatt_svr_dscs = (struct ble_gatt_dsc_def*) malloc((dsc_count + 1 )* sizeof(struct ble_gatt_dsc_def)); //申请空间
+            if(gatt_svr_dscs == NULL){
+                printf("malloc dscs memory error\r\n");
+                return -1;
+            }
+
+            gatt_svr_dscs[dsc_count].uuid = 0; //描述符数量中止
+
+            // 设置属性
+            ble_uuid_any_t* chr_UUID = (ble_uuid_any_t*) malloc(sizeof(ble_uuid_any_t));
+
+            gatt_svr_chrs[j].uuid        = &(chr_UUID->u);
+            gatt_svr_chrs[j].access_cb   = ble_gatt_svc_access_cb;
+            gatt_svr_chrs[j].flags       = chr_flags;
+            gatt_svr_chrs[j].descriptors = gatt_svr_dscs;
+            // gatt_svr_chrs[j].val_handle  =  //TODO:待安排
+            gatt_svr_chrs[j].val_handle  =  &gatt_svr_chr_val_handle;
+            if(UUID_bytes == 2){
+                chr_UUID->u.type       = BLE_UUID_TYPE_16;
+                chr_UUID->u16.value    = chr_bytes_UUID[0] << 8 | chr_bytes_UUID[1];
+            }else if(UUID_bytes == 4) {
+                chr_UUID->u.type       = BLE_UUID_TYPE_32;
+                chr_UUID->u32.value    = chr_bytes_UUID[0] << 24 | chr_bytes_UUID[1] << 16 | chr_bytes_UUID[2] << 8 | chr_bytes_UUID[3];
+            }else{
+                chr_UUID->u.type       = BLE_UUID_TYPE_128;
+                data_inver(chr_bytes_UUID,chr_UUID->u128.value,16);
+            }
+
+            printf("chr_UUID_size : %d chr_flags %d dscs size:%d\r\n",UUID_bytes,chr_flags,dsc_count);
+
+            for(k = 0;k < dsc_count;k++){                        //对于每个描述符
+                PikaObj * dsc = arg_getObj(pikaTuple_getArg(dscs, k));
+                uint8_t * dsc_bytes_UUID = arg_getBytes(pikaTuple_getArg(dsc,0));  
+                uint8_t UUID_bytes = arg_getInt(pikaTuple_getArg(dsc,1));
+                uint16_t dsc_flags = pikaTuple_getInt(dsc, 2);
+
+                // 设置描述符
+                ble_uuid_any_t* dsc_UUID = (ble_uuid_any_t*) malloc(sizeof(ble_uuid_any_t));
+
+                gatt_svr_dscs[k].uuid        = &(dsc_UUID->u);
+                gatt_svr_dscs[k].access_cb   = ble_gatt_svc_access_cb;
+                gatt_svr_dscs[k].att_flags   = dsc_flags;
+                // gatt_svr_chrs[j].val_handle  =  //TODO:描述符的句柄如何安排呢?
+                if(UUID_bytes == 2){
+                    dsc_UUID->u.type       = BLE_UUID_TYPE_16;
+                    dsc_UUID->u16.value    = dsc_bytes_UUID[0] << 8 | dsc_bytes_UUID[1];
+                }else if(UUID_bytes == 4) {
+                    dsc_UUID->u.type       = BLE_UUID_TYPE_32;
+                    dsc_UUID->u32.value    = dsc_bytes_UUID[0] << 24 | dsc_bytes_UUID[1] << 16 | dsc_bytes_UUID[2] << 8 | dsc_bytes_UUID[3];
+                }else{
+                    dsc_UUID->u.type       = BLE_UUID_TYPE_128;
+                    data_inver(dsc_bytes_UUID,dsc_UUID->u128.value,16);
+                }
+                // printf("dsc_UUID_bytes : %d, dsc_flags : %d\r\n",UUID_bytes,dsc_flags);
+            }
+        }
+    }
+
     //注册基本服务
     gatt_svr_init(); 
 
     // 注册服务
+    // int rc = ble_gatts_count_cfg(gatt_svr_svc_o);
     int rc = ble_gatts_count_cfg(gatt_svr_svcs);
+    // rc = ble_gatts_count_cfg(gatt_svr_svcs);
     if (rc != 0) {
-        // return rc;
-        return -1;
+        return rc;
+        // return -1;
     }
 
+    // rc = ble_gatts_add_svcs(gatt_svr_svc_o);
     rc = ble_gatts_add_svcs(gatt_svr_svcs);
     if (rc != 0) {
-        // return rc;
-        return -1;
+        return rc;
+        // return -1;
     }
 
     // 释放内存空间的时候需要遍历结构体
@@ -749,12 +825,10 @@ int _bluetooth_BLE_pyi_test2(PikaObj *self,char *data ,int data_len)
 
 int _bluetooth_BLE_pyi_test3(PikaObj *self, int connhandle, int valuehandle)
 {
+    uint8_t test = 2;
     printf("_bluetooth_BLE_pyi_test3\r\n");
-    // ble_svc_gap_device_name_set("nimble-test");
-    char data[] = "test write data";
-    uint16_t data_len = strlen(data);
-    printf("datalen = %d\r\n",data_len);
-    return ble_gattc_write_no_rsp_flat(connhandle, valuehandle, data,data_len);
+    printf("sizeof(&test) = %d",sizeof(&test));
+    return 0;
 }
 
 int _bluetooth_BLE_test_call_some_name(PikaObj *self)
@@ -818,7 +892,6 @@ int _bluetooth_BLE_gattc_dis_dscs(PikaObj *self, int conn_handle, int start_hand
 }
 
 // GATT读属性、描述符
-// TODO:未验证
 int _bluetooth_BLE_pyi_gattc_read(PikaObj *self, int conn_handle, int value_handle){
     return ble_gattc_read(conn_handle, value_handle,ble_gatt_client_read_cb, NULL);
 }
@@ -839,7 +912,8 @@ int _bluetooth_BLE_gattc_write_with_rsp(PikaObj *self, int conn_handle, int valu
 
 // GATT indicate
 // TODO:struct os_mbuf txom是个什么样的格式类型
-int _bluetooth_BLE_gatts_indicate_custom(PikaObj *self, int conn_handle, int value_handle, char* data){
+int _bluetooth_BLE_gatts_indicate_custom(PikaObj *self, int conn_handle, int value_handle, char* data, int data_len)
+{
     struct os_mbuf txom = {
         .om_len = 2,
     };
@@ -852,7 +926,8 @@ int _bluetooth_BLE_gatts_indicate_no_data(PikaObj *self, int conn_handle, int va
 }
 
 // TODO: struct os_mbuf ??
-int _bluetooth_BLE_gatts_notify_custom(PikaObj *self, int conn_handle, int value_handle, char* data){
+int _bluetooth_BLE_gatts_notify_custom(PikaObj *self, int conn_handle, int value_handle, char* data, int data_len)
+{
     struct os_mbuf om = {
         .om_len = 2,
     };
@@ -890,7 +965,7 @@ void gatt_svr_init(void)
 {
     ble_svc_gap_init();
     ble_svc_gatt_init();
-    // ble_svc_ans_init();
+    ble_svc_ans_init();
 }
 
 // 从字符串中读取UUID 结构体
@@ -921,7 +996,8 @@ int read_uuid_from_str(char* buf, int len, ble_uuid_any_t* uuid_struct)
 }
 
 
-// GATT层:服务端回调函数
+// GATT层: 服务端 回调函数
+// TODO:待完善
 static int ble_gatt_svc_access_cb(uint16_t conn_handle, uint16_t attr_handle,
                 struct ble_gatt_access_ctxt *ctxt, void *arg){
     const ble_uuid_t *uuid;
@@ -929,7 +1005,7 @@ static int ble_gatt_svc_access_cb(uint16_t conn_handle, uint16_t attr_handle,
     switch (ctxt->op) {                       
         case BLE_GATT_ACCESS_OP_READ_CHR:       //读属性值
             if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
-                printf("Characteristic read; conn_handle=%d attr_handle=%d\n",conn_handle, attr_handle);
+                printf("Characteristic read: conn_handle=%d attr_handle=%d\r\n",conn_handle, attr_handle);
                 pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTS_READ_REQUEST,
                     arg_newObj(New_pikaTupleFrom(
                             arg_newInt(_IRQ_GATTS_READ_REQUEST),
@@ -943,15 +1019,15 @@ static int ble_gatt_svc_access_cb(uint16_t conn_handle, uint16_t attr_handle,
 
         case BLE_GATT_ACCESS_OP_WRITE_CHR:     //写属性值
             if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
-                printf("Characteristic write; conn_handle=%d attr_handle=%d", conn_handle, attr_handle);
+                printf("Characteristic write; conn_handle=%d attr_handle=%d\r\n", conn_handle, attr_handle);
                 pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTS_WRITE,
                     arg_newObj(New_pikaTupleFrom(
                             arg_newInt(_IRQ_GATTS_WRITE),
-                            arg_newInt(conn_handle),
-                            arg_newInt(attr_handle)
+                            arg_newInt(conn_handle), 
+                            arg_newInt(attr_handle)  //TODO:特征权值
                             )));
             } else {
-                printf("Characteristic write by NimBLE stack; attr_handle=%d",attr_handle);
+                printf("Characteristic write by NimBLE stack; attr_handle=%d\r\n",attr_handle);
             }
             return 0;
 
@@ -997,13 +1073,6 @@ static int ble_gatt_client_read_cb(uint16_t conn_handle,
             "status=%d conn_handle=%d\r\n", error->status, conn_handle);
     //读取成功
     // TODO:读完之后不会引起其他事件，所以要done 和result一起触发
-    pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_READ_DONE ,
-        arg_newObj(New_pikaTupleFrom(
-                arg_newInt(_IRQ_GATTC_READ_DONE),
-                arg_newInt(conn_handle),
-                arg_newInt(attr->handle),
-                arg_newInt(error->status) 
-                )));
     if (error->status == 0) {
         //读到数据
         // printf("om_data:%d\r\n",*(attr->om->om_data));
@@ -1015,9 +1084,25 @@ static int ble_gatt_client_read_cb(uint16_t conn_handle,
             arg_newObj(New_pikaTupleFrom(
                     arg_newInt(_IRQ_GATTC_READ_RESULT),
                     arg_newInt(conn_handle),
-                    arg_newInt(attr->handle),
+                    arg_newInt(attr->handle), //应该是value handle
                     arg_newBytes(attr->om->om_data,attr->om->om_len) 
                     )));
+
+        pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_READ_DONE ,
+        arg_newObj(New_pikaTupleFrom(
+                arg_newInt(_IRQ_GATTC_READ_DONE),
+                arg_newInt(conn_handle),
+                arg_newInt(attr->handle),
+                arg_newInt(error->status) 
+                )));
+    }else{
+        pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_READ_DONE ,
+        arg_newObj(New_pikaTupleFrom(
+                arg_newInt(_IRQ_GATTC_READ_DONE),
+                arg_newInt(conn_handle),
+                arg_newInt(-1),
+                arg_newInt(error->status) 
+                )));
     }
     return 0;
 }
@@ -1036,6 +1121,7 @@ static int ble_gatt_client_write_cb(uint16_t conn_handle,
                 "Write to the custom subscribable characteristic complete; "
                 "status=%d conn_handle=%d attr_handle=%d\n",
                 error->status, conn_handle, attr->handle);
+    if (error->status == 0) {       
         //读到数据
         pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_WRITE_DONE,
             arg_newObj(New_pikaTupleFrom(
@@ -1044,6 +1130,15 @@ static int ble_gatt_client_write_cb(uint16_t conn_handle,
                     arg_newInt(attr->handle),
                     arg_newInt(error->status) 
                     )));
+    }else{
+        pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTC_WRITE_DONE,
+            arg_newObj(New_pikaTupleFrom(
+                arg_newInt(_IRQ_GATTC_WRITE_DONE),
+                arg_newInt(conn_handle),
+                arg_newInt(-1),
+                arg_newInt(error->status) 
+                )));
+    }
     return 0;
 }
 
@@ -1584,8 +1679,8 @@ static int ble_gatt_disc_all_chrs_cb(uint16_t conn_handle,
                 arg_newObj(New_pikaTupleFrom(
                     arg_newInt(_IRQ_GATTC_CHARACTERISTIC_RESULT),
                     arg_newInt(conn_handle),
-                    arg_newInt(chr->def_handle),  
-                    arg_newInt(chr->val_handle),
+                    arg_newInt(chr->def_handle),  // 定义的句柄
+                    arg_newInt(chr->val_handle),  // 值的句柄
                     arg_newInt(chr->properties),
                     arg_newBytes(uuid,data_len/8)
                 )));

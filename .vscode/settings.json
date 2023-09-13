@@ -75,6 +75,7 @@
         "system_error": "c",
         "utility": "c",
         "algorithm": "c",
-        "sstream": "c"
+        "sstream": "c",
+        "compare": "c"
     }
 }
