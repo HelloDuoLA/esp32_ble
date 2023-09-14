@@ -113,37 +113,37 @@ b = a.active(1)
 b = a.irq(ble_irq)
 
 # 注册服务，服务端
-# HR_UUID = bluetooth.UUID(0x180D)
-# HR_CHAR = (bluetooth.UUID(0x2A37), bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY,((bluetooth.UUID(0x3001),bluetooth.FLAG_READ),(bluetooth.UUID(0x3002),bluetooth.FLAG_READ)))
-# HR_SERVICE = (HR_UUID, (HR_CHAR,),)
-# UART_UUID = bluetooth.UUID('6E400001-B5A3-F393-E0A9-E50E24DCCA9E')
-# UART_TX = (bluetooth.UUID('6E400003-B5A3-F393-E0A9-E50E24DCCA9E'), bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY,((bluetooth.UUID(0x30000001),bluetooth.FLAG_NOTIFY),(bluetooth.UUID(0x30000001),bluetooth.FLAG_READ),(bluetooth.UUID(0x30000002),bluetooth.FLAG_INDICATE)))
-# UART_RX = (bluetooth.UUID('6E400002-B5A3-F393-E0A9-E50E24DCCA9E'), bluetooth.FLAG_WRITE,((bluetooth.UUID('6E400006-B5A3-F393-E0A9-E50E24DCCA9E'),bluetooth.FLAG_WRITE),))
-# UART_SERVICE = (UART_UUID, (UART_TX, UART_RX))
-# SERVICES = (HR_SERVICE, UART_SERVICE,)
-# c = a.gatts_register_services(SERVICES)
+HR_UUID = bluetooth.UUID(0x180D)
+HR_CHAR = (bluetooth.UUID(0x2A37), bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY,((bluetooth.UUID(0x3001),bluetooth.FLAG_READ),(bluetooth.UUID(0x3002),bluetooth.FLAG_READ)))
+HR_SERVICE = (HR_UUID, (HR_CHAR,),)
+UART_UUID = bluetooth.UUID('6E400001-B5A3-F393-E0A9-E50E24DCCA9E')
+UART_TX = (bluetooth.UUID('6E400003-B5A3-F393-E0A9-E50E24DCCA9E'), bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY,((bluetooth.UUID(0x30000001),bluetooth.FLAG_NOTIFY),(bluetooth.UUID(0x30000001),bluetooth.FLAG_READ),(bluetooth.UUID(0x30000002),bluetooth.FLAG_INDICATE)))
+UART_RX = (bluetooth.UUID('6E400002-B5A3-F393-E0A9-E50E24DCCA9E'), bluetooth.FLAG_WRITE,((bluetooth.UUID('6E400006-B5A3-F393-E0A9-E50E24DCCA9E'),bluetooth.FLAG_WRITE),))
+UART_SERVICE = (UART_UUID, (UART_TX, UART_RX))
+SERVICES = (HR_SERVICE, UART_SERVICE,)
+c = a.gatts_register_services(SERVICES)
 
-test_char1_UUID =  bluetooth.UUID('33333333-2222-2222-1111-111100000001')
-test_flag1      =  bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY
-test_dsc1       = (bluetooth.UUID('34343434-2323-2323-1212-121201010101'),bluetooth.FLAG_DSC_READ )
-test_dsc2       = (bluetooth.UUID('34343434-2323-2323-1212-121201010102'),bluetooth.FLAG_DSC_WRITE)
-test_dscs1      = (test_dsc1,test_dsc2)
-test_char1      = (test_char1_UUID,test_flag1,test_dscs1)
+# test_char1_UUID =  bluetooth.UUID('33333333-2222-2222-1111-111100000001')
+# test_flag1      =  bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY
+# test_dsc1       = (bluetooth.UUID('34343434-2323-2323-1212-121201010101'),bluetooth.FLAG_DSC_READ )
+# test_dsc2       = (bluetooth.UUID('34343434-2323-2323-1212-121201010102'),bluetooth.FLAG_DSC_WRITE)
+# test_dscs1      = (test_dsc1,test_dsc2)
+# test_char1      = (test_char1_UUID,test_flag1,test_dscs1)
 
-test_char2_UUID =  bluetooth.UUID('33333333-2222-2222-1111-111100000002')
-test_flag2      =  bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY
-test_dsc3       = (bluetooth.UUID('34343434-2323-2323-1212-121201010103'),bluetooth.FLAG_DSC_READ | bluetooth.FLAG_DSC_WRITE)
-test_dscs2      = (test_dsc3,) # 单个的时候,是必须的
-test_char2      = (test_char2_UUID,test_flag2,test_dscs2)
+# test_char2_UUID =  bluetooth.UUID('33333333-2222-2222-1111-111100000002')
+# test_flag2      =  bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY
+# test_dsc3       = (bluetooth.UUID('34343434-2323-2323-1212-121201010103'),bluetooth.FLAG_DSC_READ | bluetooth.FLAG_DSC_WRITE)
+# test_dscs2      = (test_dsc3,) # 单个的时候,是必须的
+# test_char2      = (test_char2_UUID,test_flag2,test_dscs2)
 
-test_UUID      =  bluetooth.UUID('59462f12-9543-9999-12C8-58B459A2712D')
-test_chars      = (test_char1,test_char2)
-test_service    = (test_UUID, test_chars)
-test_services   = (test_service,)
+# test_UUID      =  bluetooth.UUID('59462f12-9543-9999-12C8-58B459A2712D')
+# test_chars      = (test_char1,test_char2)
+# test_service    = (test_UUID, test_chars)
+# test_services   = (test_service,)
 
-c = a.gatts_register_services(test_services)
+# c = a.gatts_register_services(test_services)
 
-
+# len(test_service[1])
 # test_char1_UUID =  bluetooth.UUID('33333333-2222-2222-1111-111100000001')
 # test_flag1      =  bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY
 # test_dsc1       = (bluetooth.UUID('34343434-2323-2323-1212-121201010101'),bluetooth.FLAG_READ)
@@ -172,8 +172,14 @@ print(a.gap_advertise(6250))
 # addr = bytes([0x0c,0xae,0xb0,0xb6,0xaf,0xa5])
 # addr = bytes([0x6c,0xf9,0x87,0xd5,0x49,0x24])
 # addr = bytes([0x34,0x85,0x18,0x92,0x0d,0xb6]) # old esp32
-addr = bytes([0xec,0xda,0x3b,0x67,0x7a,0x82])  # new eps32 s3
+# addr = bytes([0xec,0xda,0x3b,0x67,0x7a,0x82])  # new eps32 s3
 # a.gap_connect(addr,0)
+
+
+# a._c2py_dict
+# a._py2c_dict
+# a._c2value_dict
+
 
 # a.test3(1,0)
 # a.gattc_discover_services(1)

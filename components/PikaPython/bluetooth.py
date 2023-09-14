@@ -40,6 +40,10 @@ class BLE(_bluetooth.BLE):
     last_resp_data = ""  #回应扫描内容
     addr_mode      =  0  #地址类型 BLE_OWN_ADDR_PUBLIC,BLE_OWN_ADDR_RANDOM,BLE_OWN_ADDR_RPA_PUBLIC_DEFAULT,BLE_OWN_ADDR_RPA_RANDOM_DEFAULT
     callback_func  = None  #回调函数
+    _basic_value_handle = 20
+    _py2c_dict = {}
+    _c2py_dict = {}
+    _c2value_dict = {}
 
     def __init__(self):
         print("BLE init")
@@ -145,7 +149,23 @@ class BLE(_bluetooth.BLE):
 
     def ble_callback(self,data):
         # TODO:memoryview没有实现
-        return self.callback_func(data[0],data[1:])
+        event_id = data[0]
+        if event_id > 100 :      #自定义回调事件
+            if event_id == 101 : # 建立句柄映射 TODO:待验证
+                ble_value_handles = data[1]
+                print("ble_value_handles %d",ble_value_handles)
+                length = len(ble_value_handles)
+                for i in range(length):
+                    # py 映射 c handle
+                    key =  self._basic_value_handle + i
+                    value = ble_value_handles[i] 
+                    self._py2c_dict[str(key)] = value 
+                    # c 映射 py handle
+                    self._c2py_dict[str(value)] = key
+                    # c handle 映射 value, 默认值为空
+                    self._c2value_dict[str(value)] = ""
+        else: 
+            return self.callback_func(event_id,data[1:])
 
     # 完成
     def gap_advertise(self, interval_us, adv_data=None, resp_data=None, connectable=True):
@@ -194,8 +214,30 @@ class BLE(_bluetooth.BLE):
     def gatts_register_services(self, services):
         convert_services = _convert_ble_service_info(services)
         # print("convert_services  : ",convert_services)
-        return self.gatts_register_svcs(convert_services)
-        # return convert_services
+
+        offset = 0
+        chr_list = _count_chrs(services)
+        all_chr_count = 0
+        new_list1 = []
+
+        # 计算pyhandle返回值
+        # 计算chr总数量
+        for i in range(len(chr_list)):
+            new_list2 = []
+            all_chr_count += chr_list[i]
+            for j in range(chr_list[i]):
+                value_handle = self._basic_value_handle + offset
+                new_list2.append(value_handle)
+                # self._py2c_dict[str(value_handle)] = -99
+                offset += 1
+            new_list1.append(new_list2)
+
+        rc = self.gatts_register_svcs(convert_services,all_chr_count)
+        
+        if rc < 0 :
+            return rc
+        
+        return tuple(new_list1) 
 
     def gatts_read(self,value_handle):
         # 暂不清楚对照哪个函数,或者直接调用gattc试一试
@@ -248,22 +290,53 @@ class BLE(_bluetooth.BLE):
 
     def gattc_exchange_mtu(self,conn_handle):
         self.pyi_gattc_exchange_mtu(conn_handle)
-        pass
 
+    # 通过C handle找值 
+    def _c2value(self, handle):
+        return self._c2value_dict[str(handle)]
+    
+    # 通过PY handle找值
+    def _py2value(self,handle):
+        c_handlue = self._py2c_dict[str(handle)]
+        return self._c2value(c_handlue)
+    
+    # 通过C handle 改值
+    def _c2_change_value(self,handle,value):
+        self._c2value_dict[str(handle)] = value
+        return 1
+
+    # 通过py handle 改值    
+    def _py2_change_value(self,handle,value):
+        c_handlue = self._py2c_dict[str(handle)]
+        return self._c2_change_value(c_handlue,value)
+        
 # 将UUID类型转换为字符串
 def _convert_ble_service_info(data):
-    new_tuple = []
+    new_list = []
     for i in data :
         if isinstance(i,UUID) :
-            new_tuple.append(i.value)
-            new_tuple.append(i._UUID_bits)
+            new_list.append(i.value)
+            new_list.append(i._UUID_bits)
             # print(i.value)
         elif isinstance(i, tuple):
-            new_tuple.append(_convert_ble_service_info(i))
+            new_list.append(_convert_ble_service_info(i))
         else:
-            new_tuple.append(i)
+            new_list.append(i)
             # print(i)
-    return tuple(new_tuple)
+    return tuple(new_list)
+
+def _count_chrs(srvs_tuple):
+    srv_count = len(srvs_tuple)
+    # print("srv_count",srv_count)
+    # print("srvs_tuple", srvs_tuple)
+    chr_count = [] # 每个服务的特性数量
+    for i in range(srv_count):
+        # srv_tuple = srvs_tuple[i]
+        # print("srv_tuple ", srv_tuple )
+        # chrs_tuple = srv_tuple[]
+        chr_count.append(len(srvs_tuple[i][1]))
+        # print("chrs_tuple",chrs_tuple)
+    return chr_count
 
 # 将数据转为字符串格式
 def _to_string(data):
@@ -309,6 +382,6 @@ def UUID_to_bytes(value:UUID):
     # print(value_bytes)
     return value_bytes,UUID_bits
 
-# 在python中如何将0x2a37转化为b'\x2a\x37'
+
 
     

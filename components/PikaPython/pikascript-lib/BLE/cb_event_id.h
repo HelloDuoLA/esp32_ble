@@ -35,6 +35,7 @@
 #define _IRQ_GATTC_SUBSCRIBE               31
 #define _IRQ_TEST                          32
 
+#define _IRQ_DIY_REGISTER_HANDLE            101
 
 #define _GATTS_NO_ERROR                           0x00
 #define _GATTS_ERROR_READ_NOT_PERMITTED           0x02
