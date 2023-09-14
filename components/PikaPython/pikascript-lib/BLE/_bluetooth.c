@@ -280,7 +280,6 @@ int _bluetooth_BLE_adv(int interval) //TODO:1. 换个命名 2.再次进行广播
     if(rc != 0)
         return rc;
 
-    printf("gatt_svr_chr_val_handle %d\r\n", gatt_svr_chr_val_handle);
     uint8_t *  one_bytes_handle;
     one_bytes_handle = (uint8_t *)malloc(g_all_chr_count);
     for (int i = 0; i < g_all_chr_count; i++)
@@ -376,6 +375,8 @@ int _bluetooth_BLE_advertise(PikaObj *self, int addr, int interval, pika_bool co
     g_ble_addr_mode = addr;
     g_ble_connectable = connectable;
     g_interval = interval;
+
+
     return _bluetooth_BLE_adv(interval);
 }
 
@@ -453,7 +454,6 @@ int _bluetooth_BLE_gap_disc(PikaObj *self, int addr_mode, int duration_ms, int i
     }
     
 }
-
 // 停止扫描
 // 不会引发扫描中止事件
 int _bluetooth_BLE_gap_stop_disc(PikaObj *self)
@@ -552,10 +552,10 @@ int _bluetooth_BLE_gatts_register_svcs(PikaObj *self, PikaObj* services_info,int
 
             gatt_svr_chrs[j].uuid        = &(chr_UUID->u);
             gatt_svr_chrs[j].access_cb   = ble_gatt_svc_access_cb;
+            gatt_svr_chrs[j].arg         = self;
             gatt_svr_chrs[j].flags       = chr_flags;
             gatt_svr_chrs[j].descriptors = gatt_svr_dscs;
-            gatt_svr_chrs[j].val_handle  = &(g_chrs_handle[handle_index]);//TODO:待安排, 蓝牙同步之后,才会有有效值
-            // gatt_svr_chrs[j].val_handle  =  &gatt_svr_chr_val_handle;
+            gatt_svr_chrs[j].val_handle  = &(g_chrs_handle[handle_index]);//蓝牙同步之后,才会有有效值
             fill_UUID(chr_UUID,UUID_bytes,chr_bytes_UUID);
             
             handle_index++;
@@ -577,6 +577,7 @@ int _bluetooth_BLE_gatts_register_svcs(PikaObj *self, PikaObj* services_info,int
 
                 gatt_svr_dscs[k].uuid        = &(dsc_UUID->u);
                 gatt_svr_dscs[k].access_cb   = ble_gatt_svc_access_cb;
+                gatt_svr_dscs[k].arg         = self;
                 gatt_svr_dscs[k].att_flags   = dsc_flags;
                 fill_UUID(dsc_UUID,UUID_bytes,dsc_bytes_UUID);
             }
@@ -589,12 +590,12 @@ int _bluetooth_BLE_gatts_register_svcs(PikaObj *self, PikaObj* services_info,int
     // 注册服务
     int rc = ble_gatts_count_cfg(gatt_svr_svcs);
     if (rc != 0) {
-        return -rc;
+        return rc;
     }
 
     rc = ble_gatts_add_svcs(gatt_svr_svcs);
     if (rc != 0) {
-        return -rc;
+        return rc;
     }
     // 释放内存空间的时候需要遍历结构体 TODO:思考一下在何处释放该内存,至少需要在host层同步后释放
     // for (i = 0;i < service_count; i++){  
@@ -609,7 +610,7 @@ int _bluetooth_BLE_gatts_register_svcs(PikaObj *self, PikaObj* services_info,int
     // free(gatt_svr_svcs);
     // gatt_svr_svcs = NULL;
     nimble_port_freertos_init(ble_host_task);
-    return gatt_svr_chr_val_handle;
+    return rc;
 }
 
 // 设置广播数据
@@ -816,9 +817,8 @@ int _bluetooth_BLE_pyi_test3(PikaObj *self, int connhandle, int valuehandle)
 {
     uint8_t test = 2;
     printf("_bluetooth_BLE_pyi_test3\r\n");
-    // printf("sizeof(&test) = %d",sizeof(&test));
-    // free(gatt_svr_svcs);
-    printf("ble_hs_is_enabled : %d\r\n",ble_hs_is_enabled());
+    // printf("ble_hs_is_enabled : %d\r\n",ble_hs_is_enabled());
+    ble_gatts_chr_updated(31);
     return 0;
 }
 
@@ -901,7 +901,15 @@ int _bluetooth_BLE_gattc_write_with_rsp(PikaObj *self, int conn_handle, int valu
     return ble_gattc_write_flat(conn_handle,value_handle,data,data_len,ble_gatt_client_write_cb,NULL);
 }
 
+int _bluetooth_BLE_gatts_chr_updated(PikaObj *self, int chr_val_handle)
+{
+    ble_gatts_chr_updated(chr_val_handle);
+    return 0;
+}
+
+
 // GATT indicate
+
 // TODO:struct os_mbuf txom是个什么样的格式类型
 int _bluetooth_BLE_gatts_indicate_custom(PikaObj *self, int conn_handle, int value_handle, char* data, int data_len)
 {
@@ -945,11 +953,14 @@ void _bluetooth_BLE_setCallback(PikaObj *self, Arg* cb)
         pika_eventListener_init(&g_pika_ble_listener);
         printf("g_pika_ble_listener init\r\n");
     }
+
     uint32_t i = 0;
     for ( i = 0; i < _IRQ_COUNT + 1; i++){
         pika_eventListener_registEventCallback(g_pika_ble_listener,i,cb);
     }
-    pika_eventListener_registEventCallback(g_pika_ble_listener,101,cb);
+    for ( i = 101; i < _IRQ_DIY_MAX_ID + 1; i++){
+        pika_eventListener_registEventCallback(g_pika_ble_listener,i,cb);
+    }
 }
 
 // 基本服务注册
@@ -998,35 +1009,58 @@ static int ble_gatt_svc_access_cb(uint16_t conn_handle, uint16_t attr_handle,
         case BLE_GATT_ACCESS_OP_READ_CHR:       //读属性值
             if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
                 printf("Characteristic read: conn_handle=%d attr_handle=%d\r\n",conn_handle, attr_handle);
-                Arg* res = pika_eventListener_sendAwaitResult(g_pika_ble_listener,_IRQ_GATTS_READ_REQUEST,
-                    arg_newObj(New_pikaTupleFrom(
-                            arg_newInt(_IRQ_GATTS_READ_REQUEST),
-                            arg_newInt(conn_handle),
-                            arg_newInt(attr_handle)
-                            )));
-                
-                int res_int = arg_getInt(res);  
-                if(res_int == _GATTS_NO_ERROR){ //TODO:等待字典
-                    // gatt_svr_dsc_val = 0xFF;
-                    // rc = os_mbuf_append(ctxt->om,
-                    //             &gatt_svr_dsc_val,
-                    //             sizeof(gatt_svr_chr_val));
-                    // return rc == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
-                    return 0;
+                PikaObj * self = arg;
+                obj_setArg(self, "data", arg_newObj(New_pikaTupleFrom(
+                                                arg_newInt(_IRQ_GATTS_READ_REQUEST),
+                                                arg_newInt(conn_handle),
+                                                arg_newInt(attr_handle)
+                                            )));
+
+                obj_run(self, "res = ble_callback(data)");
+                Arg* res = obj_getArg(self, "res");
+                PikaObj* tuple = arg_getObj(res);
+                int res_int    = arg_getInt(pikaTuple_getArg(tuple,0)); 
+                int byte_count = arg_getInt(pikaTuple_getArg(tuple,1)); 
+                uint8_t * value = (uint8_t * )calloc(byte_count,sizeof(uint8_t));
+                value = arg_getBytes(pikaTuple_getArg(tuple,2));
+
+                printf("res_int %d byte_count %d data %02x\r\n",res_int,byte_count,value[0]);
+                // int res_int = arg_getInt(res); 
+                if(res_int == _GATTS_NO_ERROR){ 
+                    rc = os_mbuf_append(ctxt->om, value,byte_count);
+                    return rc == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
                 }
+                return -1;
             } else {
                 printf("Characteristic read by NimBLE stack; attr_handle=%d\n",attr_handle);
+                PikaObj * self = arg;
+                obj_setArg(self, "data", arg_newObj(New_pikaTupleFrom(
+                                                arg_newInt(_IRQ_DIY_NIMBLE_READ),
+                                                arg_newInt(attr_handle)
+                                            )));
+                obj_run(self, "res = ble_callback(data)");
+                Arg* res = obj_getArg(self, "res");
+                PikaObj* tuple = arg_getObj(res);
+                int byte_count = arg_getInt(pikaTuple_getArg(tuple,0)); 
+                uint8_t * value = (uint8_t * )calloc(byte_count,sizeof(uint8_t));
+                value = arg_getBytes(pikaTuple_getArg(tuple,1));
+                printf("byte_count %d data %02x\r\n",byte_count,value[0]);
+                rc = os_mbuf_append(ctxt->om, value,byte_count);
+                return rc == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
             }
-            return 0;
-
         case BLE_GATT_ACCESS_OP_WRITE_CHR:     //写属性值
             if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
                 printf("Characteristic write; conn_handle=%d attr_handle=%d\r\n", conn_handle, attr_handle);
+                uint16_t length =  ctxt->om->om_len;
+                uint8_t * value = (uint8_t*)calloc(length,sizeof(uint8_t));
+
+                memcpy(value, ctxt->om->om_data,length); 
                 pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTS_WRITE,
                     arg_newObj(New_pikaTupleFrom(
                             arg_newInt(_IRQ_GATTS_WRITE),
                             arg_newInt(conn_handle), 
-                            arg_newInt(attr_handle)  //TODO:特征权值
+                            arg_newInt(attr_handle),
+                            arg_newBytes(value,length) //value
                             )));
             } else {
                 printf("Characteristic write by NimBLE stack; attr_handle=%d\r\n",attr_handle);
@@ -1399,7 +1433,6 @@ static int ble_gap_event_cb(struct ble_gap_event *event, void *arg)
         return 0;
 
     case BLE_GAP_EVENT_NOTIFY_RX: // 客户端
-
         printf("received %s; conn_handle=%d attr_handle=%d attr_len=%d",
                 event->notify_rx.indication ? "indication" : "notification",
                 event->notify_rx.conn_handle,
@@ -1422,7 +1455,7 @@ static int ble_gap_event_cb(struct ble_gap_event *event, void *arg)
                         )));
             free(indic_str);
         }
-        else { 
+        else {  // notify
             uint16_t len = event->notify_rx.om->om_len;
             char *indic_str = (char *)malloc(len + 1);
             memcpy(indic_str, event->notify_rx.om->om_data, len);
@@ -1441,7 +1474,7 @@ static int ble_gap_event_cb(struct ble_gap_event *event, void *arg)
         return 0;
 
     case BLE_GAP_EVENT_NOTIFY_TX: //通知发送完成
-        printf("notify_tx event; conn_handle=%d attr_handle=%d status=%d is_indication=%d\r\n",
+        printf("notify_tx event conn_handle=%d attr_handle=%d status=%d is_indication=%d\r\n",
                     event->notify_tx.conn_handle,
                     event->notify_tx.attr_handle,
                     event->notify_tx.status,

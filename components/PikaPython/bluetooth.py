@@ -35,21 +35,24 @@ class UUID():
 
 
 class BLE(_bluetooth.BLE):
-
-    last_adv_data  = ""  #广播内容
-    last_resp_data = ""  #回应扫描内容
-    addr_mode      =  0  #地址类型 BLE_OWN_ADDR_PUBLIC,BLE_OWN_ADDR_RANDOM,BLE_OWN_ADDR_RPA_PUBLIC_DEFAULT,BLE_OWN_ADDR_RPA_RANDOM_DEFAULT
-    callback_func  = None  #回调函数
-    _basic_value_handle = 20
-    _py2c_dict = {}
-    _c2py_dict = {}
-    _c2value_dict = {}
-
+    # 所有实例共享
     def __init__(self):
         print("BLE init")
         # a = super().__init__()
+        self.last_adv_data  = ""  #广播内容
+        self.last_resp_data = ""  #回应扫描内容
+        self.addr_mode      =  0  #地址类型 BLE_OWN_ADDR_PUBLIC,BLE_OWN_ADDR_RANDOM,BLE_OWN_ADDR_RPA_PUBLIC_DEFAULT,BLE_OWN_ADDR_RPA_RANDOM_DEFAULT
+        self.callback_func  = None  #回调函数
+
+        self._basic_value_handle = 20
+        self._py2c_dict = {}
+        self._c2py_dict = {}
+        self._c2value_dict = {}
+        self.conn_handles = [] 
         a = self.init()
         self.setCallback(self.ble_callback)
+
+
     
     def test(self, interval_us, adv_data=None, resp_data=None, connectable=True):
         if isinstance(adv_data,bytes) :
@@ -73,6 +76,11 @@ class BLE(_bluetooth.BLE):
 
     def test3(self,connhandle,valuehandle):
         return self.pyi_test3(connhandle,valuehandle)
+    
+    def test4(self,data):
+        # print(data[0],data[1],data[2])
+        print(data[0],data[1])
+        return 0
     
     def test_call_some_name(self):
         super().test_call_some_name()  
@@ -146,14 +154,15 @@ class BLE(_bluetooth.BLE):
     def irq(self,func):
         # self.setCallback(func)
         self.callback_func = func
-
+    
     def ble_callback(self,data):
         # TODO:memoryview没有实现
         event_id = data[0]
+        # print("event_id",event_id)
+        # print("data  ",data[1])
         if event_id > 100 :      #自定义回调事件
-            if event_id == 101 : # 建立句柄映射 TODO:待验证
+            if event_id == 101 : # 建立句柄映射 
                 ble_value_handles = data[1]
-                print("ble_value_handles %d",ble_value_handles)
                 length = len(ble_value_handles)
                 for i in range(length):
                     # py 映射 c handle
@@ -164,7 +173,24 @@ class BLE(_bluetooth.BLE):
                     self._c2py_dict[str(value)] = key
                     # c handle 映射 value, 默认值为空
                     self._c2value_dict[str(value)] = ""
+            elif event_id == 102: #nimble蓝牙协议栈读属性 TODO:回调函数没反应
+                print("data1",data[1])
+                buf = self._c2value_dict[str(data[1])]
+                print("buf " ,buf)
+                return len(buf),buf
+                # return bytes([99])
         else: 
+            if event_id == 3: # write
+                self._c2_change_value(data[2], data[3])
+                data = data[:3]
+            if event_id == 4: #read 请求
+                rc = self.callback_func(event_id,data[1:])
+                value = -99
+                length   = -99
+                if rc == 0:   #允许读
+                    value = self._c2value(data[2]) 
+                    length = len(value)
+                return rc,length,value
             return self.callback_func(event_id,data[1:])
 
     # 完成
@@ -239,13 +265,18 @@ class BLE(_bluetooth.BLE):
         
         return tuple(new_list1) 
 
+    # TODO:待验证
     def gatts_read(self,value_handle):
-        # 暂不清楚对照哪个函数,或者直接调用gattc试一试
-        pass
+        return self._py2value(value_handle)
 
+    # TODO:待验证
     def gatts_write(self,value_handle, data, send_update=False):
-        # 暂不清楚对照哪个函数
-        pass
+        if send_update == False:
+            return self._py2_change_value(value_handle,data)
+        else : 
+            self._py2_change_value(value_handle,data)
+            self.gatts_chr_updated(value_handle)
+        
 
     def gatts_notify(self,conn_handle, value_handle, data=None):
         if data is None:
@@ -261,7 +292,7 @@ class BLE(_bluetooth.BLE):
             self.gatts_indicate_custom(conn_handle, value_handle,data)
 
     def gatts_set_buffer(self,value_handle, len, append=False):
-        # 暂不清楚对照哪个函数
+        # TODO:暂不清楚对照哪个函数
         pass
 
     def gattc_discover_services(self,conn_handle, uuid:UUID=None):
@@ -294,16 +325,18 @@ class BLE(_bluetooth.BLE):
     # 通过C handle找值 
     def _c2value(self, handle):
         return self._c2value_dict[str(handle)]
+        # return self._c2value_dict["25"]
     
     # 通过PY handle找值
     def _py2value(self,handle):
         c_handlue = self._py2c_dict[str(handle)]
         return self._c2value(c_handlue)
+        # return self._c2value(25)
     
     # 通过C handle 改值
     def _c2_change_value(self,handle,value):
         self._c2value_dict[str(handle)] = value
-        return 1
+        return 0
 
     # 通过py handle 改值    
     def _py2_change_value(self,handle,value):
