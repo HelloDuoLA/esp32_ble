@@ -5,3 +5,5 @@ ESP32==v0.4.3
 pika_libc==v1.0.2
 time==v0.1.9
 network==v0.1.4
+_thread==v0.0.6
+time==v0.1.9

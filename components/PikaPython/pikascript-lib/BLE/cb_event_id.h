@@ -1,4 +1,5 @@
 #define _IRQ_COUNT                         32
+#define _IRQ_DIY_MAX_ID                    103
 
 #define _IRQ_CENTRAL_CONNECT               1
 #define _IRQ_CENTRAL_DISCONNECT            2
@@ -36,6 +37,7 @@
 #define _IRQ_TEST                          32
 
 #define _IRQ_DIY_REGISTER_HANDLE            101
+#define _IRQ_DIY_NIMBLE_READ                102
 
 #define _GATTS_NO_ERROR                           0x00
 #define _GATTS_ERROR_READ_NOT_PERMITTED           0x02
