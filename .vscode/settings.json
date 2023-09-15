@@ -17,7 +17,7 @@
             "priority": 4
         }
     ],
-    "idf.portWin": "COM13",
+    "idf.portWin": "COM10",
     "idf.adapterTargetName": "esp32s3",
     "idf.openOcdConfigs": [
         "interface/ftdi/esp32_devkitj_v1.cfg",
@@ -81,6 +81,7 @@
         "util.h": "c",
         "ble_hs.h": "c",
         "initializer_list": "c",
-        "numbers": "c"
+        "numbers": "c",
+        "ble_hs_mbuf.h": "c"
     }
 }

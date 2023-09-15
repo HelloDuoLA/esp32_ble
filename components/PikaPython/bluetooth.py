@@ -169,8 +169,10 @@ class BLE(_bluetooth.BLE):
                     key =  self._basic_value_handle + i
                     value = ble_value_handles[i] 
                     self._py2c_dict[str(key)] = value 
+
                     # c 映射 py handle
                     self._c2py_dict[str(value)] = key
+
                     # c handle 映射 value, 默认值为空
                     self._c2value_dict[str(value)] = ""
             elif event_id == 102: #nimble蓝牙协议栈读属性 TODO:回调函数没反应
@@ -279,17 +281,35 @@ class BLE(_bluetooth.BLE):
         
 
     def gatts_notify(self,conn_handle, value_handle, data=None):
+        value = ""
         if data is None:
-            self.gatts_notify_no_data(conn_handle, value_handle)
+            value = self._py2value(value_handle)
+            c_value_handle = self._py2c_dict[str(value_handle)]
         else :
-            self.gatts_notify_custom(conn_handle, value_handle,data)
+            if isinstance(data,bytes): #TODO:关注一下数据类型
+                value = data
+            elif isinstance(data,int):
+                value = bytes([data])
+            else:
+                value = bytes(data)
+        c_value_handle = self._py2c_dict[str(value_handle)]
+        self.pyi_gatts_notify(conn_handle, c_value_handle,value,len(value))
 
 
     def gatts_indicate(self,conn_handle, value_handle,data=None):
+        value = ""
         if data is None:
-            self.gatts_indicate_no_data(conn_handle, value_handle)
+            value = self._py2value(value_handle)
+            c_value_handle = self._py2c_dict[str(value_handle)]
         else :
-            self.gatts_indicate_custom(conn_handle, value_handle,data)
+            if isinstance(data,bytes): 
+                value = data
+            elif isinstance(data,int):
+                value = bytes([data])
+            else:
+                value = bytes(data)
+        c_value_handle = self._py2c_dict[str(value_handle)]
+        self.pyi_gatts_indicate(conn_handle, c_value_handle,value,len(value))
 
     def gatts_set_buffer(self,value_handle, len, append=False):
         # TODO:暂不清楚对照哪个函数

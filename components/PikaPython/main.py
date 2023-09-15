@@ -119,10 +119,13 @@ HR_CHAR = (bluetooth.UUID(0x2A37), bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY,(
 HR_SERVICE = (HR_UUID, (HR_CHAR,),)
 UART_UUID = bluetooth.UUID('6E400001-B5A3-F393-E0A9-E50E24DCCA9E')
 UART_TX = (bluetooth.UUID('6E400003-B5A3-F393-E0A9-E50E24DCCA9E'), bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY,((bluetooth.UUID(0x30000001),bluetooth.FLAG_NOTIFY),(bluetooth.UUID(0x30000001),bluetooth.FLAG_READ),(bluetooth.UUID(0x30000002),bluetooth.FLAG_INDICATE)))
-UART_RX = (bluetooth.UUID('6E400002-B5A3-F393-E0A9-E50E24DCCA9E'), bluetooth.FLAG_WRITE,((bluetooth.UUID('6E400006-B5A3-F393-E0A9-E50E24DCCA9E'),bluetooth.FLAG_WRITE),))
+UART_RX = (bluetooth.UUID('6E400002-B5A3-F393-E0A9-E50E24DCCA9E'), bluetooth.FLAG_WRITE | bluetooth.FLAG_INDICATE,((bluetooth.UUID('6E400006-B5A3-F393-E0A9-E50E24DCCA9E'),bluetooth.FLAG_WRITE),))
 UART_SERVICE = (UART_UUID, (UART_TX, UART_RX))
 SERVICES = (HR_SERVICE, UART_SERVICE,)
 c = a.gatts_register_services(SERVICES)
+
+
+
 
 # test_char1_UUID =  bluetooth.UUID('33333333-2222-2222-1111-111100000001')
 # test_flag1      =  bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY
@@ -182,9 +185,15 @@ print(a.gap_advertise(6250))
 # a._c2value_dict
 
 # a.gatts_read(21)
-a.gatts_write(21,bytes([0x43,0x43,0x43]))
-a.gatts_write(22,bytes([0x43,0x43,0x43]))
-a.gatts_write(20,bytes([0x43,0x43,0x43]))
+a.gatts_write(21,bytes([0x43]))
+a.gatts_write(22,bytes([0x43,0x43]))
+a.gatts_write(20,bytes([0x20,0x20,0x20]))
+
+
+# a.gatts_notify(1,21,bytes([0x43]))
+# a.gatts_notify(1,21,bytes("test"))
+# a.gatts_notify(1,21,"test")
+a.gatts_indicate(1,22)
 
 # a.test3(1,0)
 # a.gattc_discover_services(1)

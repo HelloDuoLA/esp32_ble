@@ -909,41 +909,37 @@ int _bluetooth_BLE_gatts_chr_updated(PikaObj *self, int chr_val_handle)
 
 
 // GATT indicate
-
-// TODO:struct os_mbuf txom是个什么样的格式类型
-int _bluetooth_BLE_gatts_indicate_custom(PikaObj *self, int conn_handle, int value_handle, char* data, int data_len)
+int _bluetooth_BLE_pyi_gatts_indicate(PikaObj *self, int conn_handle, int value_handle, uint8_t* data, int data_size)
 {
-    struct os_mbuf txom = {
-        .om_len = 2,
-    };
-    return ble_gatts_indicate_custom(conn_handle, value_handle, &txom);
+    printf("_bluetooth_BLE_pyi_gatts_indicate\r\n");
+    struct os_mbuf *om = ble_hs_mbuf_from_flat(data, data_size);
+    if (om == NULL)
+    {
+        printf("ble_hs_mbuf_from_flat error\r\n");
+    }
+    printf("conn_handle %d value_handle %d  data_size %d data %02x\r\n", conn_handle, value_handle, data_size,data[0]);
+    return ble_gatts_indicate_custom(conn_handle,value_handle,om);
 }
 
-// TODO:no data的话实际上传的是啥
-int _bluetooth_BLE_gatts_indicate_no_data(PikaObj *self, int conn_handle, int value_handle){
-    return ble_gatts_indicate(conn_handle, value_handle);
-}
-
-// TODO: struct os_mbuf ??
-int _bluetooth_BLE_gatts_notify_custom(PikaObj *self, int conn_handle, int value_handle, char* data, int data_len)
+int _bluetooth_BLE_pyi_gatts_notify(PikaObj *self, int conn_handle, int value_handle, uint8_t* data, int data_size)
 {
-    struct os_mbuf om = {
-        .om_len = 2,
-    };
-    return ble_gattc_notify_custom(conn_handle, value_handle, &om);
+    printf("_bluetooth_BLE_pyi_gatts_notify\r\n");
+    struct os_mbuf *om = ble_hs_mbuf_from_flat(data, data_size);
+    if (om == NULL)
+    {
+        printf("ble_hs_mbuf_from_flat error\r\n");
+    }
+    printf("conn_handle %d value_handle %d  data_size %d data %02x\r\n", conn_handle, value_handle, data_size,data[0]);
+
+    return ble_gatts_notify_custom(conn_handle,value_handle,om);
 }
 
-// TODO:no data的话实际上传的是啥
-int _bluetooth_BLE_gatts_notify_no_data(PikaObj *self, int conn_handle, int value_handle){
-    return ble_gatts_notify(conn_handle,value_handle);
-}
 
 // 未找到正确的使用方法与效果
 // TODO:待验证
 int _bluetooth_BLE_pyi_gattc_exchange_mtu(PikaObj *self, int conn_handle){
     return ble_gattc_exchange_mtu(conn_handle,ble_gatt_mtu_exchange_cb,NULL);
 }
-
 
 // 回调函数注册
 void _bluetooth_BLE_setCallback(PikaObj *self, Arg* cb)
@@ -1005,6 +1001,8 @@ static int ble_gatt_svc_access_cb(uint16_t conn_handle, uint16_t attr_handle,
                 struct ble_gatt_access_ctxt *ctxt, void *arg){
     const ble_uuid_t *uuid;
     int rc;
+    printf("ble_gatt_svc_access_cb\r\n");
+    
     switch (ctxt->op) {                       
         case BLE_GATT_ACCESS_OP_READ_CHR:       //读属性值
             if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
@@ -1030,7 +1028,7 @@ static int ble_gatt_svc_access_cb(uint16_t conn_handle, uint16_t attr_handle,
                     rc = os_mbuf_append(ctxt->om, value,byte_count);
                     return rc == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
                 }
-                return -1;
+                return 0;
             } else {
                 printf("Characteristic read by NimBLE stack; attr_handle=%d\n",attr_handle);
                 PikaObj * self = arg;
@@ -1044,11 +1042,13 @@ static int ble_gatt_svc_access_cb(uint16_t conn_handle, uint16_t attr_handle,
                 int byte_count = arg_getInt(pikaTuple_getArg(tuple,0)); 
                 uint8_t * value = (uint8_t * )calloc(byte_count,sizeof(uint8_t));
                 value = arg_getBytes(pikaTuple_getArg(tuple,1));
+
                 printf("byte_count %d data %02x\r\n",byte_count,value[0]);
-                rc = os_mbuf_append(ctxt->om, value,byte_count);
+                rc = os_mbuf_append(ctxt->om,value,byte_count);
                 return rc == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
             }
-        case BLE_GATT_ACCESS_OP_WRITE_CHR:     //写属性值
+            return 0;
+        case BLE_GATT_ACCESS_OP_WRITE_CHR:              //写属性值
             if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
                 printf("Characteristic write; conn_handle=%d attr_handle=%d\r\n", conn_handle, attr_handle);
                 uint16_t length =  ctxt->om->om_len;
@@ -1060,7 +1060,7 @@ static int ble_gatt_svc_access_cb(uint16_t conn_handle, uint16_t attr_handle,
                             arg_newInt(_IRQ_GATTS_WRITE),
                             arg_newInt(conn_handle), 
                             arg_newInt(attr_handle),
-                            arg_newBytes(value,length) //value
+                            arg_newBytes(value,length) 
                             )));
             } else {
                 printf("Characteristic write by NimBLE stack; attr_handle=%d\r\n",attr_handle);
