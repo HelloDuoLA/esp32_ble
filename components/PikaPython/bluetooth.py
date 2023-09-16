@@ -36,10 +36,11 @@ FLAG_WRITE_AUTHORIZED    = 0x4000
 '''
 class UUID():
     def __init__(self,value):
-        try:
-            self.value,self._UUID_bits = self._UUID_to_bytes(value)
-        except:
-            print("ValueError: Invalid UUID")
+        # try:
+        self.value,self._UUID_bits = self._UUID_to_bytes(value)
+        # except:
+            # print("ValueError: Invalid UUID")
+            # raise ValueError
             
 
     def _UUID_to_bytes(self,value):
@@ -47,8 +48,11 @@ class UUID():
         UUID_bits   = 0 
         # try:
         if isinstance(value,bytearray): 
-            # value_bytes = value.decode() # 暂不支持bytes(bytearray())
-            pass
+            value_bytes = bytes(value.decode()) # 暂不支持bytes(bytearray())
+            if len(value_bytes) > 16 :
+                value_bytes = []
+                # raise ValueError
+                raise 
         elif isinstance(value, bytes):
             value_bytes = value
         elif isinstance(value,str):
@@ -61,8 +65,9 @@ class UUID():
                         value_list.append(int(value_str[i:i+2],16))
                     value_bytes = bytes(value_list)
                 else :
-                    raise 
-                    # pass
+                    raise ValueError
+            else : 
+                raise ValueError
         elif isinstance(value,int):  
             value_list = []
             if value >= 0 and value < 65536 :          #16 bit uuid
@@ -73,13 +78,15 @@ class UUID():
                 value_list.append(int((value%(65536 * 256))/65536))
                 value_list.append(int((value%(65536))/256))
                 value_list.append((value%(256)))
+            else :  
+                raise ValueError
             value_bytes = bytes(value_list)
+        else:
+            raise ValueError
 
         UUID_bits = len(value_bytes)
         return value_bytes,UUID_bits
             
-
-
 
 class BLE(_bluetooth.BLE):
     def __init__(self):
@@ -107,7 +114,6 @@ class BLE(_bluetooth.BLE):
         return self.pyi_test3(connhandle,valuehandle)
     
     def test4(self,data):
-        pass
     
     def test_call_some_name(self):
         super().test_call_some_name()  
@@ -262,7 +268,7 @@ class BLE(_bluetooth.BLE):
                     self._c2py_dict[str(value)] = key
                     # c handle 映射 value, 默认值为空
                     self._c2value_dict[str(value)] = bytes("")
-            elif event_id == 102: #nimble蓝牙协议栈读属性 
+            elif event_id == 102:       #nimble蓝牙协议栈读属性 
                 buf = self._c2value_dict[str(data[1])]
                 return len(buf),buf
         else: 
@@ -470,8 +476,10 @@ class BLE(_bluetooth.BLE):
         if send_update == False:
             return self._py2_change_value(value_handle,data)
         else : 
-            self._py2_change_value(value_handle,data)
-            self.gatts_chr_updated(value_handle)
+            rc = self._py2_change_value(value_handle,data)
+            if rc != 0:
+                return rc
+            return self.gatts_chr_updated(value_handle)
         
     
     '''
@@ -547,7 +555,6 @@ class BLE(_bluetooth.BLE):
     '''
     def gatts_set_buffer(self,value_handle, len, append=False):
         # TODO:暂不清楚对照哪个函数
-        pass
 
     
     '''
@@ -666,15 +673,20 @@ class BLE(_bluetooth.BLE):
         return self._c2value(c_handlue)
         # return self._c2value(25)
     
-    # 通过C handle 改值
+    # 通过C handle 改值, value均为bytes类型
     def _c2_change_value(self,handle,value):
+        value_bytes = 12
+        # self._c2value_dict[str(handle)] = value_bytes
         self._c2value_dict[str(handle)] = value
         return 0
 
     # 通过py handle 改值    
     def _py2_change_value(self,handle,value):
+        if len(self._py2c_dict) == 0:
+            return -1
         c_handlue = self._py2c_dict[str(handle)]
-        return self._c2_change_value(c_handlue,value)
+        value_bytes =  _to_bytes(value)
+        return self._c2_change_value(c_handlue,value_bytes)
         
 # 将UUID类型转换为字符串
 def _convert_ble_service_info(data):
@@ -712,6 +724,13 @@ def _to_bytes(data,size=None):
         data_bytes = bytes(data)
     elif isinstance(data,list):
         data_bytes = bytes(data)
+    elif isinstance(data,int):
+        data_list = []
+        while data > 0:
+            remainder = data % 256
+            data_list.insert(0, remainder)
+            data //= 256
+        data_bytes = bytes(data_list)
     else:
         raise ValueError
     

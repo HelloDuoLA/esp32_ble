@@ -117,26 +117,26 @@ b = a.active(1)
 b = a.irq(ble_irq)
 
 # 注册服务，服务端
+HR_UUID = bluetooth.UUID(0x180D)
+HR_CHAR = (bluetooth.UUID(0x2A37), bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY,((bluetooth.UUID(0x3001),bluetooth.FLAG_READ),(bluetooth.UUID(0x3002),bluetooth.FLAG_READ)))
+HR_SERVICE = (HR_UUID, (HR_CHAR,),)
+UART_UUID = bluetooth.UUID('6E400001-B5A3-F393-E0A9-E50E24DCCA9E')
+UART_TX = (bluetooth.UUID('6E400003-B5A3-F393-E0A9-E50E24DCCA9E'), bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY,((bluetooth.UUID(0x30000001),bluetooth.FLAG_NOTIFY),(bluetooth.UUID(0x30000001),bluetooth.FLAG_READ),(bluetooth.UUID(0x30000002),bluetooth.FLAG_INDICATE)))
+UART_RX = (bluetooth.UUID('6E400002-B5A3-F393-E0A9-E50E24DCCA9E'), bluetooth.FLAG_WRITE | bluetooth.FLAG_INDICATE,((bluetooth.UUID('6E400006-B5A3-F393-E0A9-E50E24DCCA9E'),bluetooth.FLAG_WRITE),))
+UART_SERVICE = (UART_UUID, (UART_TX, UART_RX))
+SERVICES = (HR_SERVICE, UART_SERVICE,)
+# c = a.gatts_register_services(SERVICES)
+
+# 注册服务，服务端
 # HR_UUID = bluetooth.UUID(0x180D)
-# HR_CHAR = (bluetooth.UUID(0x2A37), bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY,((bluetooth.UUID(0x3001),bluetooth.FLAG_READ),(bluetooth.UUID(0x3002),bluetooth.FLAG_READ)))
-# HR_SERVICE = (HR_UUID, (HR_CHAR,),)
+# HR_CHAR = (bluetooth.UUID(0x2A37), bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY)
+# HR_SERVICE = (HR_UUID,)
 # UART_UUID = bluetooth.UUID('6E400001-B5A3-F393-E0A9-E50E24DCCA9E')
-# UART_TX = (bluetooth.UUID('6E400003-B5A3-F393-E0A9-E50E24DCCA9E'), bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY,((bluetooth.UUID(0x30000001),bluetooth.FLAG_NOTIFY),(bluetooth.UUID(0x30000001),bluetooth.FLAG_READ),(bluetooth.UUID(0x30000002),bluetooth.FLAG_INDICATE)))
+# UART_TX = (bluetooth.UUID('6E400003-B5A3-F393-E0A9-E50E24DCCA9E'), bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY)
 # UART_RX = (bluetooth.UUID('6E400002-B5A3-F393-E0A9-E50E24DCCA9E'), bluetooth.FLAG_WRITE | bluetooth.FLAG_INDICATE,((bluetooth.UUID('6E400006-B5A3-F393-E0A9-E50E24DCCA9E'),bluetooth.FLAG_WRITE),))
 # UART_SERVICE = (UART_UUID, (UART_TX, UART_RX))
 # SERVICES = (HR_SERVICE, UART_SERVICE,)
 # c = a.gatts_register_services(SERVICES)
-
-# 注册服务，服务端
-HR_UUID = bluetooth.UUID(0x180D)
-HR_CHAR = (bluetooth.UUID(0x2A37), bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY)
-HR_SERVICE = (HR_UUID,)
-UART_UUID = bluetooth.UUID('6E400001-B5A3-F393-E0A9-E50E24DCCA9E')
-UART_TX = (bluetooth.UUID('6E400003-B5A3-F393-E0A9-E50E24DCCA9E'), bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY)
-UART_RX = (bluetooth.UUID('6E400002-B5A3-F393-E0A9-E50E24DCCA9E'), bluetooth.FLAG_WRITE | bluetooth.FLAG_INDICATE,((bluetooth.UUID('6E400006-B5A3-F393-E0A9-E50E24DCCA9E'),bluetooth.FLAG_WRITE),))
-UART_SERVICE = (UART_UUID, (UART_TX, UART_RX))
-SERVICES = (HR_SERVICE, UART_SERVICE,)
-c = a.gatts_register_services(SERVICES)
 
 
 
@@ -175,12 +175,12 @@ c = a.gatts_register_services(SERVICES)
 # print(a.gatts_register_services(test_services))
 
 # print("chrs handle is",c)
-# c = a.gap_advertise(6250)
+c = a.gap_advertise(6250)
 # print(a.gap_advertise(6250))
 # a._last_adv_data = "adv_test"
 # a._last_resp_data = bluetooth._to_string(bytearray('0x20'))
 # a._last_resp_data = "resp_test"
-e = a.gap_advertise(6250,"adv_test","rsp_test")
+# e = a.gap_advertise(6250,"adv_test","rsp_test")
 # c = a.gap_advertise(6250,"adv","rsp")
 # c = a.gap_advertise(6250,"adv","rsp")
 # c = a.gap_advertise(6250,bytes("adv"),bytes("rsp"))
@@ -208,6 +208,8 @@ addr = bytes([0xec,0xda,0x3b,0x67,0x7a,0x82])  # new eps32 s3
 # a.gatts_write(21,bytes([0x43]))
 # a.gatts_write(22,bytes([0x43,0x43]))
 # a.gatts_write(20,bytes([0x20,0x20,0x20]))
+# a.gatts_write(20,0x12345678)
+a.gatts_write(20,"test")
 
 
 # a.gatts_notify(1,21,bytes([0x43]))
