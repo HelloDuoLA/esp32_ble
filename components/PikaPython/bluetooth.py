@@ -400,43 +400,40 @@ class BLE(_bluetooth.BLE):
         return self.pyi_gap_disconnect(conn_handle)
     
     '''
+    使用指定的服务配置服务器，替换任何现有服务。
+
     Args:
 
-        -
+        - services(嵌套多层tuple):
 
     Return:
 
         - 操作是否成功
 
-    events:
-
-        -
     '''
     def gatts_register_services(self, services):
         convert_services = _convert_ble_service_info(services)
-        # print("convert_services  : ",convert_services)
         offset = 0
-        chr_list = _count_chrs(services)
+        chr_list = _count_chrs(services) #计算每个服务的特性数量
         all_chr_count = 0
-        new_list1 = []
+        py_handles = []
 
         # 计算py handle返回值
         # 计算chr总数量
         for i in range(len(chr_list)):
-            new_list2 = []
+            py_handles_one_service = []
             all_chr_count += chr_list[i]
             for j in range(chr_list[i]):
                 value_handle = self._basic_value_handle + offset
-                new_list2.append(value_handle)
-                # self._py2c_dict[str(value_handle)] = -99
+                py_handles_one_service.append(value_handle)
                 offset += 1
-            new_list1.append(new_list2)
+            py_handles.append(py_handles_one_service)
 
         rc = self.gatts_register_svcs(convert_services,all_chr_count)
         
-        if rc < 0 :
+        if rc != 0 :
             return rc
-        return tuple(new_list1) 
+        return tuple(py_handles) 
 
     
     '''
@@ -698,7 +695,10 @@ def _count_chrs(srvs_tuple):
     srv_count = len(srvs_tuple)
     chr_count = [] # 每个服务的特性数量
     for i in range(srv_count):
-        chr_count.append(len(srvs_tuple[i][1]))
+        if len(srvs_tuple[i]) > 1 :
+            chr_count.append(len(srvs_tuple[i][1]))
+        else :
+            chr_count.append(0)
     return chr_count
 
 
