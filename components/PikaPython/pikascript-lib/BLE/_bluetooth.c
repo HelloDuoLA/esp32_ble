@@ -103,6 +103,8 @@ int read_uuid_from_str(char* buf, int len, ble_uuid_any_t* uuid_struct);
 // 反转数组
 void data_inver(const void *addr,uint8_t *addr_inver,uint8_t size);
 
+int _bluetooth_BLE_adv(int interval);
+
 // 填充UUID
 int fill_UUID(ble_uuid_any_t* UUID,int UUID_bytes, uint8_t* bytes_UUID)
 {
@@ -224,6 +226,16 @@ void print_uuid_128(uint8_t *uuid)
         }
         printf("\r\n");
 }
+
+void print_data(uint8_t *data,uint8_t count)
+{
+    for (size_t i = 0; i < count; i++)
+        {
+            printf("%02x",data[i]);
+        }
+        printf("\r\n");
+}
+
 /**
  * Logs information about a connection to the console.
  */
@@ -250,61 +262,8 @@ static void print_conn_desc(struct ble_gap_conn_desc *desc)
                 desc->sec_state.bonded);
 }
 
-int _bluetooth_BLE_adv(int interval) //TODO:1. 换个命名 2.再次进行广播，之前的值应该清零？
-{
-    printf("_bluetooth_BLE_adv\r\n");
-    // 声明并初始化广播结构体
-    struct ble_gap_adv_params adv_params;
-    memset(&adv_params, 0, sizeof(adv_params));
-
-    uint8_t own_addr_type =  get_addr_type(g_ble_addr_mode);
-    // 连接模式
-    uint8_t connet_mode;
-    if(g_ble_connectable == true){
-        connet_mode = BLE_GAP_CONN_MODE_UND;
-    }else {
-        connet_mode = BLE_GAP_CONN_MODE_NON;
-    }
-
-    adv_params.conn_mode = connet_mode;
-    adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN;
-    if (interval < 30){  //TODO:需要大于30
-        adv_params.itvl_min = 0; 
-        adv_params.itvl_max = 0; 
-    }else{  
-        adv_params.itvl_min = interval; 
-        adv_params.itvl_max = interval + 1; //只能和adv_params.itvl_min差1
-    }
-
-    int rc = ble_gap_adv_start(own_addr_type, NULL, BLE_HS_FOREVER, &adv_params, ble_gap_event_cb, NULL);
-    if(rc != 0)
-        return rc;
-
-    uint8_t *  one_bytes_handle;
-    one_bytes_handle = (uint8_t *)malloc(g_all_chr_count);
-    for (int i = 0; i < g_all_chr_count; i++)
-    {
-        one_bytes_handle[i] = g_chrs_handle[i];
-    }
-    
-    pika_eventListener_send(g_pika_ble_listener,_IRQ_DIY_REGISTER_HANDLE,
-        arg_newObj(New_pikaTupleFrom(
-            arg_newInt(_IRQ_DIY_REGISTER_HANDLE),
-            arg_newBytes(one_bytes_handle,g_all_chr_count)
-            )));
-
-    free(one_bytes_handle);
-    return 0;
-}
-
-int _bluetooth_BLE_advertise_continue(PikaObj *self, int interval)
-{
-    printf("_bluetooth_BLE_advertise_continue\r\n");
-   return _bluetooth_BLE_adv(interval);
-}
-
 int _bluetooth_BLE_advertise(PikaObj *self, int addr, int interval, pika_bool connectable, 
-        char* adv_data, int adv_data_len, char* rsp_data, int rsp_data_len)
+        uint8_t * adv_data, int adv_data_len, uint8_t * rsp_data, int rsp_data_len)
 {
     nimble_port_freertos_init(ble_host_task);
     printf("_bluetooth_BLE_gap_advertise\r\n");
@@ -324,23 +283,23 @@ int _bluetooth_BLE_advertise(PikaObj *self, int addr, int interval, pika_bool co
     fields.name_len = strlen(name);
     fields.name_is_complete = 1;
 
-    // TODO:UUID修改成可变的
+    // TODO:UUID修改成可变的,用户在哪修改?
     fields.uuids16 = (ble_uuid16_t[]) {
         BLE_UUID16_INIT(GATT_SVR_SVC_ALERT_UUID)
     };
     fields.num_uuids16 = 1;
     fields.uuids16_is_complete = 1;
 
+    // 自定义广播数据
     if(adv_data_len > 0)
     {
         fields.mfg_data = (uint8_t *)adv_data;
         fields.mfg_data_len = adv_data_len;
     }
-
     int rc = ble_gap_adv_set_fields(&fields);
     
     if (rc != 0) {
-        MODLOG_DFLT(ERROR, "error setting advertisement data; rc=%d\n", rc);
+        printf("error setting advertisement data; rc=%d\r\n", rc);
         return -1 ;
     }
 
@@ -365,7 +324,7 @@ int _bluetooth_BLE_advertise(PikaObj *self, int addr, int interval, pika_bool co
         memcpy(rsp_data_new + 2, rsp_data, rsp_data_len); 
         rc =  ble_gap_adv_rsp_set_data(rsp_data_new,rsp_data_len+2);
         if (rc != 0) {
-            printf("error setting advertisement response data; rc=%d\n", rc);
+            printf("error setting advertisement response data; rc=%d\r\n", rc);
             free(rsp_data_new);
             return -1 ;
         }
@@ -376,29 +335,84 @@ int _bluetooth_BLE_advertise(PikaObj *self, int addr, int interval, pika_bool co
     g_ble_connectable = connectable;
     g_interval = interval;
 
-
     return _bluetooth_BLE_adv(interval);
 }
 
+int _bluetooth_BLE_adv(int interval) //TODO:1. 换个命名 2.再次进行广播，之前的值应该清零？
+{
+    printf("_bluetooth_BLE_adv\r\n");
+    // 声明并初始化广播结构体
+    struct ble_gap_adv_params adv_params;
+    memset(&adv_params, 0, sizeof(adv_params));
+
+    uint8_t own_addr_type =  get_addr_type(g_ble_addr_mode);
+    // 连接模式
+    uint8_t connet_mode;
+    if(g_ble_connectable == true){
+        connet_mode = BLE_GAP_CONN_MODE_UND;
+    }else {
+        connet_mode = BLE_GAP_CONN_MODE_NON;
+    }
+
+    adv_params.conn_mode = connet_mode;
+    adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN;
+    if(interval == 0){       // 默认值是104,65ms
+        adv_params.itvl_min = 0;
+        adv_params.itvl_max = 0;
+    }else if (interval < 35){  //需要大于35，
+        adv_params.itvl_min = 35; 
+        adv_params.itvl_max = 36; 
+    }else{  
+        adv_params.itvl_min = interval; 
+        adv_params.itvl_max = interval + 1; //只能和adv_params.itvl_min差1
+    }
+
+    if(ble_gap_adv_active() == 1){    //是否原有广播任务
+        ble_gap_adv_stop();
+    }
+
+    int rc = ble_gap_adv_start(own_addr_type, NULL, BLE_HS_FOREVER, &adv_params, ble_gap_event_cb, NULL);
+    if(rc != 0)
+        return rc;
+
+    uint8_t *  one_bytes_handle;
+    one_bytes_handle = (uint8_t *)malloc(g_all_chr_count);
+    for (int i = 0; i < g_all_chr_count; i++)
+    {
+        one_bytes_handle[i] = g_chrs_handle[i];
+    }
+    
+    pika_eventListener_send(g_pika_ble_listener,_IRQ_DIY_REGISTER_HANDLE,
+        arg_newObj(New_pikaTupleFrom(
+            arg_newInt(_IRQ_DIY_REGISTER_HANDLE),
+            arg_newBytes(one_bytes_handle,g_all_chr_count)
+            )));
+
+    free(one_bytes_handle);
+    return 0;
+}
+
 // 停止广播
-// TODO:未验证
 int _bluetooth_BLE_stop_advertise(PikaObj *self)
 {
     printf("_bluetooth_BLE_stop_advertise\r\n");
-    return ble_gap_adv_stop();
+    if(ble_gap_adv_active() == 1){
+        return ble_gap_adv_stop();
+    }else{
+        return 0;
+    }
 }
 
 int _bluetooth_BLE_pyi_gap_connect(PikaObj *self, uint8_t* peer_addr, int peer_addr_type, int scan_duration_ms)
 {
     // nimble_port_freertos_init(ble_host_task);
     printf("_bluetooth_BLE_gap_connect\r\n");
-
     int rc = ble_gap_disc_active();
     if (rc != 0) {
         printf("Failed to cancel scan; rc=%d\n", rc);
         return rc;
     }
-    // uint8_t own_addr_type = get_addr_type(addr_type);
+
     uint8_t own_addr_type ;
     rc = ble_hs_id_infer_auto(0, &own_addr_type);
     printf("own_addr_type = %d\r\n", own_addr_type);
@@ -408,20 +422,12 @@ int _bluetooth_BLE_pyi_gap_connect(PikaObj *self, uint8_t* peer_addr, int peer_a
         return rc;
     }
 
-    uint8_t peer_addr_value[6];
     ble_addr_t addr_peer = {
-        .type = 0,
+        .type = peer_addr_type,
     };
-    data_inver(peer_addr,addr_peer.val,16);
-    // 0x0c,0xae,0xb0,0xb6,0xaf,0xa5
-    // addr_peer.val[0] = 0xa5;
-    // addr_peer.val[1] = 0xaf;
-    // addr_peer.val[2] = 0xb6;
-    // addr_peer.val[3] = 0xb0;
-    // addr_peer.val[4] = 0xae;
-    // addr_peer.val[5] = 0x0c;
+    
+    data_inver(peer_addr,addr_peer.val,6);
     return ble_gap_connect(own_addr_type,&addr_peer,scan_duration_ms,NULL,ble_gap_event_cb,NULL);
-    // return 0;
 }
 
 int _bluetooth_BLE_pyi_gap_disconnect(PikaObj *self, int conn_handle)
@@ -436,17 +442,17 @@ int _bluetooth_BLE_gap_disc(PikaObj *self, int addr_mode, int duration_ms, int i
     printf("_bluetooth_BLE_gap_disc\r\n");
     // 获取地址类型                                             
     uint8_t own_addr_type =  get_addr_type(addr_mode);
+
     // 声明并初始化结构体实例
     struct ble_gap_disc_params disc_params = {
         .itvl = interval,
         .window = window,
-        .passive = ~active,
+        .passive = ~active
     };
-    // if (active == true){
-    //     printf("bool = true \r\n",active);
-    // }else{
-    //     printf("bool = false \r\n",active);
-    // }
+
+    if(ble_gap_disc_active() == 1)
+        ble_gap_disc_cancel();
+
     if (duration_ms == 0){
         return ble_gap_disc(own_addr_type, BLE_HS_FOREVER, &disc_params, ble_gap_event_cb, NULL);
     }else{
@@ -454,6 +460,7 @@ int _bluetooth_BLE_gap_disc(PikaObj *self, int addr_mode, int duration_ms, int i
     }
     
 }
+
 // 停止扫描
 // 不会引发扫描中止事件
 int _bluetooth_BLE_gap_stop_disc(PikaObj *self)
@@ -463,7 +470,6 @@ int _bluetooth_BLE_gap_stop_disc(PikaObj *self)
 }
 
 // 注册服务
-// TODO:未验证
 int _bluetooth_BLE_gatts_register_svcs(PikaObj *self, PikaObj* services_info,int all_chr_count)
 {
     // nimble_port_stop();
@@ -996,7 +1002,6 @@ int read_uuid_from_str(char* buf, int len, ble_uuid_any_t* uuid_struct)
 
 
 // GATT层: 服务端 回调函数
-// TODO:待完善
 static int ble_gatt_svc_access_cb(uint16_t conn_handle, uint16_t attr_handle,
                 struct ble_gatt_access_ctxt *ctxt, void *arg){
     const ble_uuid_t *uuid;
@@ -1067,7 +1072,7 @@ static int ble_gatt_svc_access_cb(uint16_t conn_handle, uint16_t attr_handle,
             }
             return 0;
 
-        case BLE_GATT_ACCESS_OP_READ_DSC:     //读描述符(回调函数与属性值先不做区分)
+        case BLE_GATT_ACCESS_OP_READ_DSC:     //读描述符(回调函数与属性值先不做区分) TODO:读不到描述符吧？
             if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
                 printf("Descriptor read; conn_handle=%d attr_handle=%d\r\n",conn_handle, attr_handle);
 
@@ -1222,20 +1227,20 @@ static int ble_gap_event_cb(struct ble_gap_event *event, void *arg)
             rc = ble_gap_conn_find(event->connect.conn_handle, &desc);
             assert(rc == 0);
             print_conn_desc(&desc);
-            data_inver(desc.peer_ota_addr.val,&addr,16);
+            data_inver(desc.peer_ota_addr.val,&addr,6);
 
             if(desc.role == BLE_GAP_ROLE_SLAVE){
-                pika_eventListener_send(g_pika_ble_listener,_IRQ_PERIPHERAL_CONNECT ,
+                pika_eventListener_send(g_pika_ble_listener,_IRQ_CENTRAL_CONNECT,
                             arg_newObj(New_pikaTupleFrom(
-                                    arg_newInt(_IRQ_PERIPHERAL_CONNECT),
+                                    arg_newInt(_IRQ_CENTRAL_CONNECT),
                                     arg_newInt(event->connect.conn_handle),
                                     arg_newInt(desc.peer_id_addr.type),
                                     arg_newBytes(addr,6)
                                     )));
             } else if (desc.role == BLE_GAP_ROLE_MASTER){
-                pika_eventListener_send(g_pika_ble_listener,_IRQ_CENTRAL_CONNECT ,
+                pika_eventListener_send(g_pika_ble_listener,_IRQ_PERIPHERAL_CONNECT  ,
                      arg_newObj(New_pikaTupleFrom(
-                    arg_newInt(_IRQ_CENTRAL_CONNECT),
+                    arg_newInt(_IRQ_PERIPHERAL_CONNECT),
                     arg_newInt(event->connect.conn_handle),
                     arg_newInt(desc.peer_id_addr.type),
                     arg_newBytes(addr,6)
@@ -1246,8 +1251,10 @@ static int ble_gap_event_cb(struct ble_gap_event *event, void *arg)
             /* Connection failed; resume advertising. */
             // bleprph_advertise();
             // TODO: 重新广播，或通知客户端
-            _bluetooth_BLE_adv(g_interval);
-            printf("Connection failed; resume advertising.");
+            if(desc.role == BLE_GAP_ROLE_SLAVE){
+                _bluetooth_BLE_adv(g_interval);
+                printf("Connection failed; resume advertising.");\
+            }
         }
         return 0;
 
@@ -1255,19 +1262,19 @@ static int ble_gap_event_cb(struct ble_gap_event *event, void *arg)
         printf("disconnect; reason=%d \r\n", event->disconnect.reason);
         // print_conn_desc(&event->disconnect.conn);
 
-        data_inver(event->disconnect.conn.peer_ota_addr.val,&addr,16);
+        data_inver(event->disconnect.conn.peer_ota_addr.val,&addr,6);
         if(event->disconnect.conn.role == BLE_GAP_ROLE_SLAVE){
-            pika_eventListener_send(g_pika_ble_listener,_IRQ_PERIPHERAL_DISCONNECT,
+            pika_eventListener_send(g_pika_ble_listener,_IRQ_CENTRAL_DISCONNECT,
                     arg_newObj(New_pikaTupleFrom(
-                            arg_newInt(_IRQ_PERIPHERAL_DISCONNECT),
+                            arg_newInt(_IRQ_CENTRAL_DISCONNECT),
                             arg_newInt(event->disconnect.conn.conn_handle),
                             arg_newInt(desc.peer_id_addr.type),
                             arg_newBytes(addr,6)
                             )));
         }else if(event->disconnect.conn.role == BLE_GAP_ROLE_MASTER){
-            pika_eventListener_send(g_pika_ble_listener,_IRQ_CENTRAL_DISCONNECT ,
+            pika_eventListener_send(g_pika_ble_listener,_IRQ_PERIPHERAL_DISCONNECT ,
                                 arg_newObj(New_pikaTupleFrom(
-                                        arg_newInt(_IRQ_CENTRAL_DISCONNECT),
+                                        arg_newInt(_IRQ_PERIPHERAL_DISCONNECT),
                                         arg_newInt(event->disconnect.conn.conn_handle),
                                         arg_newInt(desc.peer_id_addr.type),
                                         arg_newBytes(addr,6)
@@ -1306,8 +1313,6 @@ static int ble_gap_event_cb(struct ble_gap_event *event, void *arg)
         return 0;
     
     case BLE_GAP_EVENT_DISC: //扫描发现
-    // printf("BLE_GAP_EVENT_DISC\r\n");
-    // MicroPython addr_type, addr, adv_type, rssi, adv_data
         struct ble_gap_conn_desc desc;
         struct ble_hs_adv_fields fields;
         int rc;
@@ -1315,14 +1320,7 @@ static int ble_gap_event_cb(struct ble_gap_event *event, void *arg)
         if (rc != 0) {
             return 0;
         }
-
-        /* An advertisment report was received during GAP discovery. */
-        // print_adv_fields(&fields);
-
-        /* Try to connect to the advertiser if it looks interesting. */
-        // blecent_connect_if_interesting(&event->disc);
-
-        data_inver(event->disc.addr.val,addr,16);
+        data_inver(event->disc.addr.val,addr,6);
         // for (int i = 0; i < 6; i++)
         // {
         //     printf("%02x:", addr[i]);
@@ -1805,7 +1803,6 @@ static int ble_gatt_disc_chrs_by_uuid_cb(uint16_t conn_handle,
         return 0;
     }
 }
-
 
 // GATT 查找所有描述符回调函数
 // TODO:把描述符也显示了

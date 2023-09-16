@@ -4,7 +4,6 @@ import bluetooth
 import _bluetooth
 import const
 
-
 mem = PikaStdLib.MemChecker()
 def ble_irq(event,data):
     if event == const._IRQ_CENTRAL_CONNECT:
@@ -22,8 +21,13 @@ def ble_irq(event,data):
         # return const._GATTS_NO_ERROR
         return const._GATTS_ERROR_READ_NOT_PERMITTED
     elif event == const._IRQ_SCAN_RESULT:
-        print("_IRQ_SCAN_RESULT data : ")
-        print(data)
+        print("_IRQ_SCAN_RESULT")
+        if data[2] == 4 :
+            print("rsq data : ")
+            print(data)
+        else:
+            print(data)
+
     elif event == const._IRQ_SCAN_DONE:
         print("_IRQ_SCAN_DONE: ")
         print("data: ",data)
@@ -31,7 +35,7 @@ def ble_irq(event,data):
         print("_IRQ_PERIPHERAL_CONNECT")
         print("data: ",data)
     elif event == const._IRQ_PERIPHERAL_DISCONNECT:
-        a.gap_advertise(6250)
+        # a.gap_advertise(6250)
         print("_IRQ_PERIPHERAL_DISCONNECT: ")
         print("data: ",data)
     elif event == const._IRQ_GATTC_SERVICE_RESULT :
@@ -163,20 +167,27 @@ c = a.gatts_register_services(SERVICES)
 
 # print("chrs handle is",c)
 # c = a.gap_advertise(6250)
-print(a.gap_advertise(6250))
-# a.last_adv_data = "adv_test"
-# a.last_resp_data = bluetooth._to_string(bytearray('0x20'))
+# print(a.gap_advertise(6250))
+# a._last_adv_data = "adv_test"
+# a._last_resp_data = bluetooth._to_string(bytearray('0x20'))
+# a._last_resp_data = "resp_test"
 # c = a.gap_advertise(6250,"adv_test","rsp_test")
+# c = a.gap_advertise(6250,"adv","rsp")
+# c = a.gap_advertise(6250,"adv","rsp")
+# c = a.gap_advertise(6250,bytes("adv"),bytes("rsp"))
+# c = a.gap_advertise(6250,bytearray("adv"),bytearray("rsp"))
+# c = a.gap_advertise(6250,bytearray("adv"),bytes([0x12,0x34,0x56]))
 
 # 扫描服务，客户端
 # d = a.gap_scan(0, 1280000, 11250, True)
-# d = a.gap_scan(1000,320000,active=True)
+d = a.gap_scan(1000,320000,active=True)
 # d = a.gap_scan(1000,320000)
 # d = a.gap_scan(1000,320000,active=False)
 # addr = bytes([0x0c,0xae,0xb0,0xb6,0xaf,0xa5])
 # addr = bytes([0x6c,0xf9,0x87,0xd5,0x49,0x24])
 # addr = bytes([0x34,0x85,0x18,0x92,0x0d,0xb6]) # old esp32
-# addr = bytes([0xec,0xda,0x3b,0x67,0x7a,0x82])  # new eps32 s3
+addr = bytes([0xec,0xda,0x3b,0x67,0x7a,0x82])  # new eps32 s3
+addr = bytes([0xec,0xda,0x3b,0x67,0x7a,0x82])  # new eps32 s3
 # a.gap_connect(addr,0)
 
 
@@ -185,15 +196,15 @@ print(a.gap_advertise(6250))
 # a._c2value_dict
 
 # a.gatts_read(21)
-a.gatts_write(21,bytes([0x43]))
-a.gatts_write(22,bytes([0x43,0x43]))
-a.gatts_write(20,bytes([0x20,0x20,0x20]))
+# a.gatts_write(21,bytes([0x43]))
+# a.gatts_write(22,bytes([0x43,0x43]))
+# a.gatts_write(20,bytes([0x20,0x20,0x20]))
 
 
 # a.gatts_notify(1,21,bytes([0x43]))
 # a.gatts_notify(1,21,bytes("test"))
 # a.gatts_notify(1,21,"test")
-a.gatts_indicate(1,22)
+# a.gatts_indicate(1,22)
 
 # a.test3(1,0)
 # a.gattc_discover_services(1)
@@ -283,24 +294,9 @@ a.gatts_indicate(1,22)
 # 待测试函数
 # a.test_call_some_name()
 
-"""
-问题汇总
-1. super().func 报错
-2. py文件调用.pyi文件会打印返回值 ok
-3. pyi文件需要返回字符串、二进制码流如何处理
-4. config函数有些参数无法读取
-5. 进行BLE失能时,该如何处理
 
 
-问题汇总
-1. nvs_flash_init()这种调用一次的函数应该在哪里调用
-2. 启动蓝牙线程任务在哪里调用(已解决)
-3. print_addr函数的实现在哪里, 需要怎么样引用
-4. 引用头文件失败
-5. py文件 elif没通过
-6. ESP 的日志没打印出来？
-"""
-
-
+## test
+# c = bluetooth.UUID('6E400001-B5A3-F393-E0A9--E50E24DCCA9')
 
 

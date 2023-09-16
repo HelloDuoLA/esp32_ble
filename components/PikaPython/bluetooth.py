@@ -26,81 +26,167 @@ FLAG_WRITE_ENCRYPTED     = 0x1000
 FLAG_WRITE_AUTHENTICATED = 0x2000
 FLAG_WRITE_AUTHORIZED    = 0x4000
 
+
+'''
+创建具有指定值的 UUID 实例
+该值可以是
+- 一个 16 位整数. 例如`0x2908`
+- 一个 32 位整数. 例如`0x29081234`
+- 一个 128 位的 UUID 字符串。例如`'6E400001-B5A3-F393-E0A9-E50E24DCCA9E'`.
+'''
 class UUID():
-    value  = ""
-    _UUID_bits = ""
     def __init__(self,value):
-        self.value,self._UUID_bits = UUID_to_bytes(value)
-    
+        try:
+            self.value,self._UUID_bits = self._UUID_to_bytes(value)
+        except:
+            print("ValueError: Invalid UUID")
+            
+
+    def _UUID_to_bytes(self,value):
+        value_bytes = []
+        UUID_bits   = 0 
+        # try:
+        if isinstance(value,bytearray): 
+            # value_bytes = value.decode() # 暂不支持bytes(bytearray())
+            pass
+        elif isinstance(value, bytes):
+            value_bytes = value
+        elif isinstance(value,str):
+            # if len(value) == 36 and (value[8] == value[13] == value[18] == value[23] == '-'): #暂不支持连等
+            if len(value) == 36 and (value[8] == '-') and (value[13] == '-') and (value[18] == '-') and  (value[23] == '-'):
+                value_str = value.replace("-","")
+                value_list = []
+                if len(value_str) == 32:
+                    for i in range(0, 32, 2):
+                        value_list.append(int(value_str[i:i+2],16))
+                    value_bytes = bytes(value_list)
+                else :
+                    raise 
+                    # pass
+        elif isinstance(value,int):  
+            value_list = []
+            if value >= 0 and value < 65536 :          #16 bit uuid
+                value_list.append(int(value/256))
+                value_list.append(value%256)
+            elif value >= 0 and value < 65536 * 65536: #32 bit uuid
+                value_list.append(int(value/(65536 * 256)))
+                value_list.append(int((value%(65536 * 256))/65536))
+                value_list.append(int((value%(65536))/256))
+                value_list.append((value%(256)))
+            value_bytes = bytes(value_list)
+
+        UUID_bits = len(value_bytes)
+        return value_bytes,UUID_bits
+            
+
 
 
 class BLE(_bluetooth.BLE):
-    # 所有实例共享
     def __init__(self):
         print("BLE init")
         # a = super().__init__()
-        self.last_adv_data  = ""  #广播内容
-        self.last_resp_data = ""  #回应扫描内容
-        self.addr_mode      =  0  #地址类型 BLE_OWN_ADDR_PUBLIC,BLE_OWN_ADDR_RANDOM,BLE_OWN_ADDR_RPA_PUBLIC_DEFAULT,BLE_OWN_ADDR_RPA_RANDOM_DEFAULT
-        self.callback_func  = None  #回调函数
+        self._last_adv_data   = ""  #广播内容
+        self._last_resp_data  = ""  #回应扫描内容
+        self._addr_mode       =  0  #地址类型 BLE_OWN_ADDR_PUBLIC,BLE_OWN_ADDR_RANDOM,BLE_OWN_ADDR_RPA_PUBLIC_DEFAULT,BLE_OWN_ADDR_RPA_RANDOM_DEFAULT
+        self._callback_func   = None  #回调函数
 
         self._basic_value_handle = 20
         self._py2c_dict = {}
         self._c2py_dict = {}
         self._c2value_dict = {}
-        self.conn_handles = [] 
         a = self.init()
-        self.setCallback(self.ble_callback)
+        self.setCallback(self._callback)
 
-
-    
-    def test(self, interval_us, adv_data=None, resp_data=None, connectable=True):
-        if isinstance(adv_data,bytes) :
-            print( "neirong " ,_to_string(adv_data), "size" ,len(_to_string(adv_data)))
-        print(type(adv_data))
+    def test(self):
+        pass
     
     def test2(self, data):
-        # print("num  " ,num)
-        # print("len num ", len(num))
-        # num_str = _to_string(num)
-        # print("num_str : ", num_str)
-        # return self.pyi_test2(num_str,len(num_str))
-        # if interval_us == None :
-        # print(interval_us)
-        # print(adv_data)
-        # print(resp_data)
-        # print(connectable)
-        # a.test2(2, resp_data = "resp_data")
-        self.pyi_test2(data,len(data))
-
+        pass
 
     def test3(self,connhandle,valuehandle):
         return self.pyi_test3(connhandle,valuehandle)
     
     def test4(self,data):
-        # print(data[0],data[1],data[2])
-        print(data[0],data[1])
-        return 0
+        pass
     
     def test_call_some_name(self):
         super().test_call_some_name()  
+
+    '''
+    可选择更改 BLE 无线电的活动状态，并返回当前状态。
+
+    在使用此类上的任何其他方法之前，必须使无线电处于活动状态。
+
+    Args:
+        - active(bool): 为 1 则开启BLE, 否则关闭BLE; 为空则查询当前BLE状态 
     
-    def active(self):
-        self.pyi_active()
+    Returns:
+        - bool:设置状态时，返回操作成功与否； 查询状态时, 返回状态, True为活跃
 
-    def active(self,active_flag):
-        if (active_flag > 0 or active_flag == True):
-            return self.pyi_active(True)
-        elif (active_flag == 0 or active_flag == False):
-            return self.pyi_active(False)
+    TODO:等待激活逻辑
+    '''
+    def active(self,active_flag = None ):
+        if active_flag == None:
+            return self.pyi_check_active()
+        else:
+            if (active_flag > 0 or active_flag == True):
+                return self.pyi_active(True)
+            elif (active_flag == 0 or active_flag == False):
+                return self.pyi_active(False)
 
+    '''
+    获取或设置 BLE 接口的配置值。
+    
+    要获得一个值，参数名称应该被引用为一个字符串，并且一次只查询一个参数。
+
+    如 `config("gap_name")`
+    
+    要设置值，请使用关键字语法，并且一次可以设置一个或多个参数。
+
+    如 `config(gap_name="nimble")`
+
+    当前支持的值是:
+
+    - `'mac'`:
+
+        TODO:需要支持设置任意值嘛？有点困难
+    
+    - `'_addr_mode'`:
+
+    - `'gap_name'`:
+    
+    - `'rxbuf'`:
+
+        TODO:暂未支持, 没找到对应函数
+
+    - `'mtu'`:
+
+        TODO:不明意义
+
+    - `'bond'`:
+
+        TODO: 目前提供的接口不支持
+
+    - `'mitm'`:
+
+        TODO:暂未支持, 没找到对应函数
+
+    - `'io'`:
+
+        TODO:未找到对应函数
+
+    - `'lesure'`:
+
+        TODO:只支持设置
+
+    '''
     def config(self, *param_name, **kv): # a.config(mac="1123",gap_name="test")
     # 获取参数属性   a.config("mac")
         first_param = param_name[0]
         if first_param == "mac":
-            return (self.config_addr_mode_get(),self.config_mac_get())
-        elif first_param == "addr_mode":
-            return self.config_addr_mode_get()
+            return (self.config__addr_mode_get(),self.config_mac_get())
+        elif first_param == "_addr_mode":
+            return self.config__addr_mode_get()
         elif first_param == "gap_name":
             return self.config_gap_name_get()
         elif first_param == "rxbuf" :
@@ -122,8 +208,8 @@ class BLE(_bluetooth.BLE):
         if "mac" in kv:
             return self.config_mac_update(kv["mac"])
 
-        if ("addr_mode" in kv):
-            return self.config_addr_mode_update(kv["addr_mode"])
+        if ("_addr_mode" in kv):
+            return self.config__addr_mode_update(kv["_addr_mode"])
 
         if ("gap_name" in kv):
             return self.config_gap_name_update(kv["gap_name"])
@@ -148,15 +234,18 @@ class BLE(_bluetooth.BLE):
 
         if ("le_secire" in kv):
             return self.config_le_secire_update(kv["le_secire"])
-    # a.config("mac"="test","gap_name"="test2")
 
+    '''
+    为来自 BLE 堆栈的事件注册回调。
+    
+    处理程序采用两个参数,event(在下面的代码中的一个) 和 data(其是值的特定事件元组)。
+
+    '''
     # 回调事件处理函数
     def irq(self,func):
-        # self.setCallback(func)
-        self.callback_func = func
+        self._callback_func = func
     
-    def ble_callback(self,data):
-        # TODO:memoryview没有实现
+    def _callback(self,data):
         event_id = data[0]
         # print("event_id",event_id)
         # print("data  ",data[1])
@@ -165,90 +254,173 @@ class BLE(_bluetooth.BLE):
                 ble_value_handles = data[1]
                 length = len(ble_value_handles)
                 for i in range(length):
-                    # py 映射 c handle
                     key =  self._basic_value_handle + i
                     value = ble_value_handles[i] 
+                    # py 映射 c handle
                     self._py2c_dict[str(key)] = value 
-
                     # c 映射 py handle
                     self._c2py_dict[str(value)] = key
-
                     # c handle 映射 value, 默认值为空
-                    self._c2value_dict[str(value)] = ""
-            elif event_id == 102: #nimble蓝牙协议栈读属性 TODO:回调函数没反应
-                print("data1",data[1])
+                    self._c2value_dict[str(value)] = bytes("")
+            elif event_id == 102: #nimble蓝牙协议栈读属性 
                 buf = self._c2value_dict[str(data[1])]
-                print("buf " ,buf)
                 return len(buf),buf
-                # return bytes([99])
         else: 
             if event_id == 3: # write
                 self._c2_change_value(data[2], data[3])
                 data = data[:3]
-            if event_id == 4: #read 请求
-                rc = self.callback_func(event_id,data[1:])
-                value = -99
+            elif event_id == 4: # read 请求
+                rc = self._callback_func(event_id,data[1:])
+                value    = -99
                 length   = -99
                 if rc == 0:   #允许读
                     value = self._c2value(data[2]) 
                     length = len(value)
                 return rc,length,value
-            return self.callback_func(event_id,data[1:])
+            else:
+                return self._callback_func(event_id,data[1:])
 
-    # 完成
+    '''
+    以指定的时间间隔(以微秒为单位)开始广播。
+
+    adv_data和resp_data可以是任何实现缓冲协议的类型(例如bytes, bytearray, str)。adv_data包含在所有广播中,并且resp_data被发送以响应主动扫描。
+
+    注意:如果adv_data(或resp_data)是None, 则传递给前一个调用的数据 gap_advertise将被重新使用。
+    
+    要清除广告有效负载, 请传递一个空值bytes, 即b''
+
+    Args: 
+
+        - interval_us(int):广播时间间隔, 单位us. 此间隔将向下舍入到最接近的 625us的倍数。要停止广告, 请将interval_us设置 为 None。
+
+        - adv_data(bytes, bytearray, str): 自定义广播数据(添加到默认广播数据后),默认值为none
+        TODO:是否需要默认广播?
+        - resp_data(bytes, bytearray, str): 扫描响应数据,默认值为none
+
+        -connectable(bool): 是否可连接, True 为可连接.
+    '''
     def gap_advertise(self, interval_us, adv_data=None, resp_data=None, connectable=True):
         if interval_us is None: 
-            print("interval_us is None\r\n")
             return self.stop_advertise()
         else :
             # 设置广播载荷
             if adv_data is None: #参数为空，则使用上次数据
-                adv_data = self.last_adv_data
+                adv_data = self._last_adv_data
             else :
-                self.last_adv_data = _to_string(adv_data)
+                self._last_adv_data = _to_bytes(adv_data)
 
             # 设置响应载荷
             if resp_data is None:
-                resp_data = self.last_resp_data
+                resp_data = self._last_resp_data
             else :
-                self.last_resp_data = _to_string(resp_data)
-                # print(self.last_resp_data)
-                print(resp_data)
+                self._last_resp_data = _to_bytes(resp_data)
             
-            # if resp_data is None and adv_data is None and interval_us is not None:
-            #     self.advertise_continue()
+        return self.advertise(self._addr_mode,int(interval_us/625),connectable,self._last_adv_data,len(self._last_adv_data),self._last_resp_data,len(self._last_resp_data))
 
-        return self.advertise(self.addr_mode,int(interval_us/625),connectable,self.last_adv_data,len(self.last_adv_data),self.last_resp_data,len(self.last_resp_data))
+    '''
+    运行持续指定持续时间(以毫秒为单位)的扫描操作。
+    
+    要无限期扫描, 请将duration_ms设置为0;要停止扫描,请将duration_ms设置为 None.
 
-    # active的作用是接受扫描响应数据
-    # """
-    # 使用interval_us和window_us可选择配置占空比。扫描器将每interval_us微秒运行window_us 微秒，
-    # 总共持续duration_ms毫秒。默认间隔和窗口分别为 1.28 秒和 11.25 毫秒（后台扫描）。
-    # """
+    使用interval_us和window_us可选择配置占空比。扫描器将每interval_us微秒运行window_us 微秒,总共持续duration_ms毫秒。
+    
+    默认间隔和窗口分别为 1.28 秒和 11.25 毫秒(后台扫描).
+
+    对于每个扫描结果, _IRQ_SCAN_RESULT将引发事件, 并带有事件数据。`(addr_type, addr, adv_type, rssi, adv_data)`
+
+    Args:
+
+        - duration_ms(int):扫描持续时间。要无限期扫描, 请将duration_ms设置为0;要停止扫描,请将duration_ms设置为 None.
+
+        - interval_us(int): 扫描间间隔时间。默认值为1280000
+
+        - window_us(int): 扫描窗口时间。默认值为11250
+
+        - active(bool): 是否接受扫描响应。默认值False(不接受)
+
+    Return:
+        
+        - 操作成功返回 0; 否则返回错误代码
+
+    events: 
+
+        - 单个扫描结果触发 _IRQ_SCAN_RESULT
+
+        - 扫描结束触发    _IRQ_SCAN_DONE
+    
+    '''
     def gap_scan(self, duration_ms, interval_us=1280000, window_us=11250, active=False):
         if duration_ms is None :
             return self.gap_stop_disc()
         else:
-            # print("duration=%d,interval_us=%d, window_us=%d, active=" %( duration_ms,interval_us,window_us),active)
-            print("active=",active)
-            return self.gap_disc(self.addr_mode, duration_ms,int(interval_us/625),int(window_us/625),active)
+            return self.gap_disc(self._addr_mode, duration_ms,int(interval_us/625),int(window_us/625),active)
 
+    '''
+    central 设备连接 peripherals 设备
+    Args:
+
+        - peer_addr(list,bytes,bytearray): 需要连接的设备的mac地址
+
+        - peer_addr_type(int): 连接设备的地址类型
+
+            - 0x00 - PUBLIC - 使用控制器的公共地址。
+
+            - 0x01 - RANDOM - 使用生成的静态地址。
+
+            - 0x02 - RPA - 使用可解析的私有地址。
+
+            - 0x03 - NRPA - 使用不可解析的私有地址。
+
+    Return:
+
+        - (int): 操作成功返回 0; 否则返回错误代码
+
+    events:
+
+        - 连接成功触发 CENTRAL设备:_IRQ_PERIPHERAL_CONNECT; PERIPHERAL设备:_IRQ_CENTRAL_CONNECT
+    '''
     def gap_connect(self,peer_addr,peer_addr_type, scan_duration_ms=2000):
-        return self.pyi_gap_connect(peer_addr,peer_addr_type ,scan_duration_ms)
+        peer_addr_bytes = _to_bytes(peer_addr,6)
+        return self.pyi_gap_connect(peer_addr_bytes,peer_addr_type ,scan_duration_ms)
 
+    '''
+    Args:
+
+        - conn_handle(int): 连接句柄
+
+    Return:
+
+        - (int): 操作成功返回 0; 否则返回错误代码
+
+    events:
+
+        - 断连成功触发 CENTRAL设备:_IRQ_PERIPHERAL_DISCONNECT; PERIPHERAL设备:_IRQ_CENTRAL_DISCONNECT
+    '''
     def gap_disconnect(self, conn_handle):
         return self.pyi_gap_disconnect(conn_handle)
+    
+    '''
+    Args:
 
+        -
+
+    Return:
+
+        - 操作是否成功
+
+    events:
+
+        -
+    '''
     def gatts_register_services(self, services):
         convert_services = _convert_ble_service_info(services)
         # print("convert_services  : ",convert_services)
-
         offset = 0
         chr_list = _count_chrs(services)
         all_chr_count = 0
         new_list1 = []
 
-        # 计算pyhandle返回值
+        # 计算py handle返回值
         # 计算chr总数量
         for i in range(len(chr_list)):
             new_list2 = []
@@ -264,14 +436,39 @@ class BLE(_bluetooth.BLE):
         
         if rc < 0 :
             return rc
-        
         return tuple(new_list1) 
 
-    # TODO:待验证
+    
+    '''
+    Args:
+
+        -
+
+    Return:
+
+        - 操作是否成功
+
+    events:
+
+        -
+    '''
     def gatts_read(self,value_handle):
         return self._py2value(value_handle)
 
-    # TODO:待验证
+    
+    '''
+    Args:
+
+        -
+
+    Return:
+
+        - 操作是否成功
+
+    events:
+
+        -
+    '''
     def gatts_write(self,value_handle, data, send_update=False):
         if send_update == False:
             return self._py2_change_value(value_handle,data)
@@ -279,7 +476,20 @@ class BLE(_bluetooth.BLE):
             self._py2_change_value(value_handle,data)
             self.gatts_chr_updated(value_handle)
         
+    
+    '''
+    Args:
 
+        -
+
+    Return:
+
+        - 操作是否成功
+
+    events:
+
+        -
+    '''
     def gatts_notify(self,conn_handle, value_handle, data=None):
         value = ""
         if data is None:
@@ -295,7 +505,20 @@ class BLE(_bluetooth.BLE):
         c_value_handle = self._py2c_dict[str(value_handle)]
         self.pyi_gatts_notify(conn_handle, c_value_handle,value,len(value))
 
+    
+    '''
+    Args:
 
+        -
+
+    Return:
+
+        - 操作是否成功
+
+    events:
+
+        -
+    '''
     def gatts_indicate(self,conn_handle, value_handle,data=None):
         value = ""
         if data is None:
@@ -311,34 +534,127 @@ class BLE(_bluetooth.BLE):
         c_value_handle = self._py2c_dict[str(value_handle)]
         self.pyi_gatts_indicate(conn_handle, c_value_handle,value,len(value))
 
+    
+    '''
+    Args:
+
+        -
+
+    Return:
+
+        - 操作是否成功
+
+    events:
+
+        -
+    '''
     def gatts_set_buffer(self,value_handle, len, append=False):
         # TODO:暂不清楚对照哪个函数
         pass
 
+    
+    '''
+    Args:
+
+        -
+
+    Return:
+
+        - 操作是否成功
+
+    events:
+
+        -
+    '''
     def gattc_discover_services(self,conn_handle, uuid:UUID=None):
         if uuid == None:
             return self.gattc_dis_svcs(conn_handle)
         else :
             return self.gattc_dis_svcs_by_uuid(conn_handle,uuid.value,len(uuid.value))
 
+        '''
+    Args:
+
+        -
+
+    Return:
+
+        - 操作是否成功
+
+    events:
+
+        -
+    '''
     def gattc_discover_characteristics(self,conn_handle, start_handle, end_handle, uuid:UUID=None):
         if uuid == None:
             return self.gattc_diss(conn_handle,start_handle,end_handle)
         else :
             return self.gattc_diss_by_uuid(conn_handle, start_handle, end_handle,uuid.value,len(uuid.value))
 
+    '''
+    Args:
+
+        -
+
+    Return:
+
+        - 操作是否成功
+
+    events:
+
+        -
+    '''
     def gattc_discover_descriptors(self,conn_handle, start_handle, end_handle):
         return self.gattc_dis_dscs(conn_handle,start_handle, end_handle)
 
+    '''
+    Args:
+
+        -
+
+    Return:
+
+        - 操作是否成功
+
+    events:
+
+        -
+    '''
     def gattc_read(self,conn_handle, value_handle):
         return self.pyi_gattc_read(conn_handle, value_handle)
 
+    '''
+    Args:
+
+        -
+
+    Return:
+
+        - 操作是否成功
+
+    events:
+
+        -
+    '''
     def gattc_write(self,conn_handle, value_handle, data, mode = 0):
         if mode == 0:
             return self.gattc_write_with_no_rsp(conn_handle, value_handle, data, len(data))
         elif mode == 1:
             return self.gattc_write_with_rsp(conn_handle, value_handle, data,len(data))
 
+    '''
+    Args:
+
+        -
+
+    Return:
+
+        - 操作是否成功
+
+    events:
+
+        -
+    '''
     def gattc_exchange_mtu(self,conn_handle):
         self.pyi_gattc_exchange_mtu(conn_handle)
 
@@ -380,61 +696,29 @@ def _convert_ble_service_info(data):
 
 def _count_chrs(srvs_tuple):
     srv_count = len(srvs_tuple)
-    # print("srv_count",srv_count)
-    # print("srvs_tuple", srvs_tuple)
     chr_count = [] # 每个服务的特性数量
     for i in range(srv_count):
-        # srv_tuple = srvs_tuple[i]
-        # print("srv_tuple ", srv_tuple )
-        # chrs_tuple = srv_tuple[]
         chr_count.append(len(srvs_tuple[i][1]))
-        # print("chrs_tuple",chrs_tuple)
     return chr_count
 
-# 将数据转为字符串格式
-def _to_string(data):
-    data_str = ""
+
+def _to_bytes(data,size=None):
+    data_bytes = ""
     if isinstance(data,bytes):
-        data_str = data.decode()
+        data_bytes = data
     elif isinstance(data,bytearray):
-        data_str = data.decode()
+        data_bytes = bytes(data.decode())
     elif isinstance(data,str):
-        data_str = data
-    elif isinstance(data,int):
-        data_str = hex(data)[2:]
-
-def UUID_to_bytes(value:UUID):
-    value_bytes = []
-    if isinstance(value,bytearray): #貌似没有太好的方式转到bytes上
-        value_bytes = value.decode()
-    elif isinstance(value, bytes):
-        value_bytes = value
-    elif isinstance(value,str):
-        value_str = value.replace("-","")
-        # print(value_str)
-        # value_bytes = bytes([int(value_str[i:i+2],16) for i in range(0, len(value_str), 2)])
-        value_list = []
-        for i in range(0, len(value_str), 2):
-            value_list.append(int(value_str[i:i+2],16))
-        value_bytes = bytes(value_list)
-
-    elif isinstance(value,int): # 65535 
-        value_list = []
-        if value >= 0 and value < 65536 : #8 bit uuid
-            value_list.append(int(value/256))
-            value_list.append(value%256)
-        elif value >= 0 and value < 65536 * 65536:
-            value_list.append(int(value/(65536 * 256)))
-            value_list.append(int((value%(65536 * 256))/65536))
-            value_list.append(int((value%(65536))/256))
-            value_list.append((value%(256)))
-
-        value_bytes = bytes(value_list)
+        data_bytes = bytes(data)
+    elif isinstance(data,list):
+        data_bytes = bytes(data)
+    else:
+        raise ValueError
     
-    UUID_bits = len(value_bytes)
-    # print(value_bytes)
-    return value_bytes,UUID_bits
-
+    if size != None and len(data_bytes) != size:
+        raise ValueError
+    
+    return data_bytes
 
 
     
