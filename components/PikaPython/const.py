@@ -30,7 +30,9 @@ _IRQ_CONNECTION_UPDATE             = 27
 _IRQ_ENCRYPTION_UPDATE             = 28
 _IRQ_GET_SECRET                    = 29
 _IRQ_SET_SECRET                    = 30
-
+_IRQ_GATTC_SUBSCRIBE               = 31   #往后事件均相较mpy新增
+_IRQ_GATTS_SUBSCRIBE               = 32
+_IRQ_TEST                          = 33
 
 #客户端读请求返回值
 _GATTS_NO_ERROR                          =  0x00

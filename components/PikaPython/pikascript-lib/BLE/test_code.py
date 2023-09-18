@@ -64,10 +64,84 @@ a.gap_scan(10000,320000,active=False)
 a.gap_scan(1000,320000,active=False)
 addr = bytes([0xec,0xda,0x3b,0x67,0x7a,0x82])  # new eps32 s3
 a.gap_connect(addr,0)
-
-
 addr = bytes([0xec,0xda,0x3b,0x67,0x7a,0x82])  # new eps32 s3
 addr = [0xec,0xda,0x3b,0x67,0x7a]  # new eps32 s3
 
-
+#测disconnect
 a.gap_disconnect(1)
+
+# 测发现服务
+a.gattc_discover_services(1)
+
+a.gattc_discover_services(1,bluetooth.UUID(0x1800))
+a.gattc_discover_services(1,bluetooth.UUID(b'\x6e\x40\x00\x01\xb5\xa3\xf3\x93\xe0\xa9\xe5\x0e\x24\xdc\xca\x9e'))
+
+a.gattc_discover_services(0)
+a.gattc_discover_services(1,bluetooth.UUID(0x1803))
+
+#发现属性
+a.gattc_discover_characteristics(1,0x01,0xff,bluetooth.UUID(0x2A37))
+a.gattc_discover_characteristics(1,29,0xff,bluetooth.UUID(0x2A37))
+
+a.gap_connect(addr,0)
+
+#订阅 notify
+a.gattc_write(1,32,bytes([0x01,0x00]))
+a.gattc_write(1,32,b'\x00\x01')
+a.gattc_write(1,32,b'\x01\x00')
+# b'\x01\x00'
+a.gattc_write(1,32,bytes([0x00,0x01]))
+a.gattc_write(1,32,bytes([0x00,0x00]))
+a.gattc_read(1,32)
+a.gattc_read(3,32)
+
+#订阅 indicate
+a.gattc_write(1,38,bytes([0x02,0x00]))
+a.gattc_write(1,38,bytes([0x00,0x09]))
+a.gattc_write(0,38,b'\x00\x01')
+a.gattc_write(0,38,b'\x00\x00')
+a.gattc_write(1,38,bytes([0x00,0x00]))
+
+a.gattc_read(1,38)
+a.gattc_read(0,38)
+
+#发现描述符
+a.gattc_discover_descriptors(1,0x01,0xff)
+a.gattc_discover_descriptors(1,29,0xff)
+
+# a._c2py_dict
+# a._py2c_dict
+# a._c2value_dict
+# notify
+a.gatts_read(21)
+a.gatts_write(21,bytes([0x43,0x43]))
+a.gatts_notify(1,21)
+a.gatts_notify(1,21,"test")
+
+len(a.gatts_read(22))
+
+# gattc write
+a.gatts_read(22)
+
+a.test2()
+a.test3(1,1)
+
+a.gap_connect(addr,0)
+
+a.gattc_subscribe(1,26,1)
+a.gattc_subscribe(1,26,0)
+a.gattc_subscribe(1,26,2)
+a.gattc_subscribe(1,26)
+
+a.gattc_read(1,27)
+
+
+a.gattc_subscribe_indicate(1,38)
+a.gattc_subscribe_indicate(1,38,False)
+
+a.gattc_subscribe_notify(1,33,False)
+
+
+a.test3(1,1)
+
+a.active(1)

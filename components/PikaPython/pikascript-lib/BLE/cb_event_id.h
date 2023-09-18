@@ -33,8 +33,9 @@
 #define _IRQ_ENCRYPTION_UPDATE             28
 #define _IRQ_GET_SECRET                    29
 #define _IRQ_SET_SECRET                    30
-#define _IRQ_GATTC_SUBSCRIBE               31
-#define _IRQ_TEST                          32
+#define _IRQ_GATTC_SUBSCRIBE               31   // 往后事件均相较mpy新增
+#define _IRQ_GATTS_SUBSCRIBE               32
+#define _IRQ_TEST                          33
 
 #define _IRQ_DIY_REGISTER_HANDLE            101
 #define _IRQ_DIY_NIMBLE_READ                102

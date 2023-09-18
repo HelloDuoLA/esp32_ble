@@ -22,7 +22,8 @@
 
 static const char *tag = "NimBLE_BLE";
 bool BLE_ONLY = false;                         //只使用BLE,默认否
-bool BLE_FIRST_INIT = true;                    //是否第一次初始化,默认是
+bool FLASH_FIRST_INIT = true;                    //是否第一次初始化,默认是
+bool BLE_INIT   = false;                    //是否第一次初始化,默认是
 // uint8_t own_addr_type;
 PikaEventListener *g_pika_ble_listener = NULL; // 事件监听器
 int  g_ble_addr_mode = 0;
@@ -155,7 +156,7 @@ uint8_t get_addr_type(int addr_mode)
 int _bluetooth_BLE_init(PikaObj *self)
 {
     printf("_bluetooth_BLE___init__\r\n");
-    if (BLE_FIRST_INIT)
+    if (FLASH_FIRST_INIT)
     {
         //初始化flash
         esp_err_t ret = nvs_flash_init();
@@ -164,7 +165,7 @@ int _bluetooth_BLE_init(PikaObj *self)
             ret = nvs_flash_init();
         }
         ESP_ERROR_CHECK(ret);
-        BLE_FIRST_INIT = false;
+        FLASH_FIRST_INIT = false;
     }
     return 1;
 }
@@ -178,12 +179,16 @@ pika_bool _bluetooth_BLE_pyi_active(PikaObj *self, pika_bool active)
         // 初始化堆栈
         // TODO: 多蓝牙对象时会报错
         // printf("ble_hs_is_enabled : %d\r\n",ble_hs_is_enabled());
-        nimble_port_init(); //作用是啥
-        // printf("ble_hs_is_enabled : %d\r\n",ble_hs_is_enabled());
-        // nimble_port_freertos_init(ble_host_task);
+        if(!BLE_INIT){
+            nimble_port_init();
+            BLE_INIT = true;
+        }
         return true;
     }else {
-        nimble_port_deinit();
+        if(BLE_INIT){
+            nimble_port_deinit();
+            BLE_INIT = false;
+        }
         // nimble_port_stop();
         return false;
     }
@@ -192,8 +197,7 @@ pika_bool _bluetooth_BLE_pyi_active(PikaObj *self, pika_bool active)
 pika_bool _bluetooth_BLE_pyi_check_active(PikaObj *self)
 {
     printf("_bluetooth_BLE_pyi_check_active\r\n");
-    //TODO: 未找到检测蓝牙是否活跃的函数
-    return true;
+    return BLE_INIT;
 }
 
 int _bluetooth_BLE_pyi_test(PikaObj *self)
@@ -356,7 +360,7 @@ int _bluetooth_BLE_adv(int interval) //TODO:1. 换个命名 2.再次进行广播
 
     adv_params.conn_mode = connet_mode;
     adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN;
-    if(interval == 0){       // 默认值是104,65ms
+    if(interval == 0){       // 默认值是104, 65ms
         adv_params.itvl_min = 0;
         adv_params.itvl_max = 0;
     }else if (interval < 35){  //需要大于35，
@@ -821,48 +825,27 @@ int _bluetooth_BLE_config_rxbuf_update(PikaObj *self, int rxbuf)
 }
 
 
-int _bluetooth_BLE_pyi_test2(PikaObj *self,char *data ,int data_len)
+int _bluetooth_BLE_pyi_test2(PikaObj *self)
 {
-    // printf("_bluetooth_BLE_pyi_test2\r\n");
-    // printf("%d\r\n",data[0]);
-    // _testtest(num);
-    // uint8_t* prt_num  = (uint8_t * )malloc(data_len);
-    // // printf("%s\r\n",atoi(num));
-    // for ( int i = 0; i < data_len; i++)
-    // {
-    //     prt_num[i] = data[i] - '0';
-    //     // printf("%d",data[i]-48);
-    // }
-    
-    // for ( int i = 0; i < data_len; i++)
-    // {
-    //     printf("%d",prt_num[i]);
-    // }
-    // printf("\r\n");
-    // free(prt_num);
-
-    // BLE_UUID16(uuid)->value;
-
-    // unsigned int aa1, aa2, aa3,aa4;//注意不能用unsigned char
-    // sscanf( data, "%02x%02x%02x%02x", &aa1, &aa2, &aa3 ,&aa4);
-    // printf( "%02x,%02x,%02x,%02x\r\n", aa1, aa2, aa3 ,aa4);
-
-    // printf("%s\r\n",data);
-    // unsigned int aa1, aa2, aa3,aa4;
-    // printf("%d\r\n",strlen(data));
-    // sscanf(data,"%02x%02x%02x",&aa1,&aa2,&aa3);
-    // printf("%d,%d,%d,%d\r\n",aa1,aa2,aa3);
-    // printf("data len = %d\r\n",data_len);
-    printf("data = %s\r\n",(uint8_t*)data);
-    return 0;
+    uint8_t data[2];
+    data[0] = 0x00;
+    data[1] = 0x00;
+    struct os_mbuf *om = ble_hs_mbuf_from_flat(data, 2);
+    return ble_gattc_write_no_rsp(1, 38, om);
 }
 
 int _bluetooth_BLE_pyi_test3(PikaObj *self, int connhandle, int valuehandle)
 {
-    uint8_t test = 2;
     printf("_bluetooth_BLE_pyi_test3\r\n");
-    // printf("ble_hs_is_enabled : %d\r\n",ble_hs_is_enabled());
-    ble_gatts_chr_updated(31);
+    
+    // uint8_t data[2];
+    // data[0] = 0x00;
+    // // data[1] = 0x02;
+    // struct os_mbuf *om = ble_hs_mbuf_from_flat(data, 2);
+    // return  ble_gattc_write_no_rsp(1, 38, om);
+
+    // ble_gatts_notify(1,32);
+    printf("ble_hs_is_enabled(void) %d\r\n", ble_hs_is_enabled());
     return 0;
 }
 
@@ -931,6 +914,72 @@ int _bluetooth_BLE_pyi_gattc_read(PikaObj *self, int conn_handle, int value_hand
     return ble_gattc_read(conn_handle, value_handle,ble_gatt_client_read_cb, NULL);
 }
 
+int client_subscribe_vertify_cb(uint16_t conn_handle,
+                             const struct ble_gatt_error *error,
+                             struct ble_gatt_attr *attr,
+                             void *arg){
+    uint8_t flags = attr->om->om_data[0];
+    uint8_t data_len = attr->om->om_len;
+    printf("data =  %02x data_len = %d error = %02x\r\n",flags, data_len,error->status);
+
+    pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTS_SUBSCRIBE,
+    arg_newObj(New_pikaTupleFrom(
+        arg_newInt(_IRQ_GATTS_SUBSCRIBE),
+        arg_newInt(conn_handle),
+        arg_newInt(attr->handle - 1),
+        arg_newInt(flags),
+        arg_newInt(error->status)
+        )));
+    return 0;
+}
+
+
+int client_subscribe_cb(uint16_t conn_handle,
+                             const struct ble_gatt_error *error,
+                             struct ble_gatt_attr *attr,
+                             void *arg){
+    
+    // printf("subscribe callback conn_handle %d value handle error %d\r\n", conn_handle,error->att_handle,error->status);
+    // printf("ble_gatt_attr_fn handle  %d  offset %d \r\n", attr->handle,attr->offset);
+    return ble_gattc_read(conn_handle,attr->handle,client_subscribe_vertify_cb,NULL);
+}
+
+int _bluetooth_BLE_pyi_gattc_subscribe(PikaObj *self, int conn_handle, int value_handle, int subscribe){
+
+    uint8_t data[2];
+    data[0] = subscribe;
+    data[1] = 0x00;
+    struct os_mbuf * txom = ble_hs_mbuf_from_flat(data,2);
+    return ble_gattc_write(conn_handle, value_handle + 1 ,txom, client_subscribe_cb, NULL);
+}
+
+// int _bluetooth_BLE_pyi_gattc_subscribe_indicate(PikaObj *self, int conn_handle, int value_handle, pika_bool subscribe){
+
+//     uint8_t data[2];
+//     if(subscribe){
+//         data[0] = 0x02;
+//     }else{
+//         data[0] = 0x00;
+//     }
+//     data[1] = 0x00;
+//     struct os_mbuf * txom = ble_hs_mbuf_from_flat(data,2);
+//     return ble_gattc_write(conn_handle, value_handle + 1 ,txom, client_subscribe_cb, NULL);
+// }
+
+
+// int _bluetooth_BLE_pyi_gattc_subscribe_notify(PikaObj *self, int conn_handle, int value_handle, pika_bool subscribe){
+//     uint8_t data[2];
+//     if(subscribe){
+//         data[0] = 0x01;
+//     }else{
+//         data[0] = 0x00;
+//     }
+//     data[1] = 0x00;
+//     struct os_mbuf * txom = ble_hs_mbuf_from_flat(data,2);
+//     return ble_gattc_write(conn_handle, value_handle + 1,txom,client_subscribe_cb, NULL);
+// }
+
+
 // GATT写属性、描述符
 //TODO:还有一个相同功能的函数但不知道区别
 // ble_gattc_write_no_rsp(uint16_t conn_handle, uint16_t attr_handle, struct os_mbuf *om)
@@ -976,6 +1025,13 @@ int _bluetooth_BLE_pyi_gatts_notify(PikaObj *self, int conn_handle, int value_ha
     printf("conn_handle %d value_handle %d  data_size %d data %02x\r\n", conn_handle, value_handle, data_size,data[0]);
 
     return ble_gatts_notify_custom(conn_handle,value_handle,om);
+}
+
+int _bluetooth_BLE_pyi_gatts_show_local(PikaObj *self)
+{
+    printf("_bluetooth_BLE_pyi_gatts_show_local");
+    ble_gatts_show_local();
+    return 0;
 }
 
 
@@ -1057,7 +1113,7 @@ static int ble_gatt_svc_access_cb(uint16_t conn_handle, uint16_t attr_handle,
                                                 arg_newInt(attr_handle)
                                             )));
 
-                obj_run(self, "res = ble_callback(data)");
+                obj_run(self, "res = _callback(data)");
                 Arg* res = obj_getArg(self, "res");
                 PikaObj* tuple = arg_getObj(res);
                 int res_int    = arg_getInt(pikaTuple_getArg(tuple,0)); 
@@ -1079,7 +1135,7 @@ static int ble_gatt_svc_access_cb(uint16_t conn_handle, uint16_t attr_handle,
                                                 arg_newInt(_IRQ_DIY_NIMBLE_READ),
                                                 arg_newInt(attr_handle)
                                             )));
-                obj_run(self, "res = ble_callback(data)");
+                obj_run(self, "res = _callback(data)");
                 Arg* res = obj_getArg(self, "res");
                 PikaObj* tuple = arg_getObj(res);
                 int byte_count = arg_getInt(pikaTuple_getArg(tuple,0)); 
@@ -1094,16 +1150,35 @@ static int ble_gatt_svc_access_cb(uint16_t conn_handle, uint16_t attr_handle,
         case BLE_GATT_ACCESS_OP_WRITE_CHR:              //写属性值
             if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
                 printf("Characteristic write; conn_handle=%d attr_handle=%d\r\n", conn_handle, attr_handle);
-                uint16_t length =  ctxt->om->om_len;
-                uint8_t * value = (uint8_t*)calloc(length,sizeof(uint8_t));
+                uint16_t total_length       =  *(ctxt->om->om_databuf);
+                uint8_t * value = (uint8_t*)calloc(total_length,sizeof(uint8_t));
+                
+                // uint16_t current_buf_length =  ctxt->om->om_len;
+                uint16_t current_buf_length;
+                uint16_t remain_length      = total_length;
+                struct os_mbuf* buf_pointer = ctxt->om;
+                while (true){
+                    current_buf_length = buf_pointer->om_len;
+                    memcpy((value + (total_length - remain_length)), buf_pointer->om_data,current_buf_length); 
+                    remain_length -= current_buf_length;
 
-                memcpy(value, ctxt->om->om_data,length); 
+                    if(remain_length > 0)
+                        buf_pointer = buf_pointer->om_next.sle_next;
+                    else
+                        break;
+                }
+
+                // printf("ctxt->om->om_pkthdr_len = %d\r\n",ctxt->om->om_pkthdr_len);
+                // printf("ctxt->om->om_len = %d\r\n",ctxt->om->om_next.sle_next->om_len);
+                // printf("ctxt->om->om_databuf[0] = %02x\r\n",*(ctxt->om->om_databuf));
+                // printf("ctxt->om->om_databuf[1] = %02x\r\n",*(ctxt->om->om_databuf+1));
+                // printf("ctxt->om->om_databuf[2] = %02x\r\n",*(ctxt->om->om_databuf+2));
                 pika_eventListener_send(g_pika_ble_listener,_IRQ_GATTS_WRITE,
                     arg_newObj(New_pikaTupleFrom(
                             arg_newInt(_IRQ_GATTS_WRITE),
                             arg_newInt(conn_handle), 
                             arg_newInt(attr_handle),
-                            arg_newBytes(value,length) 
+                            arg_newBytes(value,total_length) 
                             )));
             } else {
                 printf("Characteristic write by NimBLE stack; attr_handle=%d\r\n",attr_handle);
@@ -1426,7 +1501,7 @@ static int ble_gap_event_cb(struct ble_gap_event *event, void *arg)
     // 暂时不理
         printf("PASSKEY_ACTION_EVENT started \r\n");
         struct ble_sm_io pkey = {0};
-        int key = 0;
+        // int key = 0;
 
         if (event->passkey.params.action == BLE_SM_IOACT_DISP) {
             pkey.action = event->passkey.params.action;
@@ -1526,8 +1601,7 @@ static int ble_gap_event_cb(struct ble_gap_event *event, void *arg)
                         )));
         }        
         return 0;
-
-    case BLE_GAP_EVENT_SUBSCRIBE://订阅 客户端向服务端订阅
+    case BLE_GAP_EVENT_SUBSCRIBE://订阅 客户端向服务端订阅的事件(新增)
         printf("subscribe event; conn_handle=%d attr_handle=%d "
                     "reason=%d prevn=%d curn=%d previ=%d curi=%d\r\n",
                     event->subscribe.conn_handle,
@@ -1542,7 +1616,9 @@ static int ble_gap_event_cb(struct ble_gap_event *event, void *arg)
                 arg_newInt(_IRQ_GATTC_SUBSCRIBE),
                 arg_newInt(event->subscribe.conn_handle),
                 arg_newInt(event->subscribe.attr_handle),
-                arg_newInt(event->subscribe.reason)
+                arg_newInt(event->subscribe.reason),
+                arg_newInt(event->subscribe.cur_notify),
+                arg_newInt(event->subscribe.cur_indicate)
                 )));
         return 0;
 
@@ -1873,7 +1949,7 @@ static int ble_gatt_disc_all_dscs_cb(uint16_t conn_handle,
                 arg_newObj(New_pikaTupleFrom(
                     arg_newInt(_IRQ_GATTC_DESCRIPTOR_RESULT),
                     arg_newInt(conn_handle),
-                    arg_newInt(chr_val_handle),
+                    // arg_newInt(chr_val_handle),
                     arg_newInt(dsc->handle),  
                     arg_newBytes(uuid,data_len/8)
                 )));

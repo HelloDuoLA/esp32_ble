@@ -98,26 +98,33 @@ class BLE(_bluetooth.BLE):
         self._callback_func   = None  #回调函数
 
         self._basic_value_handle = 20
-        self._py2c_dict = {}
-        self._c2py_dict = {}
+        self._py2c_dict    = {}
+        self._c2py_dict    = {}
         self._c2value_dict = {}
         a = self.init()
         self.setCallback(self._callback)
 
     def test(self):
-        pass
+        if self.pyi_check_active() == False:
+            raise OSError
     
-    def test2(self, data):
-        pass
+    def test2(self):
+        self.test()
+        # return self.pyi_test2()s
 
     def test3(self,connhandle,valuehandle):
         return self.pyi_test3(connhandle,valuehandle)
     
     def test4(self,data):
+        pass
     
     def test_call_some_name(self):
         super().test_call_some_name()  
 
+    def _check_active(self):
+        if self.pyi_check_active() == False:
+            raise OSError
+        
     '''
     可选择更改 BLE 无线电的活动状态，并返回当前状态。
 
@@ -175,7 +182,7 @@ class BLE(_bluetooth.BLE):
 
     - `'mitm'`:
 
-        TODO:暂未支持, 没找到对应函数
+        TODO: 目前提供的接口不支持
 
     - `'io'`:
 
@@ -306,23 +313,25 @@ class BLE(_bluetooth.BLE):
         -connectable(bool): 是否可连接, True 为可连接.
     '''
     def gap_advertise(self, interval_us, adv_data=None, resp_data=None, connectable=True):
-        if interval_us is None: 
-            return self.stop_advertise()
-        else :
-            # 设置广播载荷
-            if adv_data is None: #参数为空，则使用上次数据
-                adv_data = self._last_adv_data
+        try:
+            if interval_us is None: 
+                return self.stop_advertise()
             else :
-                self._last_adv_data = _to_bytes(adv_data)
+                # 设置广播载荷
+                if adv_data is None: #参数为空，则使用上次数据
+                    adv_data = self._last_adv_data
+                else :
+                    self._last_adv_data = _to_bytes(adv_data)
 
-            # 设置响应载荷
-            if resp_data is None:
-                resp_data = self._last_resp_data
-            else :
-                self._last_resp_data = _to_bytes(resp_data)
-            
-        return self.advertise(self._addr_mode,int(interval_us/625),connectable,self._last_adv_data,len(self._last_adv_data),self._last_resp_data,len(self._last_resp_data))
-
+                # 设置响应载荷
+                if resp_data is None:
+                    resp_data = self._last_resp_data
+                else :
+                    self._last_resp_data = _to_bytes(resp_data)
+                
+            return self.advertise(self._addr_mode,int(interval_us/625),connectable,self._last_adv_data,len(self._last_adv_data),self._last_resp_data,len(self._last_resp_data))
+        except:
+            raise OSError
     '''
     运行持续指定持续时间(以毫秒为单位)的扫描操作。
     
@@ -414,7 +423,7 @@ class BLE(_bluetooth.BLE):
 
     Return:
 
-        - 操作是否成功
+        - (int): 操作成功返回 0; 否则返回错误代码
 
     '''
     def gatts_register_services(self, services):
@@ -445,15 +454,12 @@ class BLE(_bluetooth.BLE):
     '''
     Args:
 
-        -
+        - value_handle(int): 蓝牙特性句柄
 
     Return:
 
-        - 操作是否成功
+        - (int): 操作成功返回 0; 否则返回错误代码
 
-    events:
-
-        -
     '''
     def gatts_read(self,value_handle):
         return self._py2value(value_handle)
@@ -462,15 +468,19 @@ class BLE(_bluetooth.BLE):
     '''
     Args:
 
-        -
+        - value_handle(int): 蓝牙特性句柄
+
+        - data(str,int,bytes,list(元素为小于256大于0的整数)): 修改的数据
+
+        - send_update(bool):是否通知客户端, False为不通知, 默认为False
 
     Return:
 
-        - 操作是否成功
+        - (int): 操作成功返回 0; 否则返回错误代码
 
     events:
 
-        -
+        - send_update 为 True 时, 触发tx事件
     '''
     def gatts_write(self,value_handle, data, send_update=False):
         if send_update == False:
@@ -483,13 +493,21 @@ class BLE(_bluetooth.BLE):
         
     
     '''
+    向连接的客户端发送通知请求。
+
     Args:
 
-        -
+        - conn_handle(int): 连接句柄 
+    
+        - value_handle(int): 蓝牙特性句柄
+
+        - data(str,int,bytes,list(元素为小于256大于0的整数)): 发送的数据, 默认值为None
+        
+        如果data不是None, 则该值将作为通知的一部分发送给客户端。本地值不会被修改。否则, 如果data是None, 则将发送当前本地值
 
     Return:
 
-        - 操作是否成功
+        - (int): 操作成功返回 0; 否则返回错误代码
 
     events:
 
@@ -555,7 +573,10 @@ class BLE(_bluetooth.BLE):
     '''
     def gatts_set_buffer(self,value_handle, len, append=False):
         # TODO:暂不清楚对照哪个函数
+        pass
 
+    def gatts_show_local(self):
+        self.pyi_gatts_show_local()
     
     '''
     Args:
@@ -591,9 +612,9 @@ class BLE(_bluetooth.BLE):
     '''
     def gattc_discover_characteristics(self,conn_handle, start_handle, end_handle, uuid:UUID=None):
         if uuid == None:
-            return self.gattc_diss(conn_handle,start_handle,end_handle)
+            return self.gattc_dis_chrs(conn_handle,start_handle,end_handle)
         else :
-            return self.gattc_diss_by_uuid(conn_handle, start_handle, end_handle,uuid.value,len(uuid.value))
+            return self.gattc_dis_chrs_by_uuid(conn_handle, start_handle, end_handle,uuid.value,len(uuid.value))
 
     '''
     Args:
@@ -636,6 +657,8 @@ class BLE(_bluetooth.BLE):
 
         - 操作是否成功
 
+    注意:单次传输最多95个byte
+
     events:
 
         -
@@ -662,10 +685,15 @@ class BLE(_bluetooth.BLE):
     def gattc_exchange_mtu(self,conn_handle):
         self.pyi_gattc_exchange_mtu(conn_handle)
 
+    def gattc_subscribe(self,conn_handle,value_handle,subscribe = 0):
+        return self.pyi_gattc_subscribe(conn_handle,value_handle,subscribe)
+
+    # def gattc_subscribe_indicate(self,conn_handle,value_handle,subscribe= True):
+        # return self.pyi_gattc_subscribe_indicate(conn_handle,value_handle,subscribe)
+
     # 通过C handle找值 
     def _c2value(self, handle):
         return self._c2value_dict[str(handle)]
-        # return self._c2value_dict["25"]
     
     # 通过PY handle找值
     def _py2value(self,handle):
