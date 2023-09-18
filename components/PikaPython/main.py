@@ -120,8 +120,8 @@ mem.now()
 print('hello PikaPython')
 
 a = bluetooth.BLE()
-# b = a.active(1)
-# b = a.irq(ble_irq)
+b = a.active(1)
+b = a.irq(ble_irq)
 
 # 注册服务，服务端
 # HR_UUID = bluetooth.UUID(0x180D)

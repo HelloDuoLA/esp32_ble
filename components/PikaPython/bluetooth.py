@@ -195,6 +195,11 @@ class BLE(_bluetooth.BLE):
     '''
     def config(self, *param_name, **kv): # a.config(mac="1123",gap_name="test")
     # 获取参数属性   a.config("mac")
+        try:
+            self._check_active()
+        except:
+            raise OSError
+        
         first_param = param_name[0]
         if first_param == "mac":
             return (self.config__addr_mode_get(),self.config_mac_get())
@@ -257,6 +262,7 @@ class BLE(_bluetooth.BLE):
     # 回调事件处理函数
     def irq(self,func):
         self._callback_func = func
+        return 0
     
     def _callback(self,data):
         event_id = data[0]
@@ -315,25 +321,25 @@ class BLE(_bluetooth.BLE):
     def gap_advertise(self, interval_us, adv_data=None, resp_data=None, connectable=True):
         try:
             self._check_active()
-            if interval_us is None: 
-                return self.stop_advertise()
-            else :
-                # 设置广播载荷
-                if adv_data is None: #参数为空，则使用上次数据
-                    adv_data = self._last_adv_data
-                else :
-                    self._last_adv_data = _to_bytes(adv_data)
-
-                # 设置响应载荷
-                if resp_data is None:
-                    resp_data = self._last_resp_data
-                else :
-                    self._last_resp_data = _to_bytes(resp_data)
-                
-            # return self.advertise(self._addr_mode,int(interval_us/625),connectable,self._last_adv_data,len(self._last_adv_data),self._last_resp_data,len(self._last_resp_data))
         except:
             raise OSError
+        
+        if interval_us is None: 
+            return self.stop_advertise()
+        else :
+            # 设置广播载荷
+            if adv_data is None: #参数为空，则使用上次数据
+                adv_data = self._last_adv_data
+            else :
+                self._last_adv_data = _to_bytes(adv_data)
+
+            # 设置响应载荷
+            if resp_data is None:
+                resp_data = self._last_resp_data
+            else :
+                self._last_resp_data = _to_bytes(resp_data)
         return self.advertise(self._addr_mode,int(interval_us/625),connectable,self._last_adv_data,len(self._last_adv_data),self._last_resp_data,len(self._last_resp_data))
+
 
     '''
     运行持续指定持续时间(以毫秒为单位)的扫描操作。
@@ -368,6 +374,12 @@ class BLE(_bluetooth.BLE):
     
     '''
     def gap_scan(self, duration_ms, interval_us=1280000, window_us=11250, active=False):
+        try:
+            self._check_active()
+        except:
+            raise OSError
+        
+        self._check_active()
         if duration_ms is None :
             return self.gap_stop_disc()
         else:
@@ -398,8 +410,14 @@ class BLE(_bluetooth.BLE):
         - 连接成功触发 CENTRAL设备:_IRQ_PERIPHERAL_CONNECT; PERIPHERAL设备:_IRQ_CENTRAL_CONNECT
     '''
     def gap_connect(self,peer_addr,peer_addr_type, scan_duration_ms=2000):
+        try:
+            self._check_active()
+        except:
+            raise OSError
+        self._check_active()
         peer_addr_bytes = _to_bytes(peer_addr,6)
         return self.pyi_gap_connect(peer_addr_bytes,peer_addr_type ,scan_duration_ms)
+            
 
     '''
     Args:
@@ -415,7 +433,13 @@ class BLE(_bluetooth.BLE):
         - 断连成功触发 CENTRAL设备:_IRQ_PERIPHERAL_DISCONNECT; PERIPHERAL设备:_IRQ_CENTRAL_DISCONNECT
     '''
     def gap_disconnect(self, conn_handle):
+        try:
+            self._check_active()
+        except:
+            raise OSError
+        self._check_active()
         return self.pyi_gap_disconnect(conn_handle)
+
     
     '''
     使用指定的服务配置服务器，替换任何现有服务。
@@ -430,6 +454,12 @@ class BLE(_bluetooth.BLE):
 
     '''
     def gatts_register_services(self, services):
+        try:
+            self._check_active()
+        except:
+            raise OSError
+        
+        self._check_active()
         convert_services = _convert_ble_service_info(services)
         offset = 0
         chr_list = _count_chrs(services) #计算每个服务的特性数量
@@ -465,6 +495,11 @@ class BLE(_bluetooth.BLE):
 
     '''
     def gatts_read(self,value_handle):
+        try:
+            self._check_active()
+        except:
+            raise OSError
+        
         return self._py2value(value_handle)
 
     
@@ -486,6 +521,12 @@ class BLE(_bluetooth.BLE):
         - send_update 为 True 时, 触发tx事件
     '''
     def gatts_write(self,value_handle, data, send_update=False):
+        try:
+            self._check_active()
+        except:
+            raise OSError
+        
+        self._check_active()
         if send_update == False:
             return self._py2_change_value(value_handle,data)
         else : 
@@ -493,6 +534,7 @@ class BLE(_bluetooth.BLE):
             if rc != 0:
                 return rc
             return self.gatts_chr_updated(value_handle)
+
         
     
     '''
@@ -517,6 +559,12 @@ class BLE(_bluetooth.BLE):
         -
     '''
     def gatts_notify(self,conn_handle, value_handle, data=None):
+        try:
+            self._check_active()
+        except:
+            raise OSError
+        
+        self._check_active()
         value = ""
         if data is None:
             value = self._py2value(value_handle)
@@ -530,6 +578,7 @@ class BLE(_bluetooth.BLE):
                 value = bytes(data)
         c_value_handle = self._py2c_dict[str(value_handle)]
         self.pyi_gatts_notify(conn_handle, c_value_handle,value,len(value))
+
 
     
     '''
@@ -546,6 +595,11 @@ class BLE(_bluetooth.BLE):
         -
     '''
     def gatts_indicate(self,conn_handle, value_handle,data=None):
+        try:
+            self._check_active()
+        except:
+            raise OSError
+        
         value = ""
         if data is None:
             value = self._py2value(value_handle)
@@ -575,11 +629,22 @@ class BLE(_bluetooth.BLE):
         -
     '''
     def gatts_set_buffer(self,value_handle, len, append=False):
+        try:
+            self._check_active()
+        except:
+            raise OSError
         # TODO:暂不清楚对照哪个函数
         pass
-
+    
+    '''
+    打印全部本地服务
+    '''
     def gatts_show_local(self):
-        self.pyi_gatts_show_local()
+        try:
+            self._check_active()
+        except:
+            raise OSError
+        return self.pyi_gatts_show_local()
     
     '''
     Args:
@@ -595,6 +660,11 @@ class BLE(_bluetooth.BLE):
         -
     '''
     def gattc_discover_services(self,conn_handle, uuid:UUID=None):
+        try:
+            self._check_active()
+        except:
+            raise OSError
+        
         if uuid == None:
             return self.gattc_dis_svcs(conn_handle)
         else :
@@ -614,6 +684,11 @@ class BLE(_bluetooth.BLE):
         -
     '''
     def gattc_discover_characteristics(self,conn_handle, start_handle, end_handle, uuid:UUID=None):
+        try:
+            self._check_active()
+        except:
+            raise OSError
+        
         if uuid == None:
             return self.gattc_dis_chrs(conn_handle,start_handle,end_handle)
         else :
@@ -633,6 +708,10 @@ class BLE(_bluetooth.BLE):
         -
     '''
     def gattc_discover_descriptors(self,conn_handle, start_handle, end_handle):
+        try:
+            self._check_active()
+        except:
+            raise OSError
         return self.gattc_dis_dscs(conn_handle,start_handle, end_handle)
 
     '''
@@ -649,6 +728,10 @@ class BLE(_bluetooth.BLE):
         -
     '''
     def gattc_read(self,conn_handle, value_handle):
+        try:
+            self._check_active()
+        except:
+            raise OSError
         return self.pyi_gattc_read(conn_handle, value_handle)
 
     '''
@@ -667,6 +750,11 @@ class BLE(_bluetooth.BLE):
         -
     '''
     def gattc_write(self,conn_handle, value_handle, data, mode = 0):
+        try:
+            self._check_active()
+        except:
+            raise OSError
+        
         if mode == 0:
             return self.gattc_write_with_no_rsp(conn_handle, value_handle, data, len(data))
         elif mode == 1:
@@ -686,13 +774,18 @@ class BLE(_bluetooth.BLE):
         -
     '''
     def gattc_exchange_mtu(self,conn_handle):
-        self.pyi_gattc_exchange_mtu(conn_handle)
+        try:
+            self._check_active()
+        except:
+            raise OSError
+        return self.pyi_gattc_exchange_mtu(conn_handle)
 
     def gattc_subscribe(self,conn_handle,value_handle,subscribe = 0):
+        try:
+            self._check_active()
+        except:
+            raise OSError
         return self.pyi_gattc_subscribe(conn_handle,value_handle,subscribe)
-
-    # def gattc_subscribe_indicate(self,conn_handle,value_handle,subscribe= True):
-        # return self.pyi_gattc_subscribe_indicate(conn_handle,value_handle,subscribe)
 
     # 通过C handle找值 
     def _c2value(self, handle):
