@@ -314,6 +314,7 @@ class BLE(_bluetooth.BLE):
     '''
     def gap_advertise(self, interval_us, adv_data=None, resp_data=None, connectable=True):
         try:
+            self._check_active()
             if interval_us is None: 
                 return self.stop_advertise()
             else :
@@ -329,9 +330,11 @@ class BLE(_bluetooth.BLE):
                 else :
                     self._last_resp_data = _to_bytes(resp_data)
                 
-            return self.advertise(self._addr_mode,int(interval_us/625),connectable,self._last_adv_data,len(self._last_adv_data),self._last_resp_data,len(self._last_resp_data))
+            # return self.advertise(self._addr_mode,int(interval_us/625),connectable,self._last_adv_data,len(self._last_adv_data),self._last_resp_data,len(self._last_resp_data))
         except:
             raise OSError
+        return self.advertise(self._addr_mode,int(interval_us/625),connectable,self._last_adv_data,len(self._last_adv_data),self._last_resp_data,len(self._last_resp_data))
+
     '''
     运行持续指定持续时间(以毫秒为单位)的扫描操作。
     
