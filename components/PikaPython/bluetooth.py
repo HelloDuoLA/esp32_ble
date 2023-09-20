@@ -52,7 +52,7 @@ class UUID():
             if len(value_bytes) > 16 :
                 value_bytes = []
                 # raise ValueError
-                raise 
+                raise ValueError
         elif isinstance(value, bytes):
             value_bytes = value
         elif isinstance(value,str):
@@ -98,9 +98,12 @@ class BLE(_bluetooth.BLE):
         self._callback_func   = None  #回调函数
 
         self._basic_value_handle = 20
+        self.adv_data_len = 0
+        self.rsp_data_len = 0
         self._py2c_dict    = {}
         self._c2py_dict    = {}
         self._c2value_dict = {}
+        self._adv_data_append = True
         a = self.init()
         self.setCallback(self._callback)
 
@@ -127,16 +130,12 @@ class BLE(_bluetooth.BLE):
         
     '''
     可选择更改 BLE 无线电的活动状态，并返回当前状态。
-
-    在使用此类上的任何其他方法之前，必须使无线电处于活动状态。
-
     Args:
         - active(bool): 为 1 则开启BLE, 否则关闭BLE; 为空则查询当前BLE状态 
     
     Returns:
         - bool:设置状态时，返回操作成功与否； 查询状态时, 返回状态, True为活跃
 
-    TODO:等待激活逻辑
     '''
     def active(self,active_flag = None ):
         if active_flag == None:
@@ -313,12 +312,13 @@ class BLE(_bluetooth.BLE):
         - interval_us(int):广播时间间隔, 单位us. 此间隔将向下舍入到最接近的 625us的倍数。要停止广告, 请将interval_us设置 为 None。
 
         - adv_data(bytes, bytearray, str): 自定义广播数据(添加到默认广播数据后),默认值为none
-        TODO:是否需要默认广播?
+        
+        TODO:1.append模式只能是0XFF数据; 归零模式全部自定义输入
         - resp_data(bytes, bytearray, str): 扫描响应数据,默认值为none
 
         -connectable(bool): 是否可连接, True 为可连接.
     '''
-    def gap_advertise(self, interval_us, adv_data=None, resp_data=None, connectable=True):
+    def gap_advertise(self, interval_us, adv_data=None, adv_data_append=None, resp_data=None, connectable=True):
         try:
             self._check_active()
         except:
@@ -331,14 +331,24 @@ class BLE(_bluetooth.BLE):
             if adv_data is None: #参数为空，则使用上次数据
                 adv_data = self._last_adv_data
             else :
-                self._last_adv_data = _to_bytes(adv_data)
+                if adv_data_append is not None:
+                    self._adv_data_append = adv_data_append
+
+                if self._adv_data_append == True: # 新增数据
+                    self._last_resp_data = _to_bytes(resp_data)
+                else : # 覆盖数据
+                    empty_list = []
+                    for i in range(len(adv_data)):
+                        empty_list.append(len(adv_data[i]))
+                        empty_list += adv_data[i]
+                    self._last_adv_data = _to_bytes(empty_list)
 
             # 设置响应载荷
             if resp_data is None:
                 resp_data = self._last_resp_data
             else :
                 self._last_resp_data = _to_bytes(resp_data)
-        return self.advertise(self._addr_mode,int(interval_us/625),connectable,self._last_adv_data,len(self._last_adv_data),self._last_resp_data,len(self._last_resp_data))
+        return self.advertise(self._addr_mode,int(interval_us/625),connectable,self._last_adv_data,len(self._last_adv_data),adv_data_append,self._last_resp_data,len(self._last_resp_data))
 
 
     '''
@@ -839,7 +849,7 @@ def _count_chrs(srvs_tuple):
 
 
 def _to_bytes(data,size=None):
-    data_bytes = ""
+    data_bytes = []
     if isinstance(data,bytes):
         data_bytes = data
     elif isinstance(data,bytearray):

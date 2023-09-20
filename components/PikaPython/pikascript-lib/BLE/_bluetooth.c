@@ -21,11 +21,10 @@
 // BLE_UUID_base = 0x00000000-0000-1000-8000-00805F9B34FB;
 
 static const char *tag = "NimBLE_BLE";
-bool BLE_ONLY = false;                         //只使用BLE,默认否
+bool BLE_ONLY = false;                           //只使用BLE,默认否
 bool FLASH_FIRST_INIT = true;                    //是否第一次初始化,默认是
-bool BLE_INIT   = false;                    //是否第一次初始化,默认是
-// uint8_t own_addr_type;
-PikaEventListener *g_pika_ble_listener = NULL; // 事件监听器
+bool BLE_INIT   = false;                         //蓝牙是否初始化,默认不是
+PikaEventListener *g_pika_ble_listener = NULL;   // 事件监听器
 int  g_ble_addr_mode = 0;
 bool g_ble_connectable  = 1;
 int  g_interval = 0;
@@ -267,7 +266,7 @@ static void print_conn_desc(struct ble_gap_conn_desc *desc)
 }
 
 int _bluetooth_BLE_advertise(PikaObj *self, int addr, int interval, pika_bool connectable, 
-        uint8_t * adv_data, int adv_data_len, uint8_t * rsp_data, int rsp_data_len)
+        uint8_t * adv_data, int adv_data_len, pika_bool adv_data_append, uint8_t * rsp_data, int rsp_data_len)
 {
     nimble_port_freertos_init(ble_host_task);
     printf("_bluetooth_BLE_gap_advertise\r\n");
@@ -275,57 +274,48 @@ int _bluetooth_BLE_advertise(PikaObj *self, int addr, int interval, pika_bool co
     struct ble_hs_adv_fields fields;
     memset(&fields, 0, sizeof fields);
 
+    fields.flags = BLE_HS_ADV_F_DISC_GEN ;
     if(BLE_ONLY  == true){
         fields.flags |= BLE_HS_ADV_F_BREDR_UNSUP;
     }
-    
-    fields.tx_pwr_lvl_is_present = 1;
-    fields.tx_pwr_lvl = BLE_HS_ADV_TX_PWR_LVL_AUTO;
 
-    char* name = ble_svc_gap_device_name();
-    fields.name = (uint8_t *)name;
-    fields.name_len = strlen(name);
-    fields.name_is_complete = 1;
-
-    // TODO:UUID修改成可变的,用户在哪修改?
-    fields.uuids16 = (ble_uuid16_t[]) {
-        BLE_UUID16_INIT(GATT_SVR_SVC_ALERT_UUID)
-    };
-    fields.num_uuids16 = 1;
-    fields.uuids16_is_complete = 1;
-
-    // 自定义广播数据
-    if(adv_data_len > 0)
+    if(adv_data_append)
     {
-        fields.mfg_data = (uint8_t *)adv_data;
-        fields.mfg_data_len = adv_data_len;
-    }
-    int rc = ble_gap_adv_set_fields(&fields);
-    
-    if (rc != 0) {
+        fields.tx_pwr_lvl_is_present = 0;
+        fields.tx_pwr_lvl = BLE_HS_ADV_TX_PWR_LVL_AUTO;
+
+        char* name = ble_svc_gap_device_name();
+        fields.name = (uint8_t *)name;
+        fields.name_len = strlen(name);
+        fields.name_is_complete = 1;
+
+        // TODO:UUID修改成可变的,用户在哪修改?
+        fields.uuids16 = (ble_uuid16_t[]) {
+            BLE_UUID16_INIT(GATT_SVR_SVC_ALERT_UUID)
+        };
+        fields.num_uuids16 = 1;
+        fields.uuids16_is_complete = 1;
+        if(adv_data_len > 0)
+        {
+            fields.mfg_data = (uint8_t *)adv_data;
+            fields.mfg_data_len = adv_data_len;
+        }
+        int rc = ble_gap_adv_set_fields(&fields);
+        if (rc != 0) {
         printf("error setting advertisement data; rc=%d\r\n", rc);
         return -1 ;
     }
-
-    //设置adv data
-    // uint8_t* adv_data_new = (uint8_t*)malloc(adv_data_len + 2);
-    // adv_data_new[0] = adv_data_len + 1;
-    // adv_data_new[1] = 0xff;
-    // memcpy(adv_data_new, adv_data+2, adv_data_len); 
-    // rc =  ble_gap_adv_set_data(adv_data_new,adv_data_len+2);
-    // if (rc != 0) {
-    //     printf("error setting advertisement adv data; rc=%d\n", rc);
-    //     free(adv_data_new);
-    //     return -1 ;
-    // }
-    // free(adv_data_new);
-
+    }else{
+        ble_gap_adv_set_data(adv_data,adv_data_len);
+    }
+    
     //设置rsp data
     if(rsp_data_len > 0) {
         uint8_t* rsp_data_new = (uint8_t*)malloc(rsp_data_len + 2);
         rsp_data_new[0] = rsp_data_len + 1;
         rsp_data_new[1] = 0xff;
         memcpy(rsp_data_new + 2, rsp_data, rsp_data_len); 
+        int rc;
         rc =  ble_gap_adv_rsp_set_data(rsp_data_new,rsp_data_len+2);
         if (rc != 0) {
             printf("error setting advertisement response data; rc=%d\r\n", rc);
