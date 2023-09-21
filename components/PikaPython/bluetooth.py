@@ -98,8 +98,7 @@ class BLE(_bluetooth.BLE):
         self._callback_func   = None  #回调函数
 
         self._basic_value_handle = 20
-        self.adv_data_len = 0
-        self.rsp_data_len = 0
+        self._connectable = True
         self._py2c_dict    = {}
         self._c2py_dict    = {}
         self._c2value_dict = {}
@@ -199,27 +198,28 @@ class BLE(_bluetooth.BLE):
         except:
             raise OSError
         
-        first_param = param_name[0]
-        if first_param == "mac":
-            return (self.config__addr_mode_get(),self.config_mac_get())
-        elif first_param == "_addr_mode":
-            return self.config__addr_mode_get()
-        elif first_param == "gap_name":
-            return self.config_gap_name_get()
-        elif first_param == "rxbuf" :
-            self.config_addr_rxbuf_get()
-        elif first_param == "mtu" :
-            self.config_mtu_get()
-        elif first_param == "bond" :
-            self.config_bond_get()
-        elif first_param == "mitm" :
-            self.config_mitm_get()
-        elif first_param == "io":
-            self.config_io_get()
-        elif first_param == "le_secure":
-            self.config_le_secure_get()
-        else:
-            print("ValueError: unknown config param")   
+        if len(param_name) != 0 :
+            first_param = param_name[0]
+            if first_param == "mac":
+                return (self.config__addr_mode_get(),self.config_mac_get())
+            elif first_param == "_addr_mode":
+                return self.config__addr_mode_get()
+            elif first_param == "gap_name":
+                return self.config_gap_name_get()
+            elif first_param == "rxbuf" :
+                self.config_addr_rxbuf_get()
+            elif first_param == "mtu" :
+                self.config_mtu_get()
+            elif first_param == "bond" :
+                self.config_bond_get()
+            elif first_param == "mitm" :
+                self.config_mitm_get()
+            elif first_param == "io":
+                self.config_io_get()
+            elif first_param == "le_secure":
+                self.config_le_secure_get()
+            else:
+                print("ValueError: unknown config param")   
 
     # 设置参数
         if "mac" in kv:
@@ -261,6 +261,7 @@ class BLE(_bluetooth.BLE):
     # 回调事件处理函数
     def irq(self,func):
         self._callback_func = func
+        print("set irq ok")
         return 0
     
     def _callback(self,data):
@@ -314,33 +315,45 @@ class BLE(_bluetooth.BLE):
         - adv_data(bytes, bytearray, str): 自定义广播数据(添加到默认广播数据后),默认值为none
         
         TODO:1.append模式只能是0XFF数据; 归零模式全部自定义输入
+
         - resp_data(bytes, bytearray, str): 扫描响应数据,默认值为none
 
         -connectable(bool): 是否可连接, True 为可连接.
     '''
-    def gap_advertise(self, interval_us, adv_data=None, adv_data_append=None, resp_data=None, connectable=True):
+    def gap_advertise(self, interval_us,adv_data=None,resp_data=None, connectable=None, adv_data_append=None):
         try:
             self._check_active()
         except:
             raise OSError
+        print("adv_data_append ",adv_data_append)
+        print("adv_data",adv_data)
+        if connectable !=  None:
+            self._connectable = connectable
         
         if interval_us is None: 
+            # print("here1")
             return self.stop_advertise()
-        else :
+        else:
+            # print("here6")
             # 设置广播载荷
             if adv_data is None: #参数为空，则使用上次数据
                 adv_data = self._last_adv_data
             else :
-                if adv_data_append is not None:
+                # print("here2")
+                if adv_data_append != None:
                     self._adv_data_append = adv_data_append
+                    # print("here3")
 
                 if self._adv_data_append == True: # 新增数据
-                    self._last_resp_data = _to_bytes(resp_data)
-                else : # 覆盖数据
+                    self._last_adv_data = _to_bytes(adv_data)
+                    # print("here4")
+                else: # 覆盖数据
                     empty_list = []
+                    # print("here5")
                     for i in range(len(adv_data)):
                         empty_list.append(len(adv_data[i]))
                         empty_list += adv_data[i]
+                    # print(empty_list)
                     self._last_adv_data = _to_bytes(empty_list)
 
             # 设置响应载荷
@@ -348,7 +361,8 @@ class BLE(_bluetooth.BLE):
                 resp_data = self._last_resp_data
             else :
                 self._last_resp_data = _to_bytes(resp_data)
-        return self.advertise(self._addr_mode,int(interval_us/625),connectable,self._last_adv_data,len(self._last_adv_data),adv_data_append,self._last_resp_data,len(self._last_resp_data))
+        return self.advertise(self._addr_mode,int(interval_us/625),self._connectable,self._last_adv_data,
+                            len(self._last_adv_data),adv_data_append,self._last_resp_data,len(self._last_resp_data))
 
 
     '''

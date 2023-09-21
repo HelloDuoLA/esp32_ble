@@ -441,7 +441,15 @@ int _bluetooth_BLE_gap_disc(PikaObj *self, int addr_mode, int duration_ms, int i
     struct ble_gap_disc_params disc_params = {
         .itvl = interval,
         .window = window,
-        .passive = ~active
+        .passive = ~active,
+        .limited = 0,
+        .filter_duplicates = 0
+        // .filter_duplicates = 1,
+        // .passive = 1,
+        // .itvl = 0,
+        // .window = 0,
+        // .filter_policy = 0,
+        // .limited = 0
     };
 
     if(ble_gap_disc_active() == 1)
@@ -1424,32 +1432,6 @@ static int ble_gap_event_cb(struct ble_gap_event *event, void *arg)
             return 0;
         }
         data_inver(event->disc.addr.val,addr,6);
-        // for (int i = 0; i < 6; i++)
-        // {
-        //     printf("%02x:", addr[i]);
-        // }
-        // printf("\r\n");
-        // print_addr(event->disc.addr.val);
-        // printf("length_data :%d \r\n",event->disc.length_data);
-
-        // for (int i = 0; i < event->disc.length_data; i++)
-        // {
-        //     printf("%02x",event->disc.data[i]);
-        // }
-        // printf("\r\n\r\n");
-
-        uint8_t len = event->disc.length_data;
-        char *adv_str = (char *)malloc(len + 1);
-        memcpy(adv_str, event->disc.data, len);
-
-        adv_str[len] = '\0';
-
-        // for (int i = 0; i < event->disc.length_data; i++)
-        // {
-        //     printf("%02x",adv_str[i]);
-        // }
-        // printf("\r\n\r\n");
-
         pika_eventListener_send(g_pika_ble_listener,_IRQ_SCAN_RESULT,
             arg_newObj(New_pikaTupleFrom(
                     arg_newInt(_IRQ_SCAN_RESULT),
@@ -1457,9 +1439,8 @@ static int ble_gap_event_cb(struct ble_gap_event *event, void *arg)
                     arg_newBytes(addr,6),
                     arg_newInt(event->disc.event_type),
                     arg_newInt(event->disc.rssi),
-                    arg_newStr(adv_str)
+                    arg_newBytes(event->disc.data,event->disc.length_data)
                     )));
-        free(adv_str);
         return 0;
 
     case BLE_GAP_EVENT_DISC_COMPLETE: // 扫描结束

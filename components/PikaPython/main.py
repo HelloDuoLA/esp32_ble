@@ -1,7 +1,7 @@
 import PikaStdLib
-import machine 
-import bluetooth
-import _bluetooth
+# import machine 
+# import bluetooth
+# import _bluetooth
 import const
 
 mem = PikaStdLib.MemChecker()
@@ -27,7 +27,9 @@ def ble_irq(event,data):
             print("rsq data : ")
             print(data)
         else:
-            print(data)
+            if data[1][0] == 0xec :
+                print("UUID",bytes(data[1]))
+                print(bytes(data[4]))   
 
     elif event == const._IRQ_SCAN_DONE:
         print("_IRQ_SCAN_DONE: ")
@@ -119,10 +121,38 @@ mem.now()
 
 print('hello PikaPython')
 
-a = bluetooth.BLE()
-b = a.active(1)
-b = a.irq(ble_irq)
+import iBeacon
 
+# a = iBeacon.Sender()
+# a.active(1)
+# # a.config(UUID=0X9999)
+# a.config(UUID=[0x18, 0xee, 0x15, 0x16, 0x01, 0x6b, 0x4b, 0xec, 0xad, 0x96,0xbc, 0xb9, 0x6d, 0x16, 0x6e, 0x97])
+# a.adv(62500)
+# a.config(UUID=0X9999,Major = 0x10)
+# a.adv(62500)
+# a.config("UUID","Major")
+# a.config("Major")
+# a.config("company_id")
+# a.config(company_id = 0x7788)
+
+def _self_irq(event_id,data):
+    # 过滤
+    if event_id == 5: #_IRQ_SCAN_RESULT
+        # addr_type, addr, adv_type, rssi, adv_data = data
+        print(data)
+    elif event_id == 6: #_IRQ_SCAN_DONE
+        print(data)
+
+a = iBeacon.Receiver()
+a.active(1)
+a.irq(_self_irq)
+a.scan(0)
+
+
+# bytes(a._UUID)  
+# a = bluetooth.BLE()
+# b = a.active(1)
+# b = a.irq(ble_irq)
 # 注册服务，服务端
 # HR_UUID = bluetooth.UUID(0x180D)
 # HR_CHAR = (bluetooth.UUID(0x2A37), bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY,((bluetooth.UUID(0x3001),bluetooth.FLAG_READ),(bluetooth.UUID(0x3002),bluetooth.FLAG_READ)))
@@ -183,11 +213,11 @@ b = a.irq(ble_irq)
 # adv_data = [2,0x01,0x06,26,0xFF,0x4c, 0x00, 0x02, 0x15,0x18, 0xee, 0x15, 0x16, 0x01, 0x6b, 0x4b, 0xec, 0xad, 0x96,
 #             0xbc, 0xb9, 0x6d, 0x16, 0x6e, 0x97, 0x00, 0x00, 0x00, 0x00, 0xC8]
 
-adv_data = [[0x01,0x06],
-            [0xFF,0x4c, 0x00, 0x02, 0x15,0x18, 0xee, 0x15, 0x16, 0x01, 0x6b, 0x4b, 0xec, 0xad, 0x96,
-            0xbc, 0xb9, 0x6d, 0x16, 0x6e, 0x97, 0x00, 0x00, 0x00, 0x00, 0xC8]]
+# adv_data = [[0x01,0x06],
+#             [0xFF,0x4c, 0x00, 0x02, 0x15,0x18, 0xee, 0x15, 0x16, 0x01, 0x6b, 0x4b, 0xec, 0xad, 0x96,
+#             0xbc, 0xb9, 0x6d, 0x16, 0x6e, 0x97, 0x00, 0x00, 0x00, 0x00, 0xC8]]
 # a._last_adv_data
-c = a.gap_advertise(6250,adv_data_append=False,adv_data=adv_data,connectable=0)
+# c = a.gap_advertise(6250,adv_data_append=False,adv_data=adv_data,connectable=0)
 # print(a.gap_advertise(6250))
 # a._last_adv_data = "adv_test"
 # a._last_resp_data = bluetooth._to_string(bytearray('0x20'))
