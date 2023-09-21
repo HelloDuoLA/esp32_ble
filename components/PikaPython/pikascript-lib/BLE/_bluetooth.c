@@ -444,12 +444,6 @@ int _bluetooth_BLE_gap_disc(PikaObj *self, int addr_mode, int duration_ms, int i
         .passive = ~active,
         .limited = 0,
         .filter_duplicates = 0
-        // .filter_duplicates = 1,
-        // .passive = 1,
-        // .itvl = 0,
-        // .window = 0,
-        // .filter_policy = 0,
-        // .limited = 0
     };
 
     if(ble_gap_disc_active() == 1)

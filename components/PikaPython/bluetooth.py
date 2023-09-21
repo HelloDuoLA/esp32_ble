@@ -261,43 +261,43 @@ class BLE(_bluetooth.BLE):
     # 回调事件处理函数
     def irq(self,func):
         self._callback_func = func
-        print("set irq ok")
         return 0
     
     def _callback(self,data):
         event_id = data[0]
         # print("event_id",event_id)
         # print("data  ",data[1])
-        if event_id > 100 :      #自定义回调事件
-            if event_id == 101 : # 建立句柄映射 
-                ble_value_handles = data[1]
-                length = len(ble_value_handles)
-                for i in range(length):
-                    key =  self._basic_value_handle + i
-                    value = ble_value_handles[i] 
-                    # py 映射 c handle
-                    self._py2c_dict[str(key)] = value 
-                    # c 映射 py handle
-                    self._c2py_dict[str(value)] = key
-                    # c handle 映射 value, 默认值为空
-                    self._c2value_dict[str(value)] = bytes("")
-            elif event_id == 102:       #nimble蓝牙协议栈读属性 
-                buf = self._c2value_dict[str(data[1])]
-                return len(buf),buf
-        else: 
-            if event_id == 3: # write
-                self._c2_change_value(data[2], data[3])
-                data = data[:3]
-            elif event_id == 4: # read 请求
-                rc = self._callback_func(event_id,data[1:])
-                value    = -99
-                length   = -99
-                if rc == 0:   #允许读
-                    value = self._c2value(data[2]) 
-                    length = len(value)
-                return rc,length,value
-            else:
-                return self._callback_func(event_id,data[1:])
+        if self._callback_func != None:
+            if event_id > 100 :      #自定义回调事件
+                if event_id == 101 : # 建立句柄映射 
+                    ble_value_handles = data[1]
+                    length = len(ble_value_handles)
+                    for i in range(length):
+                        key =  self._basic_value_handle + i
+                        value = ble_value_handles[i] 
+                        # py 映射 c handle
+                        self._py2c_dict[str(key)] = value 
+                        # c 映射 py handle
+                        self._c2py_dict[str(value)] = key
+                        # c handle 映射 value, 默认值为空
+                        self._c2value_dict[str(value)] = bytes("")
+                elif event_id == 102:       #nimble蓝牙协议栈读属性 
+                    buf = self._c2value_dict[str(data[1])]
+                    return len(buf),buf
+            else: 
+                if event_id == 3: # write
+                    self._c2_change_value(data[2], data[3])
+                    data = data[:3]
+                elif event_id == 4: # read 请求
+                    rc = self._callback_func(event_id,data[1:])
+                    value    = -99
+                    length   = -99
+                    if rc == 0:   #允许读
+                        value = self._c2value(data[2]) 
+                        length = len(value)
+                    return rc,length,value
+                else:
+                    return self._callback_func(event_id,data[1:])
 
     '''
     以指定的时间间隔(以微秒为单位)开始广播。

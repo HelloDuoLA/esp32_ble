@@ -138,15 +138,22 @@ import iBeacon
 def _self_irq(event_id,data):
     # 过滤
     if event_id == 5: #_IRQ_SCAN_RESULT
-        # addr_type, addr, adv_type, rssi, adv_data = data
-        print(data)
+        # (addr,uuid,rssi,measured_power,Major,Minor,company_id)
+        print("addr:",data[0])
+        print("uuid:",data[1])
+        print("rssi:",data[2])
+        print("measured_power:",data[3])
+        print("Major:",data[4])
+        print("Minor:",data[5])
+        print("company_id:",data[6])
     elif event_id == 6: #_IRQ_SCAN_DONE
         print(data)
 
 a = iBeacon.Receiver()
 a.active(1)
 a.irq(_self_irq)
-a.scan(0)
+# a.scan(10000,320000)
+# a.scan(None)
 
 
 # bytes(a._UUID)  

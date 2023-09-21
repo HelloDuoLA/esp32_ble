@@ -136,21 +136,10 @@ class Sender():
     
 
 class Receiver():
-    def _self_irq(event_id,data):
-        # 过滤
-        if event_id == 5: #_IRQ_SCAN_RESULT
-            # addr_type, addr, adv_type, rssi, adv_data = data
-            print(data)
-        elif event_id == 6: #_IRQ_SCAN_DONE
-            print(data)
-
     def __init__(self) -> None:
         self._ble = bluetooth.BLE()
         self._ble.irq(self._self_irq)
         self.callback = None
-
-    def irq(self,func):
-        self.callback = func
 
     def active(self,active_flag = None):
         if active_flag == None:
@@ -161,15 +150,41 @@ class Receiver():
             elif (active_flag == 0 or active_flag == False):
                 return self._ble.pyi_active(False)
 
-    def scan(self, duration_ms):
-        return self._ble.gap_scan(duration_ms)
+    def scan(self, duration_ms,interval_us=1280000, window_us=11250):
+        return self._ble.gap_scan(duration_ms,interval_us,interval_us)
 
     def irq(self,func):
-        self._ble.irq(func)
-    # def _self_irq(event_id,data):
-    #     # 过滤
-    #     if event_id == 5: #_IRQ_SCAN_RESULT
-    #         # addr_type, addr, adv_type, rssi, adv_data = data
-    #         print(data)
-    #     elif event_id == 6: #_IRQ_SCAN_DONE
-    #         print(data)
+        self.callback = func
+
+    def _self_irq(self,event_id,data):
+        # 过滤
+        if self.callback != None:
+            if event_id == 5: #_IRQ_SCAN_RESULT
+                # addr_type, addr, adv_type, rssi, adv_data = data
+                addr = data[1]
+                rssi = data[3]
+                if self._is_ibeacon_packet(data[4]):
+                    uuid,measured_power,Major,Minor,company_id = self._unpack_ibeacon(data[4])
+                    self.callback(event_id,(addr,uuid,rssi,measured_power,Major,Minor,company_id))
+        
+            elif event_id == 6: #_IRQ_SCAN_DONE
+                self.callback(event_id,data)
+
+    def _unpack_ibeacon(self,value):
+        company_id = bytes([value[6],value[5]])
+        uuid = value[9:25]
+        Major = value[25] * 256 + value[26]
+        Minor = value[27] * 256 + value[28]
+        measured_power = value[29] - 256
+        return uuid,measured_power,Major,Minor,company_id
+
+    # TODO:判断是不是iBeacon包的绝对正确条件未确定
+    def _is_ibeacon_packet(self,data):
+        if len(data) == 30 :
+            if data[0] == 0x02 and data[1] == 0x01 and data[3] == 0x1A and data[4] == 0xFF \
+                and data[7] == 0x02 and data[8] == 0x15 :
+                return True
+            else:
+                return False
+        else:
+            return False
