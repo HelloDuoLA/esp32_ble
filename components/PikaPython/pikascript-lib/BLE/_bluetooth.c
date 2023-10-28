@@ -14,13 +14,18 @@
 // #include "ble_uuid.h"
 #include "cb_event_id.h"
 // TODO:发布的时候怎么将printf隐藏掉
-// #define printf __platform_printf
+
 #define printf pika_platform_printf
 
-#define GATT_SVR_SVC_ALERT_UUID               0x1811
+ble_uuid_any_t GAP_UUID = {
+    .u.type = 0,
+    .u16.value = 0x0000
+};
+
 // BLE_UUID_base = 0x00000000-0000-1000-8000-00805F9B34FB;
 
 static const char *tag = "NimBLE_BLE";
+
 bool BLE_ONLY = false;                           //只使用BLE,默认否
 bool FLASH_FIRST_INIT = true;                    //是否第一次初始化,默认是
 bool BLE_INIT   = false;                         //蓝牙是否初始化,默认不是
@@ -265,10 +270,11 @@ static void print_conn_desc(struct ble_gap_conn_desc *desc)
                 desc->sec_state.bonded);
 }
 
+// pyi 绑定的advertise函数
 int _bluetooth_BLE_advertise(PikaObj *self, int addr, int interval, pika_bool connectable, 
         uint8_t * adv_data, int adv_data_len, pika_bool adv_data_append, uint8_t * rsp_data, int rsp_data_len)
 {
-    nimble_port_freertos_init(ble_host_task);
+    // nimble_port_freertos_init(ble_host_task);
     printf("_bluetooth_BLE_gap_advertise\r\n");
     //  声明并初始化广播结构体
     struct ble_hs_adv_fields fields;
@@ -278,7 +284,7 @@ int _bluetooth_BLE_advertise(PikaObj *self, int addr, int interval, pika_bool co
     if(BLE_ONLY  == true){
         fields.flags |= BLE_HS_ADV_F_BREDR_UNSUP;
     }
-
+    // 添加广播数据
     if(adv_data_append)
     {
         fields.tx_pwr_lvl_is_present = 0;
@@ -289,12 +295,37 @@ int _bluetooth_BLE_advertise(PikaObj *self, int addr, int interval, pika_bool co
         fields.name_len = strlen(name);
         fields.name_is_complete = 1;
 
-        // TODO:UUID修改成可变的,用户在哪修改?
-        fields.uuids16 = (ble_uuid16_t[]) {
-            BLE_UUID16_INIT(GATT_SVR_SVC_ALERT_UUID)
-        };
-        fields.num_uuids16 = 1;
-        fields.uuids16_is_complete = 1;
+        // fields.uuids16 = (ble_uuid16_t[]) {
+        //         BLE_UUID16_INIT(0x180d)
+        //     };
+        // fields.num_uuids16 = 1;
+        // fields.uuids16_is_complete = 1;
+
+        if (GAP_UUID.u.type != 0){
+            // fields.uuids16 = (ble_uuid16_t[]) {
+            //     BLE_UUID16_INIT(0x180d)
+            // };
+            // fields.num_uuids16 = 1;
+            // fields.uuids16_is_complete = 1;
+
+            if(GAP_UUID.u.type == BLE_UUID_TYPE_16){
+                fields.uuids16 = &GAP_UUID;
+                fields.num_uuids16 = 1;
+                fields.uuids16_is_complete = 1;
+            }
+            else if (GAP_UUID.u.type == BLE_UUID_TYPE_32)
+            {
+                fields.uuids32 = &GAP_UUID;
+                fields.num_uuids32 = 1;
+                fields.uuids32_is_complete = 1;
+            }else if (GAP_UUID.u.type == BLE_UUID_TYPE_128)
+            {
+                fields.uuids128 = &GAP_UUID;
+                fields.num_uuids128 = 1;
+                fields.uuids128_is_complete = 1;
+            }  
+        }
+
         if(adv_data_len > 0)
         {
             fields.mfg_data = (uint8_t *)adv_data;
@@ -767,6 +798,29 @@ int _bluetooth_BLE_config_gap_name_update(PikaObj *self, char* gap_name)
     return ble_svc_gap_device_name_set(gap_name);
 }
 
+// TODO:未实现
+Arg* _bluetooth_BLE_config_gap_uuid_get(PikaObj *self)
+{
+    Arg* arg = arg_newBytes(NULL,0);
+    return arg;
+}
+
+int _bluetooth_BLE_config_gap_uuid_update(PikaObj *self, uint8_t* uuid,int len)
+{
+    printf("_bluetooth_BLE_config_gap_uuid_update\r\n");
+    if(len == 2){
+        GAP_UUID.u16.u.type = BLE_UUID_TYPE_16;
+        GAP_UUID.u16.value = uuid[0] << 8 | uuid[1];
+    }else if(len == 4){
+        GAP_UUID.u32.u.type = BLE_UUID_TYPE_32;
+        GAP_UUID.u32.value = uuid[0] << 24 | uuid[1] << 16 | uuid[2] << 8 | uuid[3];
+    }else{
+        GAP_UUID.u128.u.type = BLE_UUID_TYPE_128;
+        data_inver(uuid,GAP_UUID.u128.value,16);
+    }
+    return 0;
+}
+
 // TODO:未找到对应函数
 int _bluetooth_BLE_config_io_update(PikaObj *self, int io){
     printf("_bluetooth_BLE_config_io_update\r\n");
@@ -1056,7 +1110,7 @@ void gatt_svr_init(void)
 {
     ble_svc_gap_init();
     ble_svc_gatt_init();
-    ble_svc_ans_init();
+    // ble_svc_ans_init();
 }
 
 // 从字符串中读取UUID 结构体
@@ -1107,12 +1161,12 @@ static int ble_gatt_svc_access_cb(uint16_t conn_handle, uint16_t attr_handle,
 
                 obj_run(self, "res = _callback(data)");
                 Arg* res = obj_getArg(self, "res");
+                
                 PikaObj* tuple = arg_getObj(res);
                 int res_int    = arg_getInt(pikaTuple_getArg(tuple,0)); 
                 int byte_count = arg_getInt(pikaTuple_getArg(tuple,1)); 
                 uint8_t * value = (uint8_t * )calloc(byte_count,sizeof(uint8_t));
                 value = arg_getBytes(pikaTuple_getArg(tuple,2));
-
                 printf("res_int %d byte_count %d data %02x\r\n",res_int,byte_count,value[0]);
                 // int res_int = arg_getInt(res); 
                 if(res_int == _GATTS_NO_ERROR){ 
@@ -1138,7 +1192,7 @@ static int ble_gatt_svc_access_cb(uint16_t conn_handle, uint16_t attr_handle,
                 rc = os_mbuf_append(ctxt->om,value,byte_count);
                 return rc == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
             }
-            return 0;
+            return -1;
         case BLE_GATT_ACCESS_OP_WRITE_CHR:              //写属性值
             if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
                 printf("Characteristic write; conn_handle=%d attr_handle=%d\r\n", conn_handle, attr_handle);

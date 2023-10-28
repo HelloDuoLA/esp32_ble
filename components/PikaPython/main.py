@@ -121,7 +121,81 @@ mem.now()
 
 print('hello PikaPython')
 
-import iBeacon
+import HeartRate
+import bluetooth
+HR_sender = HeartRate.Sender()
+
+UART_UUID = bluetooth.UUID('6E400001-B5A3-F393-E0A9-E50E24DCCA9E')
+UART_TX = (bluetooth.UUID('6E400003-B5A3-F393-E0A9-E50E24DCCA9E'), bluetooth.FLAG_READ  | bluetooth.FLAG_NOTIFY | bluetooth.FLAG_INDICATE)
+UART_RX = (bluetooth.UUID('6E400002-B5A3-F393-E0A9-E50E24DCCA9E'), bluetooth.FLAG_WRITE | bluetooth.FLAG_INDICATE,((bluetooth.UUID('6E400006-B5A3-F393-E0A9-E50E24DCCA9E'),bluetooth.FLAG_WRITE),))
+UART_SERVICE = (UART_UUID, (UART_TX, UART_RX))
+# SERVICES = (UART_SERVICE,)
+
+test_char1_UUID =  bluetooth.UUID('33333333-2222-2222-1111-111100000001')
+test_flag1      =  bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY
+test_dsc1       = (bluetooth.UUID('34343434-2323-2323-1212-121201010101'),bluetooth.FLAG_DSC_READ )
+test_dsc2       = (bluetooth.UUID('34343434-2323-2323-1212-121201010102'),bluetooth.FLAG_DSC_WRITE)
+test_dscs1      = (test_dsc1,test_dsc2)
+test_char1      = (test_char1_UUID,test_flag1,test_dscs1)
+
+test_char2_UUID =  bluetooth.UUID('33333333-2222-2222-1111-111100000002')
+test_flag2      =  bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY
+test_dsc3       = (bluetooth.UUID('34343434-2323-2323-1212-121201010103'),bluetooth.FLAG_DSC_READ | bluetooth.FLAG_DSC_WRITE)
+test_dscs2      = (test_dsc3,) # 单个的时候,是必须的
+test_char2      = (test_char2_UUID,test_flag2,test_dscs2)
+
+test_UUID      =  bluetooth.UUID('59462f12-9543-9999-12C8-58B459A2712D')
+test_chars      = (test_char1,test_char2)
+test_service    = (test_UUID, test_chars)
+
+UART_UUID = bluetooth.UUID('6E400001-B5A3-F393-E0A9-E50E24DCCA9F')
+UART_TX = (bluetooth.UUID('6E400003-B5A3-F393-E0A9-E50E24DCCA9F'), bluetooth.FLAG_READ  | bluetooth.FLAG_NOTIFY | bluetooth.FLAG_INDICATE)
+UART_RX = (bluetooth.UUID('6E400002-B5A3-F393-E0A9-E50E24DCCA9F'), bluetooth.FLAG_WRITE | bluetooth.FLAG_INDICATE,((bluetooth.UUID('6E400006-B5A3-F393-E0A9-E50E24DCCA9E'),bluetooth.FLAG_WRITE),))
+UART_SERVICE2 = (UART_UUID, (UART_TX, UART_RX))
+
+SERVICES = (UART_SERVICE,test_service,)
+# HR_sender._ble.config(gap_uuid = bluetooth.UUID(0x180d))
+# HR_sender._ble.config(gap_uuid = bluetooth.UUID('6E400002-B5A3-F393-E0A9-E50E24DCCA9F'))
+B = HR_sender.register_services(HeartRate.FLAG_SRV_BSL)
+
+HR_sender.config(sensor_location=HeartRate.SENSOR_LOC_OTHER)
+HR_sender.config("sensor_location")
+HR_sender.config("hr")
+HR_sender.config(gap_name = "HeartRate")
+HR_sender.adv(62500)
+
+# HR_sender.update_hr(97)
+# HR_sender.update_hr(98)
+# HR_sender._ble.gatts_notify(1,20,23)
+# HR_sender._ble.gatts_notify(1,21)
+# HR_sender._ble.gatts_write(21,HeartRate.SENSOR_LOC_FINGER)
+# HR_sender._ble.gatts_write(20,0x0648)
+# HR_sender._ble.gatts_notify(1,20,[0x06,0x48])
+# HR_sender._ble.gatts_notify(1,20,[0x22,0x48])
+# HR_sender._ble.gatts_write(20,[0x06,0x48],True)
+# HR_sender._ble.gatts_write(21,0)
+
+
+# HR_sender._ble._py2c_dict
+# HR_sender._ble._c2py_dict    
+# HR_sender._ble._c2value_dict 
+
+# TODO:断开蓝牙连接会报错
+# TODO:DEBUG    
+
+# for i in range(256):
+#     HR_sender._ble.gatts_write(20,[i,99],True)
+    # HR_sender._ble.gatts_write(20,[0x06,99],True) # invalid
+    # HR_sender._ble.gatts_write(20,[0x08,99],True) # invalid
+    # HR_sender._ble.gatts_write(20,[0x09,99],True) # invalid
+    # HR_sender._ble.gatts_write(20,[0x0A,99],True) # invalid
+    # HR_sender._ble.gatts_write(20,[0x0B,99],True) # invalid
+
+# import test_HeartRate
+# e = test_HeartRate.run()
+
+
+# import iBeacon
 
 # a = iBeacon.Sender()
 # a.active(1)
@@ -149,9 +223,9 @@ def _self_irq(event_id,data):
     elif event_id == 6: #_IRQ_SCAN_DONE
         print(data)
 
-a = iBeacon.Receiver()
-a.active(1)
-a.irq(_self_irq)
+# a = iBeacon.Receiver()
+# a.active(1)
+# a.irq(_self_irq)
 # a.scan(10000,320000)
 # a.scan(None)
 
